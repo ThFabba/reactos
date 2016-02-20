@@ -45,6 +45,6 @@ NTSTATUS NTAPI CreateUSBQueue(PUSBQUEUE *OutUsbQueue);
 //
 // usb_request.cpp
 //
-NTSTATUS NTAPI InternalCreateUSBRequest(PUSBREQUEST *OutRequest);
+NTSTATUS NTAPI InternalCreateUSBRequest(PUSBREQUEST *OutRequest, PVOID m_DoubleBuffer, ULONG m_DoublePhysBuffer);
 
 #endif /* USBUHCI_H__ */

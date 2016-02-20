@@ -133,7 +133,17 @@ protected:
     // base
     PVOID m_Base;
 
+    // double buffer for transfer data
+    PVOID m_DoubleBuffer;                                                             // m_DoubleBuffer = MmAllocateContiguousMemory(...); 
+    ULONG m_DoublePhysBuffer;                                                         // m_DoublePhysBuffer = MmGetPhysicalAddress(m_DoubleBuffer).LowPart;
 };
+
+VOID
+CUSBRequest::GetDoubleBuffer(PVOID DoubleBuffer, ULONG DoublePhysBuffer)
+{
+    m_DoubleBuffer     = DoubleBuffer;
+    m_DoublePhysBuffer = DoublePhysBuffer;
+}
 
 //----------------------------------------------------------------------------------------
 NTSTATUS
@@ -1399,7 +1409,7 @@ CUSBRequest::CompletionCallback()
 NTSTATUS
 NTAPI
 InternalCreateUSBRequest(
-    PUSBREQUEST *OutRequest)
+    PUSBREQUEST *OutRequest, PVOID DoubleBuffer, ULONG DoublePhysBuffer)
 {
     PUSBREQUEST This;
 
@@ -1419,6 +1429,8 @@ InternalCreateUSBRequest(
     // add reference count
     //
     This->AddRef();
+
+    This->GetDoubleBuffer(DoubleBuffer, DoublePhysBuffer);
 
     //
     // return result

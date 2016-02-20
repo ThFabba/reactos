@@ -56,6 +56,9 @@ protected:
     KSPIN_LOCK m_Lock;                                                                  // list lock
     PUHCIHARDWAREDEVICE m_Hardware;                                                     // hardware
     
+    // double buffer for transfer data
+    PVOID m_DoubleBuffer;                                                             // m_DoubleBuffer = MmAllocateContiguousMemory(...); 
+    ULONG m_DoublePhysBuffer;                                                         // m_DoublePhysBuffer = MmGetPhysicalAddress(m_DoubleBuffer).LowPart;
 };
 
 //=================================================================================================
@@ -82,6 +85,8 @@ CUSBQueue::Initialize(
     IN PUSBHARDWAREDEVICE Hardware,
     IN PDMA_ADAPTER AdapterObject,
     IN PDMAMEMORYMANAGER MemManager,
+    IN PVOID DoubleBuffer,
+    IN ULONG DoublePhysBuffer,
     IN OPTIONAL PKSPIN_LOCK Lock)
 {
 
@@ -290,7 +295,7 @@ CUSBQueue::CreateUSBRequest(
     NTSTATUS Status;
 
     *OutRequest = NULL;
-    Status = InternalCreateUSBRequest(&UsbRequest);
+    Status = InternalCreateUSBRequest(&UsbRequest, m_DoubleBuffer, m_DoublePhysBuffer);
 
     if (NT_SUCCESS(Status))
     {
