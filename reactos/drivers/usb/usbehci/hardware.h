@@ -151,8 +151,10 @@ typedef struct _QUEUE_TRANSFER_DESCRIPTOR
     ULONG PhysicalAddr;
     LIST_ENTRY DescriptorEntry;
     ULONG TotalBytesToTransfer;
+    UCHAR Padded[0x3C];             // +0x44
 } QUEUE_TRANSFER_DESCRIPTOR, *PQUEUE_TRANSFER_DESCRIPTOR;
 
+C_ASSERT(sizeof(QUEUE_TRANSFER_DESCRIPTOR) == 0x80);
 C_ASSERT(FIELD_OFFSET(QUEUE_TRANSFER_DESCRIPTOR, PhysicalAddr) == 0x34);
 
 //
@@ -221,8 +223,10 @@ typedef struct _QUEUE_HEAD
     LIST_ENTRY TransferDescriptorListHead;
     PVOID NextQueueHead;
     PVOID Request;
+    UCHAR Padded[0x20];               // +0x60
 } QUEUE_HEAD, *PQUEUE_HEAD;
 
+C_ASSERT(sizeof(QUEUE_HEAD) == 0x80);
 C_ASSERT(sizeof(END_POINT_CHARACTERISTICS) == 4);
 C_ASSERT(sizeof(END_POINT_CAPABILITIES) == 4);
 
