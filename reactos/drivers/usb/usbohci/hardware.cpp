@@ -105,6 +105,10 @@ protected:
     volatile LONG m_StatusChangeWorkItemStatus;                                        // work item active status
     ULONG m_SyncFramePhysAddr;                                                         // periodic frame list physical address
     ULONG m_IntervalValue;                                                             // periodic interval value
+
+    // double buffer for transfer data
+    PVOID m_DoubleBuffer;                                                             // m_DoubleBuffer = MmAllocateContiguousMemory(...); 
+    ULONG m_DoublePhysBuffer;                                                         // m_DoublePhysBuffer = MmGetPhysicalAddress(m_DoubleBuffer).LowPart;
 };
 
 //=================================================================================================
@@ -370,7 +374,7 @@ CUSBHardwareDevice::PnpStart(
     //
     // Initialize the UsbQueue now that we have an AdapterObject.
     //
-    Status = m_UsbQueue->Initialize(this, m_Adapter, m_MemoryManager, NULL);
+    Status = m_UsbQueue->Initialize(this, m_Adapter, m_MemoryManager, m_DoubleBuffer, m_DoublePhysBuffer, NULL);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("Failed to Initialize the UsbQueue\n");

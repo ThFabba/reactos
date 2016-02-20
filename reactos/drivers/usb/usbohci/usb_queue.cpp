@@ -66,6 +66,10 @@ protected:
     POHCI_ENDPOINT_DESCRIPTOR m_IsoHeadEndpointDescriptor;                              // isochronous head descriptor
     POHCI_ENDPOINT_DESCRIPTOR * m_InterruptEndpoints;
     LIST_ENTRY m_PendingRequestList;                                                    // pending request list
+
+    // double buffer for transfer data
+    PVOID m_DoubleBuffer;                                                             // m_DoubleBuffer = MmAllocateContiguousMemory(...); 
+    ULONG m_DoublePhysBuffer;                                                         // m_DoublePhysBuffer = MmGetPhysicalAddress(m_DoubleBuffer).LowPart;
 };
 
 //=================================================================================================
@@ -93,6 +97,8 @@ CUSBQueue::Initialize(
     IN PUSBHARDWAREDEVICE Hardware,
     IN PDMA_ADAPTER AdapterObject,
     IN PDMAMEMORYMANAGER MemManager,
+    IN PVOID DoubleBuffer,
+    IN ULONG DoublePhysBuffer,
     IN OPTIONAL PKSPIN_LOCK Lock)
 {
     if (!Hardware)
@@ -356,7 +362,7 @@ CUSBQueue::CreateUSBRequest(
     NTSTATUS Status;
 
     *OutRequest = NULL;
-    Status = InternalCreateUSBRequest(&UsbRequest);
+    Status = InternalCreateUSBRequest(&UsbRequest, m_DoubleBuffer, m_DoublePhysBuffer);
 
     if (NT_SUCCESS(Status))
     {
