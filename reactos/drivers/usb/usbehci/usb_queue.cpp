@@ -134,6 +134,11 @@ CUSBQueue::Initialize(
     DPRINT("CUSBQueue::Initialize()\n");
 
     ASSERT(Hardware);
+    ASSERT(DoubleBuffer);
+    ASSERT(DoublePhysBuffer);
+
+    m_DoubleBuffer     = DoubleBuffer;
+    m_DoublePhysBuffer = DoublePhysBuffer;
 
     //
     // store device lock
