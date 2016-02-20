@@ -306,6 +306,7 @@ CUSBHardwareDevice::PnpStart(
     NTSTATUS Status;
     UCHAR Value;
     UCHAR PortCount;
+    PHYSICAL_ADDRESS HighestAddress = {{0xFFFFFFFF, 0}};
 
     DPRINT("CUSBHardwareDevice::PnpStart\n");
     for(Index = 0; Index < TranslatedResources->List[0].PartialResourceList.Count; Index++)
@@ -436,6 +437,20 @@ CUSBHardwareDevice::PnpStart(
         DPRINT1("Failed to acquire dma adapter\n");
         return STATUS_INSUFFICIENT_RESOURCES;
     }
+
+    // create doublebuffer for transfers
+
+    //FIXME: relation <- (usbstor\disk.c:USBSTOR_HandleQueryProperty()) AdapterDescriptor->MaximumPhysicalPages = 25; //FIXME compute some sane value
+    m_DoubleBuffer = MmAllocateContiguousMemory(25 * PAGE_SIZE, HighestAddress); 
+    if ( !m_DoubleBuffer )
+    {
+      DPRINT1("PnpStart: Not created DoubleBuffer!\n");
+      Status = STATUS_INSUFFICIENT_RESOURCES;
+      return Status;
+    }
+    RtlZeroMemory((PVOID)m_DoubleBuffer, 25 * PAGE_SIZE); //need ?
+
+    m_DoublePhysBuffer = MmGetPhysicalAddress(m_DoubleBuffer).LowPart;
 
     //
     // Create Common Buffer
