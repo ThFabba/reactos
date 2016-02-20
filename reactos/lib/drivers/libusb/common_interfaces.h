@@ -326,6 +326,10 @@ struct IUSBDevice;
                                                                             \
     STDMETHOD_(ULONG, GetTransferType)( THIS) PURE;                         \
                                                                             \
+    STDMETHOD_(VOID, GetDoubleBuffer)( THIS_                                \
+        IN  PVOID DoubleBuffer,                                             \
+        IN  ULONG DoublePhysBuffer) PURE;                                   \
+                                                                            \
     STDMETHOD_(VOID, GetResultStatus)( THIS_                                \
         OUT OPTIONAL NTSTATUS * NtStatusCode,                               \
         OUT OPTIONAL PULONG UrbStatusCode) PURE;
@@ -347,6 +351,10 @@ struct IUSBDevice;
     STDMETHODIMP_(BOOLEAN) IsRequestComplete(VOID);                         \
                                                                             \
     STDMETHODIMP_(ULONG) GetTransferType(VOID);                             \
+                                                                            \
+    STDMETHODIMP_(VOID) GetDoubleBuffer(                                    \
+        IN  PVOID DoubleBuffer,                                             \
+        IN  ULONG DoublePhysBuffer);                                        \
                                                                             \
     STDMETHODIMP_(VOID) GetResultStatus(                                    \
         OUT OPTIONAL NTSTATUS * NtStatusCode,                               \
@@ -373,6 +381,8 @@ typedef IUSBRequest *PUSBREQUEST;
         IN PUSBHARDWAREDEVICE Hardware,                                     \
         IN PDMA_ADAPTER AdapterObject,                                      \
         IN PDMAMEMORYMANAGER MemManager,                                    \
+        IN PVOID DoubleBuffer,                                              \
+        IN ULONG DoublePhysBuffer,                                          \
         IN OPTIONAL PKSPIN_LOCK Lock) PURE;                                 \
                                                                             \
     STDMETHOD_(NTSTATUS, AddUSBRequest)( THIS_                              \
@@ -390,6 +400,8 @@ typedef IUSBRequest *PUSBREQUEST;
         IN PUSBHARDWAREDEVICE Hardware,                                     \
         IN PDMA_ADAPTER AdapterObject,                                      \
         IN PDMAMEMORYMANAGER MemManager,                                    \
+        IN PVOID DoubleBuffer,                                              \
+        IN ULONG DoublePhysBuffer,                                          \
         IN OPTIONAL PKSPIN_LOCK Lock);                                      \
                                                                             \
     STDMETHODIMP_(NTSTATUS) AddUSBRequest(                                  \
