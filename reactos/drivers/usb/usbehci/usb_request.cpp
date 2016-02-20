@@ -135,6 +135,9 @@ protected:
     // device speed
     USB_DEVICE_SPEED m_Speed;
 
+    // double buffer for transfer data
+    PVOID m_DoubleBuffer;                                                             // m_DoubleBuffer = MmAllocateContiguousMemory(...); 
+    ULONG m_DoublePhysBuffer;                                                         // m_DoublePhysBuffer = MmGetPhysicalAddress(m_DoubleBuffer).LowPart;
 };
 
 //----------------------------------------------------------------------------------------
@@ -145,6 +148,13 @@ CUSBRequest::QueryInterface(
     OUT PVOID* Output)
 {
     return STATUS_UNSUCCESSFUL;
+}
+
+VOID
+CUSBRequest::GetDoubleBuffer(PVOID DoubleBuffer, ULONG DoublePhysBuffer)
+{
+    m_DoubleBuffer     = DoubleBuffer;
+    m_DoublePhysBuffer = DoublePhysBuffer;
 }
 
 //----------------------------------------------------------------------------------------
@@ -1802,7 +1812,7 @@ CUSBRequest::GetInterval()
 NTSTATUS
 NTAPI
 InternalCreateUSBRequest(
-    PUSBREQUEST *OutRequest)
+    PUSBREQUEST *OutRequest, PVOID DoubleBuffer, ULONG DoublePhysBuffer)
 {
     PUSBREQUEST This;
 
@@ -1822,6 +1832,8 @@ InternalCreateUSBRequest(
     // add reference count
     //
     This->AddRef();
+
+    This->GetDoubleBuffer(DoubleBuffer, DoublePhysBuffer);
 
     //
     // return result
