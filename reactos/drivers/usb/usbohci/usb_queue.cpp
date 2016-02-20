@@ -114,6 +114,12 @@ CUSBQueue::Initialize(
     m_Hardware = POHCIHARDWAREDEVICE(Hardware);
     ASSERT(m_Hardware);
 
+    ASSERT(DoubleBuffer);
+    ASSERT(DoublePhysBuffer);
+
+    m_DoubleBuffer     = DoubleBuffer;
+    m_DoublePhysBuffer = DoublePhysBuffer;
+
     //
     // get bulk endpoint descriptor
     //
