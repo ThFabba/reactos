@@ -47,6 +47,7 @@ public:
     NTSTATUS BuildSetupPacketFromURB();
     NTSTATUS BuildControlTransferDescriptor(POHCI_ENDPOINT_DESCRIPTOR * OutEndpointDescriptor);
     NTSTATUS BuildBulkInterruptEndpoint(POHCI_ENDPOINT_DESCRIPTOR * OutEndpointDescriptor);
+    NTSTATUS BuildBulkInterruptDataEndpoint(POHCI_ENDPOINT_DESCRIPTOR * OutEndpointDescriptor);
     NTSTATUS BuildIsochronousEndpoint(POHCI_ENDPOINT_DESCRIPTOR * OutEndpointDescriptor);
     NTSTATUS CreateGeneralTransferDescriptor(POHCI_GENERAL_TD* OutDescriptor, ULONG BufferSize);
     VOID FreeDescriptor(POHCI_GENERAL_TD Descriptor);
@@ -401,6 +402,14 @@ CUSBRequest::InitializeWithIrp(
                 else
                 {
                     m_TransferBufferMDL = m_Urb->UrbBulkOrInterruptTransfer.TransferBufferMDL;
+                }
+
+                if (!(m_Urb->UrbBulkOrInterruptTransfer.TransferFlags & USBD_TRANSFER_DIRECTION_IN))
+                {
+                   // copy from MDL buffer to Double Buffer
+                   RtlCopyMemory((PVOID)((ULONG_PTR)m_DoubleBuffer + m_TransferBufferMDL->ByteOffset),
+                                 (PVOID)((ULONG_PTR)m_TransferBufferMDL->StartVa + m_TransferBufferMDL->ByteOffset),
+                                 m_Urb->UrbBulkOrInterruptTransfer.TransferBufferLength);
                 }
 
                 //
@@ -1357,6 +1366,153 @@ CUSBRequest::BuildBulkInterruptEndpoint(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS
+CUSBRequest::BuildBulkInterruptDataEndpoint(
+    POHCI_ENDPOINT_DESCRIPTOR * OutEndpointDescriptor)
+{
+    NTSTATUS                   Status;
+    POHCI_ENDPOINT_DESCRIPTOR  EndpointDescriptor;
+    POHCI_GENERAL_TD           FirstDescriptor = NULL;
+    POHCI_GENERAL_TD           LastDescriptor = NULL;
+    POHCI_GENERAL_TD           CurrentDescriptor;
+    ULONG                      MaxTransferLength;
+    ULONG                      TransferBufferOffset = 0;
+    ULONG                      TransferSize;
+    ULONG                      MaxPacketSize = 0;
+    ULONG                      Direction;
+    PHYSICAL_ADDRESS           Address;
+    ULONG                      PageNumber = 0;
+
+
+    // sanity check
+    ASSERT(m_TransferBufferMDL);
+    ASSERT(m_EndpointDescriptor);
+
+    // allocate endpoint descriptor
+    Status = AllocateEndpointDescriptor(&EndpointDescriptor);
+
+    // failed to create setup descriptor
+    if (!NT_SUCCESS(Status))
+       return Status;
+
+    //DPRINT("BuildBulkInterruptDataEndpoint: EndpointDescriptor - %p, CurrentThread - %p\n", EndpointDescriptor, PsGetCurrentThread());
+
+    ASSERT(m_EndpointDescriptor);
+
+    // use 1 * PAGE_SIZE at max for each new request
+    MaxTransferLength = min(1 * PAGE_SIZE, m_TransferBufferLength - m_TransferBufferLengthCompleted);
+
+    // for now use one page as maximum size
+    MaxPacketSize = PAGE_SIZE;
+
+    // transfer size is minimum available buffer or endpoint size
+    if (MaxPacketSize)
+        TransferSize = min(MaxTransferLength - TransferBufferOffset, MaxPacketSize);
+    else  // use available buffer
+        TransferSize = MaxTransferLength - TransferBufferOffset;
+
+    do
+    {
+       // allocate transfer descriptor
+       Status = CreateGeneralTransferDescriptor(&CurrentDescriptor, 0);
+
+        // failed to allocate transfer descriptor
+        if (!NT_SUCCESS(Status))
+           return STATUS_INSUFFICIENT_RESOURCES;
+
+        if (InternalGetPidDirection())
+            Direction = OHCI_TD_DIRECTION_PID_IN;   // input direction
+        else
+            Direction = OHCI_TD_DIRECTION_PID_OUT;  // output direction
+
+        // initialize descriptor
+        CurrentDescriptor->Flags = Direction |
+                                   OHCI_TD_BUFFER_ROUNDING |
+                                   OHCI_TD_SET_CONDITION_CODE(OHCI_TD_CONDITION_NOT_ACCESSED) |
+                                   OHCI_TD_SET_DELAY_INTERRUPT(OHCI_TD_INTERRUPT_NONE) |
+                                   OHCI_TD_TOGGLE_CARRY;
+
+        // store physical address of buffer
+
+        // if transfer size >= 4096 (1 and more pages)
+        if (m_TransferBufferLength >= PAGE_SIZE)
+        {
+            PageNumber = (m_TransferBufferLengthCompleted >> PAGE_SHIFT) & 0x0000001F;
+
+            if ( (PageNumber == 0)  &&  (m_TransferBufferMDL->ByteOffset > 0) )
+              Address.LowPart = m_DoublePhysBuffer + m_TransferBufferMDL->ByteOffset;
+            else
+              Address.LowPart = m_DoublePhysBuffer + PageNumber * PAGE_SIZE;
+        }
+        else
+        {
+            // if transfer size < 4096 (< 1 page)
+            Address.LowPart = m_DoublePhysBuffer + m_TransferBufferMDL->ByteOffset;
+        }
+
+        if (Address.LowPart == 0)
+        {
+            // error
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        CurrentDescriptor->BufferPhysical = Address.LowPart;
+        CurrentDescriptor->LastPhysicalByteAddress = CurrentDescriptor->BufferPhysical + TransferSize - 1; 
+
+        DPRINT("BuildBulkInterruptDataEndpoint: CurrentDescriptor->BufferPhysical - %p, TransferSize %x\n", CurrentDescriptor->BufferPhysical, TransferSize);
+
+        // adjust offset
+        TransferBufferOffset += TransferSize;
+
+        // is there a previous descriptor
+        if (LastDescriptor )
+        {
+            // link descriptors
+            LastDescriptor->NextLogicalDescriptor = (PVOID)CurrentDescriptor;
+            LastDescriptor->NextPhysicalDescriptor = CurrentDescriptor->PhysicalAddress.LowPart;
+        }
+        else
+        {
+          // it is the first descriptor
+          FirstDescriptor = CurrentDescriptor;
+        }
+
+        // end reached
+        if (MaxTransferLength == TransferBufferOffset)
+           break;
+
+    } while (TRUE);
+
+    // store last descriptor
+    LastDescriptor = CurrentDescriptor;
+
+   // move to next offset
+    m_TransferBufferLengthCompleted += TransferBufferOffset;
+
+    // first descriptor has no carry bit
+    FirstDescriptor->Flags &= ~OHCI_TD_TOGGLE_CARRY;
+
+    // apply data toggle
+    FirstDescriptor->Flags |= (m_EndpointDescriptor->DataToggle ? OHCI_TD_TOGGLE_1 : OHCI_TD_TOGGLE_0);
+
+    // clear interrupt mask for last transfer descriptor
+    LastDescriptor->Flags &= ~OHCI_TD_INTERRUPT_MASK;
+
+    // fire interrupt as soon transfer is finished
+    LastDescriptor->Flags |= OHCI_TD_SET_DELAY_INTERRUPT(OHCI_TD_INTERRUPT_IMMEDIATE);
+
+    // now link descriptor to endpoint
+    EndpointDescriptor->HeadPhysicalDescriptor = FirstDescriptor->PhysicalAddress.LowPart;
+    EndpointDescriptor->TailPhysicalDescriptor = (FirstDescriptor == LastDescriptor  ?  0 : LastDescriptor->PhysicalAddress.LowPart);
+    EndpointDescriptor->HeadLogicalDescriptor  = FirstDescriptor;
+
+    //DumpEndpointDescriptor(EndpointDescriptor);  // dump descriptor list
+
+    *OutEndpointDescriptor = EndpointDescriptor;   // store result
+
+    return STATUS_SUCCESS;                         // done
+}
+
 VOID
 CUSBRequest::DumpEndpointDescriptor(
     POHCI_ENDPOINT_DESCRIPTOR Descriptor)
@@ -1608,7 +1764,7 @@ CUSBRequest::GetEndpointDescriptor(
             break;
         case USB_ENDPOINT_TYPE_BULK:
         case USB_ENDPOINT_TYPE_INTERRUPT:
-            Status = BuildBulkInterruptEndpoint(OutDescriptor);
+            Status = BuildBulkInterruptDataEndpoint(OutDescriptor); //BuildBulkInterruptEndpoint
             break;
         case USB_ENDPOINT_TYPE_ISOCHRONOUS:
             Status = BuildIsochronousEndpoint((POHCI_ENDPOINT_DESCRIPTOR*)OutDescriptor);
@@ -1936,6 +2092,14 @@ CUSBRequest::CompletionCallback()
         // get urb
         //
         Urb = (PURB)IoStack->Parameters.Others.Argument1;
+
+        // copy from doublebuffer to MDL buffer
+        if (Urb->UrbBulkOrInterruptTransfer.TransferFlags & USBD_TRANSFER_DIRECTION_IN)
+        {
+           RtlCopyMemory((PVOID)((ULONG_PTR)m_TransferBufferMDL->StartVa + m_TransferBufferMDL->ByteOffset),
+                         (PVOID)((ULONG_PTR)m_DoubleBuffer + m_TransferBufferMDL->ByteOffset),
+                         Urb->UrbBulkOrInterruptTransfer.TransferBufferLength);
+        }
 
         //
         // store urb status
