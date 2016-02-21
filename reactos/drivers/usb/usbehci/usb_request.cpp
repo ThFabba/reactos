@@ -45,6 +45,7 @@ public:
     UCHAR InternalGetPidDirection();
     NTSTATUS BuildControlTransferQueueHead(PQUEUE_HEAD * OutHead);
     NTSTATUS BuildBulkInterruptTransferQueueHead(PQUEUE_HEAD * OutHead);
+    NTSTATUS BuildBulkInterruptDataTransferQueueHead(PQUEUE_HEAD * OutHead);
     NTSTATUS STDMETHODCALLTYPE CreateDescriptor(PQUEUE_TRANSFER_DESCRIPTOR *OutDescriptor);
     NTSTATUS CreateQueueHead(PQUEUE_HEAD *OutQueueHead);
     UCHAR STDMETHODCALLTYPE GetDeviceAddress();
@@ -316,6 +317,13 @@ CUSBRequest::InitializeWithIrp(
                     m_TransferBufferMDL = Urb->UrbBulkOrInterruptTransfer.TransferBufferMDL;
                 }
 
+                if (!(Urb->UrbBulkOrInterruptTransfer.TransferFlags & USBD_TRANSFER_DIRECTION_IN))
+                {
+                   RtlCopyMemory((PVOID)((ULONG_PTR)m_DoubleBuffer + m_TransferBufferMDL->ByteOffset),
+                                 (PVOID)((ULONG_PTR)m_TransferBufferMDL->StartVa + m_TransferBufferMDL->ByteOffset),
+                                 Urb->UrbBulkOrInterruptTransfer.TransferBufferLength);
+                }
+
                 //
                 // save buffer length
                 //
@@ -416,6 +424,13 @@ CUSBRequest::CompletionCallback(
             // calculate transfer length
             //
             Urb->UrbBulkOrInterruptTransfer.TransferBufferLength = InternalCalculateTransferLength();
+
+            if (Urb->UrbBulkOrInterruptTransfer.TransferFlags & USBD_TRANSFER_DIRECTION_IN)
+            {
+               RtlCopyMemory((PVOID)((ULONG_PTR)m_TransferBufferMDL->StartVa + m_TransferBufferMDL->ByteOffset),
+                             (PVOID)((ULONG_PTR)m_DoubleBuffer + m_TransferBufferMDL->ByteOffset),
+                             Urb->UrbBulkOrInterruptTransfer.TransferBufferLength);
+            }
         }
 
         DPRINT("Request %p Completing Irp %p NtStatusCode %x UrbStatusCode %x Transferred Length %lu\n", this, m_Irp, NtStatusCode, UrbStatusCode, Urb->UrbBulkOrInterruptTransfer.TransferBufferLength);
@@ -460,7 +475,7 @@ CUSBRequest::GetQueueHead(
             break;
         case USB_ENDPOINT_TYPE_INTERRUPT:
         case USB_ENDPOINT_TYPE_BULK:
-            Status = BuildBulkInterruptTransferQueueHead(OutHead);
+            Status = BuildBulkInterruptDataTransferQueueHead(OutHead); //BuildBulkInterruptTransferQueueHead
             break;
         case USB_ENDPOINT_TYPE_ISOCHRONOUS:
             DPRINT1("USB_ENDPOINT_TYPE_ISOCHRONOUS not implemented\n");
@@ -1223,6 +1238,252 @@ CUSBRequest::BuildBulkInterruptTransferQueueHead(
     // done
     //
     return STATUS_SUCCESS;
+}
+
+NTSTATUS
+CUSBRequest::BuildBulkInterruptDataTransferQueueHead(
+    PQUEUE_HEAD * OutHead)
+{
+    PQUEUE_TRANSFER_DESCRIPTOR  FirstDescriptor;
+    PQUEUE_TRANSFER_DESCRIPTOR  LastDescriptor;
+    PQUEUE_TRANSFER_DESCRIPTOR  CurrentDescriptor;
+    PQUEUE_TRANSFER_DESCRIPTOR  PreviousDescriptor = NULL;
+    PHYSICAL_ADDRESS            Address;
+    PQUEUE_HEAD                 QueueHead;
+    NTSTATUS                    Status;
+    PVOID                       Base;
+    ULONG                       DescriptorLength;
+    ULONG                       ChainDescriptorLength;
+    ULONG                       MaxPacketSize = 0;
+    ULONG                       MaxTransferLength;
+    ULONG                       TransferSize;
+    PVOID                       TransferBuffer;
+    ULONG                       TransferBufferOffset = 0;
+    ULONG                       BufferLength;
+    ULONG                       Index;
+    ULONG                       Length = 0;
+    ULONG                       PageOffset;
+    UCHAR                       InitialDataToggle;
+
+
+    // Allocate the queue head
+    Status = CreateQueueHead(&QueueHead);
+
+    if (!NT_SUCCESS(Status))
+    {
+        // failed to allocate queue heads
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    // sanity checks
+    PC_ASSERT(QueueHead);
+    PC_ASSERT(m_TransferBufferLength);
+
+    if (!m_Base)
+    {
+        // get virtual base of mdl
+        m_Base = MmGetSystemAddressForMdlSafe(m_TransferBufferMDL, NormalPagePriority);
+    }
+
+    // Increase the size of last transfer, 0 in case this is the first
+    Base = (PVOID)((ULONG_PTR)m_Base + m_TransferBufferLengthCompleted);
+
+    // sanity check
+    PC_ASSERT(m_EndpointDescriptor);
+    PC_ASSERT(Base);
+    ASSERT(m_EndpointDescriptor);
+
+    InitialDataToggle = m_EndpointDescriptor->DataToggle;
+
+    // use 4 * PAGE_SIZE at max for each new request
+    MaxTransferLength = min(4 * PAGE_SIZE, m_TransferBufferLength - m_TransferBufferLengthCompleted);
+
+    // build bulk transfer descriptor chain
+
+    if (m_EndpointDescriptor)    // is there an endpoint descriptor
+    {
+        // use endpoint packet size
+        MaxPacketSize = m_EndpointDescriptor->EndPointDescriptor.wMaxPacketSize;
+    }
+
+    do
+    {
+        // allocate transfer descriptor
+        Status = CreateDescriptor(&CurrentDescriptor);
+        if (!NT_SUCCESS(Status))
+        {
+            // failed to allocate transfer descriptor
+            return STATUS_INSUFFICIENT_RESOURCES;
+        }
+
+        if (MaxPacketSize)
+        {
+            // transfer size is minimum available buffer or endpoint size
+            TransferSize = min(MaxTransferLength - TransferBufferOffset, MaxPacketSize);
+        }
+        else
+        {
+            // use available buffer
+            TransferSize = MaxTransferLength - TransferBufferOffset;
+        }
+
+        ASSERT(TransferSize);    // sanity check
+
+        // now init the descriptor
+        TransferBuffer = (PVOID)((ULONG_PTR)Base + TransferBufferOffset);
+
+        // init transfer descriptor
+        CurrentDescriptor->Token.Bits.PIDCode              = InternalGetPidDirection();
+        CurrentDescriptor->Token.Bits.TotalBytesToTransfer = 0;
+        CurrentDescriptor->Token.Bits.DataToggle           = InitialDataToggle;
+
+        // store buffers
+
+        Index = 0;
+        ULONG PageNumber = 0;
+
+        do
+        {
+            // store physical address of buffer
+
+            Length = 0;
+
+            // if transfer size >= 4096 (1 and more pages)
+            if (m_TransferBufferLength >= PAGE_SIZE)
+            {
+                PageNumber = (m_TransferBufferLengthCompleted >> PAGE_SHIFT) & 0x0000001F;
+
+                if ( (PageNumber == 0)  &&  (m_TransferBufferMDL->ByteOffset > 0) )
+                  Address.LowPart = m_DoublePhysBuffer + TransferBufferOffset + m_TransferBufferMDL->ByteOffset;
+                else
+                  Address.LowPart = m_DoublePhysBuffer + TransferBufferOffset + PageNumber * PAGE_SIZE;
+            }
+            else
+            {
+                // if transfer size < 4096 (< 1 page)
+                Address.LowPart = m_DoublePhysBuffer + TransferBufferOffset + m_TransferBufferMDL->ByteOffset;
+            }
+
+            if (Address.LowPart == 0)
+            {
+                // error
+                return STATUS_UNSUCCESSFUL;
+            }
+
+            // use physical address
+            CurrentDescriptor->BufferPointer[Index] = Address.LowPart;
+            CurrentDescriptor->ExtendedBufferPointer[Index] = 0;//Address.HighPart;
+
+            // Get the offset from page size
+            PageOffset = BYTE_OFFSET(CurrentDescriptor->BufferPointer[Index]);
+
+            if (PageOffset != 0)
+            {
+               // move to next page
+               TransferBuffer = (PVOID)ROUND_TO_PAGES(TransferBuffer);
+            }
+            else
+            {
+                // move to next page
+                TransferBuffer = (PVOID)((ULONG_PTR)TransferBuffer + PAGE_SIZE);
+            }
+
+            // calculate buffer length
+            BufferLength = min(TransferSize, PAGE_SIZE - PageOffset);
+
+            // increment transfer bytes
+            CurrentDescriptor->Token.Bits.TotalBytesToTransfer += BufferLength;
+            CurrentDescriptor->TotalBytesToTransfer += BufferLength;
+
+            Length += BufferLength;
+
+            DPRINT("Index %lu TransferSize %lu PageOffset %x BufferLength %lu Buffer Phy %p TransferBuffer %p\n",
+                  Index, TransferSize, PageOffset, BufferLength, CurrentDescriptor->BufferPointer[Index], TransferBuffer);
+
+            TransferSize -= BufferLength;  // decrement available byte count
+
+            if (TransferSize == 0)
+            {
+                break;  // end reached
+            }
+
+            if (Index > 1)  // sanity check
+            {
+                // no equal buffers
+                ASSERT(CurrentDescriptor->BufferPointer[Index] != CurrentDescriptor->BufferPointer[Index-1]);
+            }
+
+            Index++;  // next descriptor index
+            PageNumber++;
+
+        } while (Index < 5);
+
+        // store result
+        DescriptorLength = Length;
+
+        // insert into queue head
+        InsertTailList(&QueueHead->TransferDescriptorListHead, &CurrentDescriptor->DescriptorEntry);
+
+        // adjust offset
+        TransferBufferOffset += DescriptorLength;
+
+        if (PreviousDescriptor)
+        {
+            // link to current descriptor
+            PreviousDescriptor->NextPointer = CurrentDescriptor->PhysicalAddr;
+            PreviousDescriptor = CurrentDescriptor;
+        }
+        else
+        {
+            // first descriptor in chain
+            PreviousDescriptor = FirstDescriptor = CurrentDescriptor;
+        }
+
+        InitialDataToggle = !InitialDataToggle;  // flip data toggle
+
+        if(TransferBufferOffset == MaxTransferLength)
+        {
+            break;  // end reached
+        }
+
+    } while(TRUE);
+
+    // store last descriptor
+    LastDescriptor = CurrentDescriptor;
+
+    // store result data toggle
+    m_EndpointDescriptor->DataToggle = InitialDataToggle;
+
+    // store offset
+    ChainDescriptorLength = TransferBufferOffset;
+
+    //Status = STATUS_SUCCESS;
+
+    // move to next offset
+    m_TransferBufferLengthCompleted += ChainDescriptorLength;
+
+    // init queue head
+    QueueHead->EndPointCharacteristics.DeviceAddress       = GetDeviceAddress();
+    QueueHead->EndPointCharacteristics.EndPointNumber      = m_EndpointDescriptor->EndPointDescriptor.bEndpointAddress & 0x0F;
+    QueueHead->EndPointCharacteristics.MaximumPacketLength = m_EndpointDescriptor->EndPointDescriptor.wMaxPacketSize;
+
+    QueueHead->NextPointer          = FirstDescriptor->PhysicalAddr;
+    QueueHead->CurrentLinkPointer   = FirstDescriptor->PhysicalAddr;
+    QueueHead->AlternateNextPointer = TERMINATE_POINTER;
+
+    ASSERT(QueueHead->EndPointCharacteristics.DeviceAddress);
+    ASSERT(QueueHead->EndPointCharacteristics.EndPointNumber);
+    ASSERT(QueueHead->EndPointCharacteristics.MaximumPacketLength);
+    ASSERT(QueueHead->NextPointer);
+
+    // interrupt on last descriptor
+    LastDescriptor->Token.Bits.InterruptOnComplete = TRUE;
+
+    *OutHead = QueueHead;         // store result
+
+    //DumpQueueHead(QueueHead);  // dump status
+
+    return STATUS_SUCCESS;       // done
 }
 
 //----------------------------------------------------------------------------------------
