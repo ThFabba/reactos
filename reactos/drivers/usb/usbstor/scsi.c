@@ -185,11 +185,15 @@ USBSTOR_CSWCompletionRoutine(
     PREAD_CAPACITY_DATA CapacityData;
     PUFI_CAPACITY_RESPONSE Response;
     NTSTATUS Status;
+    PDEVICE_OBJECT FdoDevice;
+    PFDO_DEVICE_EXTENSION FdoDeviceExtension;
 
     //
     // access context
     //
     Context = (PIRP_CONTEXT)Ctx;
+    FdoDevice = Context->PDODeviceExtension->LowerDeviceObject;
+    FdoDeviceExtension = FdoDevice->DeviceExtension;
 
     //
     // is there a mdl
@@ -262,6 +266,42 @@ USBSTOR_CSWCompletionRoutine(
         return STATUS_MORE_PROCESSING_REQUIRED;
     }
 
+    // 6.3.2  Meaningful CSW
+    if (Context->csw->Status <= 0x02)
+    {
+        if (Context->csw->Status == 0x01)  // 6.6.4  Command Failure
+        {
+            DPRINT1("CSWStatus 0x01. Command failed\n");
+
+            // Freezing Queue (?spinlock)
+            FdoDeviceExtension->IrpListFreeze = TRUE;
+
+            // Send a SCSI REQUEST SENSE command
+            Status = USBSTOR_SendRequestSense(Context->PDODeviceExtension->Self, Irp, Context);
+            return STATUS_MORE_PROCESSING_REQUIRED;
+        }
+
+        if (Context->csw->Status == 0x02)  //6.6.2  Internal Device Error
+        {
+            DPRINT1("CSWStatus 0x02. Reset recovery\n");
+
+            // increment error index
+            Context->ErrorIndex = 3;
+
+            // free our allocated irp
+            IoFreeIrp(Irp);
+
+            // perform Reset Recovery and handle error
+            Status = USBSTOR_QueueWorkItem(Context, NULL);
+            ASSERT(Status == STATUS_MORE_PROCESSING_REQUIRED);
+            return STATUS_MORE_PROCESSING_REQUIRED;
+        }
+    }
+    else
+    {
+        DPRINT1("FIXME: CSW not Meaningful. CSWStatus %x\n", Irp->IoStatus.Status);
+        ASSERT(FALSE);
+    }
 
     //
     // get current stack location
@@ -273,8 +313,6 @@ USBSTOR_CSWCompletionRoutine(
     //
     Request = (PSCSI_REQUEST_BLOCK)IoStack->Parameters.Others.Argument1;
     ASSERT(Request);
-
-    Status = Irp->IoStatus.Status;
 
     //
     // get SCSI command data block
@@ -347,7 +385,7 @@ USBSTOR_CSWCompletionRoutine(
     //
     // terminate current request
     //
-    USBSTOR_QueueTerminateRequest(Context->PDODeviceExtension->LowerDeviceObject, Context->Irp);
+    USBSTOR_QueueTerminateRequest(FdoDevice, Context->Irp);
 
     //
     // complete request
@@ -357,7 +395,7 @@ USBSTOR_CSWCompletionRoutine(
     //
     // start next request
     //
-    USBSTOR_QueueNextRequest(Context->PDODeviceExtension->LowerDeviceObject);
+    USBSTOR_QueueNextRequest(FdoDevice);
 
     //
     // free our allocated irp
