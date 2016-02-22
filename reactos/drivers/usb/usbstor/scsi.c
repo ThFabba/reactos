@@ -164,6 +164,132 @@ USBSTOR_QueueWorkItem(
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
 
+// driver verifier
+IO_COMPLETION_ROUTINE USBSTOR_SenseCSWCompletionRoutine;
+
+NTSTATUS
+NTAPI
+USBSTOR_SenseCSWCompletionRoutine(
+    PDEVICE_OBJECT DeviceObject,
+    PIRP Irp,
+    PVOID Ctx)
+{
+    PIRP_CONTEXT           Context = (PIRP_CONTEXT)Ctx;
+    PIRP_CONTEXT           OriginalContext = Context->OriginalContext;
+    PIO_STACK_LOCATION     IoStack;
+    PSCSI_REQUEST_BLOCK    Srb;
+    PDEVICE_OBJECT         FdoDevice = Context->PDODeviceExtension->LowerDeviceObject;
+    PFDO_DEVICE_EXTENSION  FdoDeviceExtension = Context->PDODeviceExtension->LowerDeviceObject->DeviceExtension;
+
+
+    DPRINT("USBSTOR_SenseCSWCompletionRoutine: Irp %p Ctx %p Status %x\n", Irp, Ctx, Irp->IoStatus.Status);
+
+    // is there a MDL
+    if (Context->TransferBufferMDL)
+    {
+        // is there an IRP associated
+        if (Context->Irp)
+        {
+            // did we allocate the MDL
+            if (Context->TransferBufferMDL != Context->Irp->MdlAddress)
+            {
+                // free MDL
+                IoFreeMdl(Context->TransferBufferMDL);
+            }
+        }
+        else
+        {
+            // free MDL
+            IoFreeMdl(Context->TransferBufferMDL);
+        }
+    }
+
+    if (!NT_SUCCESS(Irp->IoStatus.Status))
+    {
+        // if STALL
+        DPRINT1("USBSTOR_SenseCSWCompletionRoutine Status %x\n", Irp->IoStatus.Status);
+    }
+
+    if (!USBSTOR_IsCSWValid(Context))
+    {
+        // 6.3.1  Valid CSW
+        DPRINT1("CSW not Valid. Index %x Status %x\n", Context->ErrorIndex, Irp->IoStatus.Status);
+    }
+
+    // 6.3.2  Meaningful CSW
+    if (Context->csw->Status <= 0x02)
+    {
+        if (Context->csw->Status == 0x01)
+        {
+            DPRINT1("CSWStatus 0x01. Command failed\n");
+        }
+
+        if (Context->csw->Status == 0x02)
+        {
+            DPRINT1("CSWStatus 0x02. Reset recovery\n");
+        }
+    }
+    else
+    {
+        DPRINT1("FIXME: CSW not Meaningful. CSWStatus %x\n", Irp->IoStatus.Status);
+        ASSERT(FALSE);
+    }
+
+    // FIXME: check status
+    //Context->Irp->IoStatus.Status = Irp->IoStatus.Status;
+    //Context->Irp->IoStatus.Information = Context->TransferDataLength;
+
+    // free our allocated Sense IRP
+    IoFreeIrp(Irp);
+
+    // free Sense CBW
+    FreeItem(Context->cbw);
+
+    // free our allocated CDB
+    ExFreePool(Context->SenseCDB);
+
+    // free our allocated IRP
+    IoFreeIrp(Context->Irp);
+
+    // free Sense Context
+    FreeItem(Context);
+
+    // get SRB pointer
+    IoStack = IoGetCurrentIrpStackLocation(OriginalContext->Irp);
+    Srb = (PSCSI_REQUEST_BLOCK)IoStack->Parameters.Others.Argument1;
+    ASSERT(Srb);
+
+    // Sense data is OK
+    Srb->SrbStatus |= SRB_STATUS_AUTOSENSE_VALID;
+
+    // free CBW
+    FreeItem(OriginalContext->cbw);
+
+    // FIXME: check status -> if (SRB_STATUS(Srb->SrbStatus) != SRB_STATUS_SUCCESS )  Irp->IoStatus.Status = ConvertSrbStatus(Srb->SrbStatus);
+    OriginalContext->Irp->IoStatus.Status = STATUS_IO_DEVICE_ERROR;
+    OriginalContext->Irp->IoStatus.Information = 0;  // OriginalContext->TransferDataLength;
+
+    if (FdoDeviceExtension->IrpListFreeze)
+    {
+        // UnFreezing Queue (?spinlock)
+        FdoDeviceExtension->IrpListFreeze = FALSE;
+    }
+
+    // terminate current IRP
+    USBSTOR_QueueTerminateRequest(FdoDevice, OriginalContext->Irp);
+
+    // complete IRP
+    IoCompleteRequest(OriginalContext->Irp, IO_NO_INCREMENT);
+
+    // start next IRP
+    USBSTOR_QueueNextRequest(FdoDevice);
+
+    // free context
+    FreeItem(OriginalContext);
+
+    // done
+    return STATUS_MORE_PROCESSING_REQUIRED;
+}
 
 NTSTATUS
 USBSTOR_SendRequestSense(
