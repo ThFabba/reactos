@@ -257,6 +257,28 @@ USBSTOR_ResetHandlerWorkItemRoutine(
     USBSTOR_SendCSW(WorkItemData->Context, WorkItemData->Irp);
 }
 
+NTSTATUS
+NTAPI
+USBSTOR_HandleResetRecover(
+    PVOID ErrorContext)
+{
+    NTSTATUS Status;
+    PERRORHANDLER_WORKITEM_DATA WorkItemData = (PERRORHANDLER_WORKITEM_DATA)ErrorContext;
+    PIRP_CONTEXT Context = WorkItemData->Context;
+
+    // perform Reset Recovery
+    Status = USBSTOR_ResetRecovery(Context->FDODeviceExtension);
+    DPRINT("Index %x, Count %x, ResetRecovery %x\n", Context->ErrorIndex, Context->RetryCount, Status);
+
+    if (NT_SUCCESS(Status))
+    {
+        // now send the CSW 
+        USBSTOR_SendCSW(WorkItemData->Context, WorkItemData->Irp);
+    }
+
+    return Status;
+}
+
 VOID
 NTAPI
 ErrorHandlerWorkItemRoutine(
