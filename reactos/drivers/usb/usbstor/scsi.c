@@ -395,7 +395,7 @@ USBSTOR_SendCSW(
                                            Context->FDODeviceExtension->InterfaceInformation->Pipes[Context->FDODeviceExtension->BulkInPipeIndex].PipeHandle,
                                            Context->csw,
                                            NULL,
-                                           512, //FIXME
+                                           sizeof(CSW),
                                            USBD_TRANSFER_DIRECTION_IN | USBD_SHORT_TRANSFER_OK,
                                            NULL);
 
@@ -548,7 +548,7 @@ USBSTOR_CBWCompletionRoutine(
                                                Context->FDODeviceExtension->InterfaceInformation->Pipes[Context->FDODeviceExtension->BulkInPipeIndex].PipeHandle,
                                                Context->csw,
                                                NULL,
-                                               512, //FIXME
+                                               sizeof(CSW),
                                                USBD_TRANSFER_DIRECTION_IN | USBD_SHORT_TRANSFER_OK,
                                                NULL);
 
