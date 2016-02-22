@@ -107,16 +107,44 @@ USBSTOR_ResetPipeWithHandle(
     return Status;
 }
 
+NTSTATUS
+NTAPI
+USBSTOR_ResetRecovery(
+    IN PFDO_DEVICE_EXTENSION FDODeviceExtension)
+{
+    NTSTATUS Status;
+
+    DPRINT("USBSTOR_ResetRecovery\n");
+
+    // first perform a mass storage reset step 1 in 5.3.4 USB Mass Storage Bulk-Only Specification
+    Status = USBSTOR_ResetDevice(FDODeviceExtension->LowerDeviceObject, FDODeviceExtension);
+    if (NT_SUCCESS(Status))
+    {
+        // step 2 reset Bulk-In pipe section 5.3.4
+        Status = USBSTOR_ResetPipeWithHandle(FDODeviceExtension->LowerDeviceObject, FDODeviceExtension->InterfaceInformation->Pipes[FDODeviceExtension->BulkInPipeIndex].PipeHandle);
+        if (NT_SUCCESS(Status))
+        {
+            // finally reset Bulk-Out pipe
+            Status = USBSTOR_ResetPipeWithHandle(FDODeviceExtension->LowerDeviceObject, FDODeviceExtension->InterfaceInformation->Pipes[FDODeviceExtension->BulkOutPipeIndex].PipeHandle);
+        }
+    }
+
+    return Status;
+}
 
 NTSTATUS
+NTAPI
 USBSTOR_HandleTransferError(
-    PDEVICE_OBJECT DeviceObject,
-    PIRP_CONTEXT Context)
+    PVOID ErrorContext)
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PIO_STACK_LOCATION Stack;
     PSCSI_REQUEST_BLOCK Request;
     PCDB pCDB;
+    PERRORHANDLER_WORKITEM_DATA WorkItemData = (PERRORHANDLER_WORKITEM_DATA)ErrorContext;
+    PIRP_CONTEXT Context = WorkItemData->Context;
+
+    //DPRINT("USBSTOR_HandleTransferError: ErrorIndex - %x, RetryCount - %x\n", Context->ErrorIndex, Context->RetryCount);
 
     //
     // sanity checks
@@ -127,23 +155,9 @@ USBSTOR_HandleTransferError(
     ASSERT(Context->Irp);
 
     //
-    // first perform a mass storage reset step 1 in 5.3.4 USB Mass Storage Bulk Only Specification
+    // perform Reset Recovery
     //
-    Status = USBSTOR_ResetDevice(Context->FDODeviceExtension->LowerDeviceObject, Context->FDODeviceExtension);
-    if (NT_SUCCESS(Status))
-    {
-        //
-        // step 2 reset bulk in pipe section 5.3.4
-        //
-        Status = USBSTOR_ResetPipeWithHandle(Context->FDODeviceExtension->LowerDeviceObject, Context->FDODeviceExtension->InterfaceInformation->Pipes[Context->FDODeviceExtension->BulkInPipeIndex].PipeHandle);
-        if (NT_SUCCESS(Status))
-        {
-            //
-            // finally reset bulk out pipe
-            //
-            Status = USBSTOR_ResetPipeWithHandle(Context->FDODeviceExtension->LowerDeviceObject, Context->FDODeviceExtension->InterfaceInformation->Pipes[Context->FDODeviceExtension->BulkOutPipeIndex].PipeHandle);
-        }
-    }
+    USBSTOR_ResetRecovery(Context->FDODeviceExtension);
 
     //
     // get next stack location
