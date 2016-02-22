@@ -223,7 +223,7 @@ USBSTOR_CSWCompletionRoutine(
 
     DPRINT("USBSTOR_CSWCompletionRoutine Status %x\n", Irp->IoStatus.Status);
 
-    if (!NT_SUCCESS(Irp->IoStatus.Information))
+    if (!NT_SUCCESS(Irp->IoStatus.Status))
     {
         if (Context->ErrorIndex == 0)
         {
