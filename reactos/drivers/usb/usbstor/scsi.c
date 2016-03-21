@@ -448,9 +448,22 @@ USBSTOR_SendCSW(
 
 
     //
-    // setup completion routine
+    // if error - IRP List (queue) Frozen 
     //
-    IoSetCompletionRoutine(Irp, USBSTOR_CSWCompletionRoutine, Context, TRUE, TRUE, TRUE);
+    if (Context->FDODeviceExtension->IrpListFreeze)
+    {
+         //
+         // setup completion routine for Request Sense 
+         //
+         IoSetCompletionRoutine(Irp, USBSTOR_SenseCSWCompletionRoutine, Context, TRUE, TRUE, TRUE);
+    }
+    else
+    {
+         //
+         // setup completion routine
+         //
+         IoSetCompletionRoutine(Irp, USBSTOR_CSWCompletionRoutine, Context, TRUE, TRUE, TRUE);
+    }
 
     //
     // call driver
