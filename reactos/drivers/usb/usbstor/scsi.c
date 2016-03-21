@@ -482,6 +482,7 @@ USBSTOR_CBWCompletionRoutine(
     PIO_STACK_LOCATION IoStack;
     UCHAR Code;
     USBD_PIPE_HANDLE PipeHandle;
+    NTSTATUS Status;
 
     DPRINT("USBSTOR_CBWCompletionRoutine Irp %p Ctx %p Status %x\n", Irp, Ctx, Irp->IoStatus.Status);
 
@@ -494,6 +495,15 @@ USBSTOR_CBWCompletionRoutine(
     // get next stack location
     //
     IoStack = IoGetNextIrpStackLocation(Irp);
+
+    if (!NT_SUCCESS(Irp->IoStatus.Status))
+    {
+        // perform Reset Recovery and send the CSW
+        Context->ErrorIndex = 2;
+        Status = USBSTOR_QueueWorkItem(Context, Irp);
+        ASSERT(Status == STATUS_MORE_PROCESSING_REQUIRED);
+        return STATUS_MORE_PROCESSING_REQUIRED;
+    }
 
     //
     // is there data to be submitted
