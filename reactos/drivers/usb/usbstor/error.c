@@ -250,19 +250,20 @@ ErrorHandlerWorkItemRoutine(
 {
     PERRORHANDLER_WORKITEM_DATA WorkItemData = (PERRORHANDLER_WORKITEM_DATA)Context;
 
-    if (WorkItemData->Context->ErrorIndex == 2)
+    if (WorkItemData->Context->ErrorIndex == 1)
     {
-        //
-        // reset device
-        //
-        USBSTOR_HandleTransferError(WorkItemData->DeviceObject, WorkItemData->Context);
-    }
-    else
-    {
-        //
-        // clear stall
-        //
+        // clear STALL
         USBSTOR_ResetHandlerWorkItemRoutine(WorkItemData);
+    }
+    else if (WorkItemData->Context->ErrorIndex == 2)
+    {
+        // perform Reset Recovery and send the CSW
+        USBSTOR_HandleResetRecover(WorkItemData);
+    }
+    else if (WorkItemData->Context->ErrorIndex == 3)
+    {
+        // perform Reset Recovery and handle error
+        USBSTOR_HandleTransferError(WorkItemData);
     }
 
     //
