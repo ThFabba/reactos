@@ -93,6 +93,12 @@ USBSTOR_IsCSWValid(
     //
     // sanity checks
     //
+    if (sizeof(CSW) != 0x0d)
+    {
+        DPRINT1("[USBSTOR] Expected sizeof(CSW) == 0x0d but got %x\n", sizeof(CSW));
+        return FALSE;
+    }
+
     if (Context->csw->Signature != CSW_SIGNATURE)
     {
         DPRINT1("[USBSTOR] Expected Signature %x but got %x\n", CSW_SIGNATURE, Context->csw->Signature);
@@ -102,12 +108,6 @@ USBSTOR_IsCSWValid(
     if (Context->csw->Tag != (ULONG)Context->csw)
     {
         DPRINT1("[USBSTOR] Expected Tag %x but got %x\n", (ULONG)Context->csw, Context->csw->Tag);
-        return FALSE;
-    }
-
-    if (Context->csw->Status != 0x00)
-    {
-        DPRINT1("[USBSTOR] Expected Status 0x00 but got %x\n", Context->csw->Status);
         return FALSE;
     }
 
