@@ -312,7 +312,7 @@ typedef struct
     UCHAR Bytes[16];
 }UFI_UNKNOWN_CMD, *PUFI_UNKNOWN_CMD;
 
-typedef struct
+typedef struct _IRP_CONTEXT
 {
     union
     {
@@ -328,6 +328,8 @@ typedef struct
     PMDL TransferBufferMDL;
     ULONG ErrorIndex;
     ULONG RetryCount;
+    PCDB SenseCDB;
+    struct _IRP_CONTEXT *OriginalContext;
 }IRP_CONTEXT, *PIRP_CONTEXT;
 
 typedef struct _ERRORHANDLER_WORKITEM_DATA
