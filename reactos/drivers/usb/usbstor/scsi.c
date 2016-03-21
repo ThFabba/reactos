@@ -165,6 +165,129 @@ USBSTOR_QueueWorkItem(
 }
 
 
+NTSTATUS
+USBSTOR_SendRequestSense(
+    IN PDEVICE_OBJECT DeviceObject,
+    IN PIRP OriginalIrp,
+    IN PIRP_CONTEXT OriginalContext)
+{
+    PPDO_DEVICE_EXTENSION  PDODeviceExtension = OriginalContext->PDODeviceExtension;
+    PFDO_DEVICE_EXTENSION  FDODeviceExtension = OriginalContext->FDODeviceExtension;
+    PIO_STACK_LOCATION     IoStack = IoGetCurrentIrpStackLocation(OriginalContext->Irp);
+    PSCSI_REQUEST_BLOCK    InitialSrb;
+    PCDB                   Cdb;
+    PIRP_CONTEXT           Context;
+    PIRP                   Irp;
+
+
+    // allocate CDB for REQUEST SENSE
+    Cdb = ExAllocatePool(NonPagedPool, sizeof(Cdb->CDB6INQUIRY));
+
+    if ( Cdb == NULL )
+    {
+        DPRINT1("USBSTOR_SendRequestSense Allocate CDB failed\n");
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    RtlZeroMemory(Cdb, sizeof(Cdb->CDB6INQUIRY));
+
+    // get original SRB
+    InitialSrb = (PSCSI_REQUEST_BLOCK)IoStack->Parameters.Others.Argument1;
+    ASSERT(InitialSrb);
+
+    // Build CDB for REQUEST SENSE
+    Cdb->CDB6INQUIRY.OperationCode     = SCSIOP_REQUEST_SENSE;
+    Cdb->CDB6INQUIRY.LogicalUnitNumber = (PDODeviceExtension->LUN & 15);  //USB_MAX_LUN
+    Cdb->CDB6INQUIRY.Reserved1         = 0;
+    Cdb->CDB6INQUIRY.PageCode          = 0;
+    Cdb->CDB6INQUIRY.IReserved         = 0;
+    Cdb->CDB6INQUIRY.AllocationLength  = (UCHAR)InitialSrb->SenseInfoBufferLength;
+    Cdb->CDB6INQUIRY.Control           = 0;
+
+    // allocate IRP-context for REQUEST SENSE
+    Context = USBSTOR_AllocateIrpContext();
+    if (!Context)
+    {
+        // no memory
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    // save old IRP-context
+    Context->OriginalContext = OriginalContext;
+
+    // now build the CBW
+    USBSTOR_BuildCBW((ULONG)Context->cbw,
+                     InitialSrb->SenseInfoBufferLength,
+                     PDODeviceExtension->LUN,
+                     sizeof(Cdb->CDB6INQUIRY), //6
+                     (PUCHAR)Cdb,
+                     Context->cbw);
+
+    DPRINT("USBSTOR_SendRequestSense: CBW %p\n", Context->cbw);
+    //DumpCBW((PUCHAR)Context->cbw);
+
+    // now initialize the URB
+    UsbBuildInterruptOrBulkTransferRequest(&Context->Urb,
+                                           sizeof(struct _URB_BULK_OR_INTERRUPT_TRANSFER),
+                                           FDODeviceExtension->InterfaceInformation->Pipes[FDODeviceExtension->BulkOutPipeIndex].PipeHandle,
+                                           Context->cbw,
+                                           NULL,
+                                           sizeof(CBW),
+                                           USBD_TRANSFER_DIRECTION_OUT,
+                                           NULL);
+
+    // initialize context
+    Context->Irp                = OriginalIrp;
+    Context->TransferData       = InitialSrb->SenseInfoBuffer;
+    Context->TransferDataLength = InitialSrb->SenseInfoBufferLength;
+    Context->FDODeviceExtension = OriginalContext->FDODeviceExtension;
+    Context->PDODeviceExtension = OriginalContext->PDODeviceExtension;
+    Context->RetryCount         = OriginalContext->RetryCount;
+    Context->ErrorIndex         = 0;
+
+    // save CDB 
+    Context->SenseCDB = Cdb;
+
+    // is there transfer data
+    if (Context->TransferDataLength)
+    {
+        // allocate MDL for buffer, buffer must be allocated from NonPagedPool
+        Context->TransferBufferMDL = IoAllocateMdl(Context->TransferData, Context->TransferDataLength, FALSE, FALSE, NULL);
+        if (!Context->TransferBufferMDL)
+        {
+            // failed to allocate MDL
+            FreeItem(Context->cbw);
+            FreeItem(Context);
+            return STATUS_INSUFFICIENT_RESOURCES;
+        }
+
+        // build MDL for nonpaged pool
+        MmBuildMdlForNonPagedPool(Context->TransferBufferMDL);
+    }
+
+    // now allocate the IRP
+    Irp = IoAllocateIrp(DeviceObject->StackSize, FALSE);
+    if (!Irp)
+    {
+        FreeItem(Context->cbw);
+        FreeItem(Context);
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    if (OriginalIrp)
+    {
+        // mark orignal IRP as pending
+        IoMarkIrpPending(OriginalIrp);
+    }
+
+    // send IRP
+    DPRINT("USBSTOR_SendRequestSense: USBSTOR_SendCBW(%p, %p), Irql %x\n", Context, Irp, KeGetCurrentIrql());
+    USBSTOR_SendCBW(Context, Irp);
+
+    // done
+    return STATUS_PENDING;
+}
+
 //
 // driver verifier
 //
