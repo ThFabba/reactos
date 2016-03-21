@@ -237,7 +237,7 @@ USBSTOR_CSWCompletionRoutine(
             Context->ErrorIndex = 1;
 
             //
-            // clear stall and resend cbw
+            // clear STALL and resend CSW
             //
             Status = USBSTOR_QueueWorkItem(Context, Irp);
             ASSERT(Status == STATUS_MORE_PROCESSING_REQUIRED);
@@ -498,7 +498,7 @@ USBSTOR_DataCompletionRoutine(
     if (!NT_SUCCESS(Irp->IoStatus.Status))
     {
         //
-        // clear stall and resend cbw
+        // clear STALL and send CSW
         //
         Context->ErrorIndex = 1;
         Status = USBSTOR_QueueWorkItem(Context, Irp);
