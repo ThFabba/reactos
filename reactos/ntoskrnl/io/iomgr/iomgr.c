@@ -549,6 +549,15 @@ IoInitSystem(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     /* Call back drivers that asked for */
     IopReinitializeBootDrivers();
 
+    /* HACK: it pause need that PnP manager wait while boot-devices (USB keyboard and USB mass-storage) be enumerated */
+    {
+        LARGE_INTEGER Timeout;
+        Timeout.QuadPart = 2000;                                // 2 second
+        DPRINT1("FIXME: Waiting %lu milliseconds\n", Timeout.LowPart);
+        Timeout.QuadPart *= -10000;                             // convert to 100 ns units (absolute)
+        KeDelayExecutionThread(KernelMode, FALSE, &Timeout);    // perform the wait
+    }
+
     /* Check if this was a ramdisk boot */
     if (!_strnicmp(LoaderBlock->ArcBootDeviceName, "ramdisk(0)", 10))
     {
