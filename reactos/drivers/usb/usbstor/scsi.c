@@ -243,7 +243,7 @@ USBSTOR_CSWCompletionRoutine(
         //
         // perform reset recovery
         //
-        Context->ErrorIndex = 2;
+        Context->ErrorIndex = 3;
         IoFreeIrp(Irp);
         Status = USBSTOR_QueueWorkItem(Context, NULL);
         ASSERT(Status == STATUS_MORE_PROCESSING_REQUIRED);
@@ -255,7 +255,7 @@ USBSTOR_CSWCompletionRoutine(
         //
         // perform reset recovery
         //
-        Context->ErrorIndex = 2;
+        Context->ErrorIndex = 3;
         IoFreeIrp(Irp);
         Status = USBSTOR_QueueWorkItem(Context, NULL);
         ASSERT(Status == STATUS_MORE_PROCESSING_REQUIRED);
