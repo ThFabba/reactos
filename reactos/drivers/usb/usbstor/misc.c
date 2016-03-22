@@ -369,6 +369,8 @@ USBSTOR_GetMaxLUN(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    *Buffer = 0;
+
     //
     // execute request
     //
@@ -376,19 +378,34 @@ USBSTOR_GetMaxLUN(
 
     DPRINT("MaxLUN: %x\n", *Buffer);
 
-    if (*Buffer > 0xF)
+    if ( NT_SUCCESS(Status) ) 
     {
-        //
-        // invalid response documented in usb mass storage specification
-        //
-        Status = STATUS_DEVICE_DATA_ERROR;
+        if (*Buffer > 0xF)
+        {
+            //
+            // invalid response documented in usb mass storage specification
+            //
+            Status = STATUS_DEVICE_DATA_ERROR;
+        }
+        else
+        {
+            //
+            // store maxlun
+            //
+            DeviceExtension->MaxLUN = *Buffer;
+        }
     }
     else
     {
         //
-        // store maxlun
+        // "USB Mass Storage Class. Bulk-Only Transport. Revision 1.0"
+        // 3.2  Get Max LUN (class-specific request) :
+        // Devices that do not support multiple LUNs may STALL this command.
         //
-        DeviceExtension->MaxLUN = *Buffer;
+        USBSTOR_ResetDevice(DeviceExtension->LowerDeviceObject, DeviceExtension);
+ 
+        DeviceExtension->MaxLUN = 0;
+        Status = STATUS_SUCCESS;
     }
 
     //
