@@ -11,5 +11,8 @@
 #include "..\usbmport.h"
 
 
+extern USBPORT_REGISTRATION_PACKET RegPacket;
+
+NTSTATUS NTAPI USBPORT_RegisterUSBPortDriver(PDRIVER_OBJECT DriverObject, ULONG Version, PUSBPORT_REGISTRATION_PACKET RegistrationPacket);
 
 #endif /* USBOHCI_H__ */
