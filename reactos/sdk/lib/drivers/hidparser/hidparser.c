@@ -57,6 +57,7 @@ HidParser_GetCollectionDescription(
     ULONG CollectionCount;
     ULONG Index;
     PVOID ParserContext;
+    BOOLEAN IsUsesReportId = FALSE;
 
     //
     // first parse the report descriptor
@@ -135,11 +136,41 @@ HidParser_GetCollectionDescription(
         // init report description
         //
         DeviceDescription->ReportIDs[Index].CollectionNumber = Index + 1;
-        DeviceDescription->ReportIDs[Index].ReportID = Index; //FIXME
+
+        if (HidParser_UsesReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_INPUT) ||
+            HidParser_UsesReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_OUTPUT) ||
+            HidParser_UsesReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_FEATURE))
+        {
+            IsUsesReportId = TRUE;
+        }
+
+        if (IsUsesReportId)
+        {
+            UCHAR ReportId = 0;
+
+            ReportId = HidParser_GetReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_INPUT);
+
+            if (!ReportId)
+            {
+                ReportId = HidParser_GetReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_OUTPUT);
+
+                if (!ReportId)
+                {
+                    ReportId = HidParser_GetReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_FEATURE);
+                }
+            }
+
+            ASSERT(ReportId);
+            DeviceDescription->ReportIDs[Index].ReportID = ReportId;
+        }
+        else
+        {
+            DeviceDescription->ReportIDs[Index].ReportID = Index;
+        }
+
         DeviceDescription->ReportIDs[Index].InputLength = HidParser_GetReportLength((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_INPUT);
         DeviceDescription->ReportIDs[Index].OutputLength = HidParser_GetReportLength((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_OUTPUT);
         DeviceDescription->ReportIDs[Index].FeatureLength = HidParser_GetReportLength((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_FEATURE);
-
 
         DeviceDescription->ReportIDs[Index].InputLength += (HidParser_UsesReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_INPUT) ? 1 : 0);
         DeviceDescription->ReportIDs[Index].OutputLength += (HidParser_UsesReportId((PVOID)DeviceDescription->CollectionDesc[Index].PreparsedData, HID_REPORT_TYPE_OUTPUT) ? 1 : 0);
@@ -298,7 +329,7 @@ HidParser_MaxUsageListLength(
         //
         // implement me
         //
-        UNIMPLEMENTED
+        UNIMPLEMENTED;
 
         //
         // invalid report
@@ -899,7 +930,7 @@ HidParser_GetSpecificButtonCaps(
     OUT PHIDP_BUTTON_CAPS  ButtonCaps,
     IN OUT PULONG  ButtonCapsLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -917,7 +948,7 @@ HidParser_GetData(
     IN PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -933,7 +964,7 @@ HidParser_GetExtendedAttributes(
     OUT PHIDP_EXTENDED_ATTRIBUTES  Attributes,
     IN OUT PULONG  LengthAttributes)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -947,7 +978,7 @@ HidParser_GetLinkCollectionNodes(
     OUT PHIDP_LINK_COLLECTION_NODE  LinkCollectionNodes,
     IN OUT PULONG  LinkCollectionNodesLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1025,7 +1056,7 @@ HidParser_SysPowerEvent(
     IN USHORT HidPacketLength,
     OUT PULONG OutputBuffer)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1037,7 +1068,7 @@ HidParser_SysPowerCaps (
     IN PVOID CollectionContext,
     OUT PULONG OutputBuffer)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1057,7 +1088,7 @@ HidParser_GetUsageValueArray(
     IN PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1076,7 +1107,7 @@ HidParser_UnsetUsages(
     IN OUT PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1092,7 +1123,7 @@ HidParser_TranslateUsagesToI8042ScanCodes(
   IN PHIDP_INSERT_SCANCODES  InsertCodesProcedure,
   IN PVOID  InsertCodesContext)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1111,7 +1142,7 @@ HidParser_SetUsages(
     IN OUT PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1131,7 +1162,7 @@ HidParser_SetUsageValueArray(
     OUT PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1150,7 +1181,7 @@ HidParser_SetUsageValue(
     IN OUT PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1169,7 +1200,7 @@ HidParser_SetScaledUsageValue(
     IN OUT PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1186,7 +1217,7 @@ HidParser_SetData(
     IN OUT PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1199,7 +1230,7 @@ HidParser_MaxDataListLength(
     IN PVOID CollectionContext,
     IN HIDP_REPORT_TYPE  ReportType)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return 0;
 }
@@ -1215,7 +1246,7 @@ HidParser_InitializeReportForID(
     IN OUT PCHAR  Report,
     IN ULONG  ReportLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -1232,7 +1263,7 @@ HidParser_GetValueCaps(
     PHIDP_VALUE_CAPS ValueCaps,
     PULONG ValueCapsLength)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
     ASSERT(FALSE);
     return STATUS_NOT_IMPLEMENTED;
 }

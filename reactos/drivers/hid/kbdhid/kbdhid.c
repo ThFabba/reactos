@@ -328,7 +328,8 @@ KbdHid_Close(
         DeviceExtension->StopReadReport = TRUE;
 
         /* wait until the reports have been read */
-        KeWaitForSingleObject(&DeviceExtension->ReadCompletionEvent, Executive, KernelMode, FALSE, NULL);
+        // HACK: due problem disconnecting from PC USB port CORE-9070)
+        //KeWaitForSingleObject(&DeviceExtension->ReadCompletionEvent, Executive, KernelMode, FALSE, NULL);
 
         /* cancel irp */
         IoCancelIrp(DeviceExtension->Irp);
@@ -1027,7 +1028,7 @@ NTAPI
 KbdHid_Unload(
     IN PDRIVER_OBJECT DriverObject)
 {
-    UNIMPLEMENTED
+    UNIMPLEMENTED;
 }
 
 
