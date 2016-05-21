@@ -5,7 +5,7 @@
 typedef struct _USBPORT_REGISTRATION_PACKET {
 
   ULONG                                          Version;                               // Type: 1 - OHCI, 2 - UHCI, 3 - EHCI
-  ULONG                                          MiniportHwResourcesSize;               // 
+  ULONG                                          MiniPortHwResourcesSize;               // 
 
 } USBPORT_REGISTRATION_PACKET, *PUSBPORT_REGISTRATION_PACKET;
 
