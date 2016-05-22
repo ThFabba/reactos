@@ -15,4 +15,6 @@ extern USBPORT_REGISTRATION_PACKET RegPacket;
 
 NTSTATUS NTAPI USBPORT_RegisterUSBPortDriver(PDRIVER_OBJECT DriverObject, ULONG Version, PUSBPORT_REGISTRATION_PACKET RegistrationPacket);
 
+ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources);
+
 #endif /* USBOHCI_H__ */
