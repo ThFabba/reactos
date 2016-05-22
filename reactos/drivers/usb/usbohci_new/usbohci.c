@@ -18,6 +18,16 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   return MiniPortStatus;
 }
 
+VOID NTAPI OHCI_EnableInterrupts(PVOID Context)
+{
+  DPRINT("OHCI_EnableInterrupts: Context - %p\n", Context);
+}
+
+VOID NTAPI OHCI_DisableInterrupts(PVOID Context)
+{
+  DPRINT("OHCI_DisableInterrupts: Context - %p\n", Context);
+}
+
 NTSTATUS NTAPI DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
     NTSTATUS Status;
