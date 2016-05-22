@@ -38,6 +38,24 @@ typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
 } OHCI_OPERATIONAL_REGISTERS, *POHCI_OPERATIONAL_REGISTERS;
 
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_ENDPOINT_CONTROL {
+
+   struct {
+      ULONG  FunctionAddress   : 7;
+      ULONG  EndpointNumber    : 4;
+      ULONG  Direction         : 2;
+      ULONG  Speed             : 1;
+      ULONG  sKip              : 1;
+      ULONG  Format            : 1;
+      ULONG  MaximumPacketSize : 11;
+      ULONG  Reserved          : 5;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_ENDPOINT_CONTROL, *POHCI_HC_ENDPOINT_CONTROL;
+
 
 extern USBPORT_REGISTRATION_PACKET RegPacket;
 
