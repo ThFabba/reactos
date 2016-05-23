@@ -106,6 +106,25 @@ typedef union _OHCI_HC_RH_DESCRIPTORA {
 
 } OHCI_HC_RH_DESCRIPTORA, *POHCI_HC_RH_DESCRIPTORA;
 
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_RH_STATUS {
+
+   struct {
+      ULONG  LocalPowerStatus            : 1;
+      ULONG  OverCurrentIndicator        : 1;
+      ULONG  Reserved1                   : 13;
+      ULONG  DeviceRemoteWakeupEnable    : 1;
+
+      ULONG  LocalPowerStatusChange      : 1;
+      ULONG  OverCurrentIndicatorChange  : 1;
+      ULONG  Reserved2                   : 13;
+      ULONG  ClearRemoteWakeupEnable     : 1;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_RH_STATUS, *POHCI_HC_RH_STATUS;
+
 typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
   ULONG HcRevision;          // +00 +0x00
