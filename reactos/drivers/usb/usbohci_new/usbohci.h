@@ -88,6 +88,24 @@ typedef union _OHCI_HC_INTERRUPT_ENABLE_DISABLE {
 
 } OHCI_HC_INTERRUPT_ENABLE_DISABLE, *POHCI_HC_INTERRUPT_ENABLE_DISABLE;
 
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_RH_DESCRIPTORA {
+
+   struct {
+      ULONG  NumberDownstreamPorts      : 8;
+      ULONG  PowerSwitchingMode         : 1;
+      ULONG  NoPowerSwitching           : 1;
+      ULONG  DeviceType                 : 1;
+      ULONG  OverCurrentProtectionMode  : 1;
+      ULONG  NoOverCurrentProtection    : 1;
+      ULONG  Reserved2                  : 13;
+      ULONG  PowerOnToPowerGoodTime     : 1;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_RH_DESCRIPTORA, *POHCI_HC_RH_DESCRIPTORA;
+
 typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
   ULONG HcRevision;          // +00 +0x00
