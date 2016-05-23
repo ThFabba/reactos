@@ -172,30 +172,31 @@ typedef union _OHCI_HC_RH_PORT_STATUS {
 
 } OHCI_HC_RH_PORT_STATUS, *POHCI_HC_RH_PORT_STATUS;
 
+//---------------------------------------------------------------------
 typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
-  ULONG HcRevision;          // +00 +0x00
-  ULONG HcControl;           // +04 +0x04
-  ULONG HcCommandStatus;     // +08 +0x08
-  ULONG HcInterruptStatus;   // +12 +0x0C
-  ULONG HcInterruptEnable;   // +16 +0x10
-  ULONG HcInterruptDisable;  // +20 +0x14
-  ULONG HcHCCA;              // +24 +0x18
-  ULONG HcPeriodCurrentED;   // +28 +0x1C
-  ULONG HcControlHeadED;     // +32 +0x20
-  ULONG HcControlCurrentED;  // +36 +0x24
-  ULONG HcBulkHeadED;        // +40 +0x28
-  ULONG HcBulkCurrentED;     // +44 +0x2C
-  ULONG HcDoneHead;          // +48 +0x30
-  ULONG HcFmInterval;        // +52 +0x34
-  ULONG HcFmRemaining;       // +56 +0x38
-  ULONG HcFmNumber;          // +60 +0x3C
-  ULONG HcPeriodicStart;     // +64 +0x40
-  ULONG HcLSThreshold;       // +68 +0x44
-  ULONG HcRhDescriptorA;     // +72 +0x48
-  ULONG HcRhDescriptorB;     // +76 +0x4C
-  ULONG HcRhStatus;          // +80 +0x50
-  ULONG HcRhPortStatus[1];   // +84 +0x54
+  ULONG                             HcRevision;          // +00 +0x00
+  OHCI_HC_CONTROL                   HcControl;           // +04 +0x04
+  OHCI_HC_COMMAND_STATUS            HcCommandStatus;     // +08 +0x08
+  OHCI_HC_INTERRUPT_STATUS          HcInterruptStatus;   // +12 +0x0C
+  OHCI_HC_INTERRUPT_ENABLE_DISABLE  HcInterruptEnable;   // +16 +0x10
+  OHCI_HC_INTERRUPT_ENABLE_DISABLE  HcInterruptDisable;  // +20 +0x14
+  ULONG                             HcHCCA;              // +24 +0x18
+  ULONG                             HcPeriodCurrentED;   // +28 +0x1C
+  ULONG                             HcControlHeadED;     // +32 +0x20
+  ULONG                             HcControlCurrentED;  // +36 +0x24
+  ULONG                             HcBulkHeadED;        // +40 +0x28
+  ULONG                             HcBulkCurrentED;     // +44 +0x2C
+  ULONG                             HcDoneHead;          // +48 +0x30
+  ULONG                             HcFmInterval;        // +52 +0x34
+  ULONG                             HcFmRemaining;       // +56 +0x38
+  ULONG                             HcFmNumber;          // +60 +0x3C
+  ULONG                             HcPeriodicStart;     // +64 +0x40
+  ULONG                             HcLSThreshold;       // +68 +0x44
+  OHCI_HC_RH_DESCRIPTORA            HcRhDescriptorA;     // +72 +0x48
+  ULONG                             HcRhDescriptorB;     // +76 +0x4C
+  OHCI_HC_RH_STATUS                 HcRhStatus;          // +80 +0x50
+  OHCI_HC_RH_PORT_STATUS            HcRhPortStatus[1];   // +84 +0x54
 
 } OHCI_OPERATIONAL_REGISTERS, *POHCI_OPERATIONAL_REGISTERS;
 
