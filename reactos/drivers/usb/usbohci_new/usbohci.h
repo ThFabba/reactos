@@ -48,6 +48,26 @@ typedef union _OHCI_HC_COMMAND_STATUS {
 
 } OHCI_HC_COMMAND_STATUS, *POHCI_HC_COMMAND_STATUS;
 
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_INTERRUPT_STATUS {
+
+   struct {
+      ULONG  SchedulingOverrun    : 1;
+      ULONG  WritebackDoneHead    : 1;
+      ULONG  StartofFrame         : 1;
+      ULONG  ResumeDetected       : 1;
+      ULONG  UnrecoverableError   : 1;
+      ULONG  FrameNumberOverflow  : 1;
+      ULONG  RootHubStatusChange  : 1;
+      ULONG  Reserved1            : 23;
+      ULONG  OwnershipChange      : 1;
+      ULONG  Reserved2            : 1; //NULL
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_INTERRUPT_STATUS, *POHCI_HC_INTERRUPT_STATUS;
+
 typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
   ULONG HcRevision;          // +00 +0x00
