@@ -125,6 +125,53 @@ typedef union _OHCI_HC_RH_STATUS {
 
 } OHCI_HC_RH_STATUS, *POHCI_HC_RH_STATUS;
 
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_RH_PORT_STATUS {
+
+  struct {
+
+    union  {                    // 0 byte
+      // When read
+      UCHAR  CurrentConnectStatus            : 1;
+      UCHAR  PortEnableStatus                : 1;
+      UCHAR  PortSuspendStatus               : 1;
+      UCHAR  PortOverCurrentIndicator        : 1;
+      UCHAR  PortResetStatus                 : 1;
+      UCHAR  Reserved1r                      : 3;
+
+      // When written 
+      UCHAR  ClearPortEnable                 : 1;
+      UCHAR  SetPortEnable                   : 1;
+      UCHAR  SetPortSuspend                  : 1;
+      UCHAR  ClearSuspendStatus              : 1;
+      UCHAR  SetPortReset                    : 1;
+      UCHAR  Reserved1w                      : 3;
+    };
+
+    union  {                    // 1 byte
+      // When read
+      UCHAR  PortPowerStatus                 : 1;
+      UCHAR  LowSpeedDeviceAttached          : 1;
+      UCHAR  Reserved2r                      : 3;
+
+      // When written 
+      UCHAR  SetPortPower                    : 1;
+      UCHAR  ClearPortPower                  : 1;
+      UCHAR  Reserved2w                      : 3;
+    };
+
+      ULONG  ConnectStatusChange             : 1;
+      ULONG  PortEnableStatusChange          : 1;
+      ULONG  PortSuspendStatusChange         : 1;
+      ULONG  PortOverCurrentIndicatorChange  : 1;
+      ULONG  PortResetStatusChange           : 1;
+      ULONG  Reserved3                       : 11;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_RH_PORT_STATUS, *POHCI_HC_RH_PORT_STATUS;
+
 typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
   ULONG HcRevision;          // +00 +0x00
