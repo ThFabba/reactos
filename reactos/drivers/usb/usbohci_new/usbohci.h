@@ -11,6 +11,26 @@
 #include "..\usbmport.h"
 
 
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_CONTROL {
+
+   struct {
+      ULONG  ControlBulkServiceRatio        : 2;
+      ULONG  PeriodicListEnable             : 1;
+      ULONG  IsochronousEnable              : 1;
+      ULONG  ControlListEnable              : 1;
+      ULONG  BulkListEnable                 : 1;
+      ULONG  HostControllerFunctionalState  : 2;
+      ULONG  InterruptRouting               : 1;
+      ULONG  RemoteWakeupConnected          : 1;
+      ULONG  RemoteWakeupEnable             : 1;
+      ULONG  Reserved                       : 21;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_CONTROL, *POHCI_HC_CONTROL;
+
 typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
   ULONG HcRevision;          // +00 +0x00
