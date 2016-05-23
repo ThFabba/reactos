@@ -31,6 +31,23 @@ typedef union _OHCI_HC_CONTROL {
 
 } OHCI_HC_CONTROL, *POHCI_HC_CONTROL;
 
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_COMMAND_STATUS {
+
+   struct {
+      ULONG  HostControllerReset     : 1;
+      ULONG  ControlListFilled       : 1;
+      ULONG  BulkListFilled          : 1;
+      ULONG  OwnershipChangeRequest  : 1;
+      ULONG  Reserved1               : 12;
+      ULONG  SchedulingOverrunCount  : 1;
+      ULONG  Reserved2               : 15;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_COMMAND_STATUS, *POHCI_HC_COMMAND_STATUS;
+
 typedef struct _OHCI_OPERATIONAL_REGISTERS {
 
   ULONG HcRevision;          // +00 +0x00
