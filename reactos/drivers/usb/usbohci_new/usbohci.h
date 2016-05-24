@@ -302,6 +302,17 @@ typedef struct _OHCI_OPERATIONAL_REGISTERS {
 //- End of OHCI REGISTERS ---------------------------------------------
 //---------------------------------------------------------------------
 
+// -------------------------------------------------------------------------------------------------------------
+typedef struct _OHCI_HC_RESOURCES {
+
+    OHCI_HCCA                     HcHCCA;                    // +0x000  (256 byte align)
+
+    OHCI_ENDPOINT_DESCRIPTOR      InterrruptHeadED[63];      // +0x100  (16 byte align)
+    OHCI_ENDPOINT_DESCRIPTOR      ControlHeadED;             // +0x4F0  (16 byte align)
+    OHCI_ENDPOINT_DESCRIPTOR      BulkHeadED;                // +0x500  (16 byte align)
+
+} OHCI_HC_RESOURCES, *POHCI_HC_RESOURCES;
+
 
 extern USBPORT_REGISTRATION_PACKET RegPacket;
 
