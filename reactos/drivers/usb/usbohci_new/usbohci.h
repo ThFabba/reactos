@@ -41,6 +41,36 @@ typedef struct _OHCI_TRANSFER_DESCRIPTOR { // 16-byte boundary
 C_ASSERT(sizeof(OHCI_TRANSFER_DESCRIPTOR) == 16);
 
 //---------------------------------------------------------------------
+typedef union _OHCI_HC_ENDPOINT_CONTROL {
+
+  struct {
+    ULONG  FunctionAddress   : 7;
+    ULONG  EndpointNumber    : 4;
+    ULONG  Direction         : 2;
+    ULONG  Speed             : 1;
+    ULONG  sKip              : 1;
+    ULONG  Format            : 1;
+    ULONG  MaximumPacketSize : 11;
+    ULONG  Reserved          : 5;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_ENDPOINT_CONTROL, *POHCI_HC_ENDPOINT_CONTROL;
+
+typedef struct _OHCI_ENDPOINT_DESCRIPTOR { // 16-byte boundary
+
+  // Hardware part
+  OHCI_HC_ENDPOINT_CONTROL  EndpointControl; // dword 0
+  ULONG_PTR                 TailPointer;     // 
+  ULONG_PTR                 HeadPointer;     // physical pointer to the next OHCI_TRANSFER_DESCRIPTOR
+  ULONG_PTR                 NextED;          // points to the next OHCI_ENDPOINT_DESCRIPTOR
+
+} OHCI_ENDPOINT_DESCRIPTOR, *POHCI_ENDPOINT_DESCRIPTOR;
+
+C_ASSERT(sizeof(OHCI_ENDPOINT_DESCRIPTOR) == 16);
+
+//---------------------------------------------------------------------
 typedef union _OHCI_HC_CONTROL {
 
    struct {
