@@ -11,6 +11,9 @@
 #include "..\usbmport.h"
 
 
+#define OHCI_NUMBER_OF_INTERRUPTS   32
+
+
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_TRANSFER_CONTROL {
 
