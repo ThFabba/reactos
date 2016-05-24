@@ -93,6 +93,8 @@ typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
 } OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
 
 //---------------------------------------------------------------------
+//- OHCI REGISTERS ----------------------------------------------------
+//---------------------------------------------------------------------
 typedef union _OHCI_HC_CONTROL {
 
    struct {
@@ -280,6 +282,9 @@ typedef struct _OHCI_OPERATIONAL_REGISTERS {
   OHCI_HC_RH_PORT_STATUS            HcRhPortStatus[1];   // +84 +0x54
 
 } OHCI_OPERATIONAL_REGISTERS, *POHCI_OPERATIONAL_REGISTERS;
+//---------------------------------------------------------------------
+//- End of OHCI REGISTERS ---------------------------------------------
+//---------------------------------------------------------------------
 
 
 extern USBPORT_REGISTRATION_PACKET RegPacket;
