@@ -82,6 +82,17 @@ typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
 } OHCI_HCD_TRANSFER_DESCRIPTOR, *POHCI_HCD_TRANSFER_DESCRIPTOR;
 
 //---------------------------------------------------------------------
+typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
+
+  // Hardware part
+  OHCI_ENDPOINT_DESCRIPTOR      HwED;                      // dword 0
+
+  // Software part
+  //TODO
+
+} OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
+
+//---------------------------------------------------------------------
 typedef union _OHCI_HC_CONTROL {
 
    struct {
