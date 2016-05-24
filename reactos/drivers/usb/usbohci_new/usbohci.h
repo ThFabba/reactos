@@ -71,6 +71,17 @@ typedef struct _OHCI_ENDPOINT_DESCRIPTOR { // 16-byte boundary
 C_ASSERT(sizeof(OHCI_ENDPOINT_DESCRIPTOR) == 16);
 
 //---------------------------------------------------------------------
+typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
+
+  // Hardware part
+  OHCI_TRANSFER_DESCRIPTOR    HwTD;                      // dword 0
+
+  // Software part
+  // TODO
+
+} OHCI_HCD_TRANSFER_DESCRIPTOR, *POHCI_HCD_TRANSFER_DESCRIPTOR;
+
+//---------------------------------------------------------------------
 typedef union _OHCI_HC_CONTROL {
 
    struct {
