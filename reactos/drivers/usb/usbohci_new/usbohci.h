@@ -12,6 +12,35 @@
 
 
 //---------------------------------------------------------------------
+typedef union _OHCI_HC_TRANSFER_CONTROL {
+
+  struct {
+    ULONG  Reserved        : 18;
+    ULONG  BufferRounding  : 1;
+    ULONG  DirectionPID    : 2;
+    ULONG  DelayInterrupt  : 3;
+    ULONG  DataToggle      : 2;
+    ULONG  ErrorCount      : 2;
+    ULONG  ConditionCode   : 4;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_TRANSFER_CONTROL, *POHCI_HC_TRANSFER_CONTROL;
+
+typedef struct _OHCI_TRANSFER_DESCRIPTOR { // 16-byte boundary
+
+  // Hardware part
+  OHCI_HC_TRANSFER_CONTROL  Control;         // dword 0
+  PVOID                     CurrentBuffer;   // physical pointer of the memory location
+  PULONG                    NextTD;          // physical pointer to the next OHCI_TRANSFER_DESCRIPTOR
+  PVOID                     BufferEnd;       // physical pointer of the last byte in the buffer
+
+} OHCI_TRANSFER_DESCRIPTOR, *POHCI_TRANSFER_DESCRIPTOR;
+
+C_ASSERT(sizeof(OHCI_TRANSFER_DESCRIPTOR) == 16);
+
+//---------------------------------------------------------------------
 typedef union _OHCI_HC_CONTROL {
 
    struct {
@@ -199,24 +228,6 @@ typedef struct _OHCI_OPERATIONAL_REGISTERS {
   OHCI_HC_RH_PORT_STATUS            HcRhPortStatus[1];   // +84 +0x54
 
 } OHCI_OPERATIONAL_REGISTERS, *POHCI_OPERATIONAL_REGISTERS;
-
-//---------------------------------------------------------------------
-typedef union _OHCI_HC_ENDPOINT_CONTROL {
-
-   struct {
-      ULONG  FunctionAddress   : 7;
-      ULONG  EndpointNumber    : 4;
-      ULONG  Direction         : 2;
-      ULONG  Speed             : 1;
-      ULONG  sKip              : 1;
-      ULONG  Format            : 1;
-      ULONG  MaximumPacketSize : 11;
-      ULONG  Reserved          : 5;
-  };
-
-  ULONG  AsULONG;
-
-} OHCI_HC_ENDPOINT_CONTROL, *POHCI_HC_ENDPOINT_CONTROL;
 
 
 extern USBPORT_REGISTRATION_PACKET RegPacket;
