@@ -96,6 +96,19 @@ typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
 } OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
 
 //---------------------------------------------------------------------
+typedef struct _OHCI_HCCA { // 256-byte boundary
+
+  POHCI_ENDPOINT_DESCRIPTOR  InterrruptTable[OHCI_NUMBER_OF_INTERRUPTS];
+  USHORT                     FrameNumber;
+  USHORT                     Pad1;
+  ULONG                      DoneHead;
+  UCHAR                      Reserved[120];
+
+} OHCI_HCCA, *POHCI_HCCA;
+
+C_ASSERT(sizeof(OHCI_HCCA) == 256);
+
+//---------------------------------------------------------------------
 //- OHCI REGISTERS ----------------------------------------------------
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_CONTROL {
