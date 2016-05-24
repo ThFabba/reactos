@@ -38,7 +38,7 @@ NTSTATUS NTAPI DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING Registry
     RtlZeroMemory(&RegPacket, sizeof(USBPORT_REGISTRATION_PACKET));
 
     RegPacket.Version                               = 1;                                          // Type: 1 - OHCI, 2 - UHCI, 3 - EHCI
-    RegPacket.MiniPortHwResourcesSize               = 0;                                          // Size OHCI MiniPort Extension
+    RegPacket.MiniPortExtensionSize                 = 0;                                          // Size OHCI MiniPort Extension
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;

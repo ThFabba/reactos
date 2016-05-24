@@ -24,7 +24,7 @@ typedef VOID    (NTAPI * PHCI_DISABLE_INTERRUPTS                      )(PVOID);
 typedef struct _USBPORT_REGISTRATION_PACKET {
 
   ULONG                                          Version;                               // Type: 1 - OHCI, 2 - UHCI, 3 - EHCI
-  ULONG                                          MiniPortHwResourcesSize;               // 
+  ULONG                                          MiniPortExtensionSize;                 // 
   PHCI_START_CONTROLLER                          StartController;                       //
   PHCI_ENABLE_INTERRUPTS                         EnableInterrupts;                      // 
   PHCI_DISABLE_INTERRUPTS                        DisableInterrupts;                     // 
