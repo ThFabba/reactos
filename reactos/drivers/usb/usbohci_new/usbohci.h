@@ -313,6 +313,14 @@ typedef struct _OHCI_HC_RESOURCES {
 
 } OHCI_HC_RESOURCES, *POHCI_HC_RESOURCES;
 
+// -------------------------------------------------------------------------------------------------------------
+typedef struct _OHCI_EXTENSION {
+
+  POHCI_OPERATIONAL_REGISTERS      OperationalRegs;           // HC Operational Registers
+  //TODO
+
+} OHCI_EXTENSION, *POHCI_EXTENSION;
+
 
 extern USBPORT_REGISTRATION_PACKET RegPacket;
 
