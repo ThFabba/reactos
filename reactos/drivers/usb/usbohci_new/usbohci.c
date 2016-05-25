@@ -42,7 +42,7 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 
     if ( ix == 0 )
     {
-      HeadIndex = 0;
+      HeadIndex = ED_EOF;
       StaticHwED->NextED = 0;
     }
     else
