@@ -317,7 +317,8 @@ typedef struct _OHCI_HC_RESOURCES {
 typedef struct _OHCI_EXTENSION {
 
   POHCI_OPERATIONAL_REGISTERS      OperationalRegs;           // HC Operational Registers
-  //TODO
+  POHCI_HC_RESOURCES               HcResourcesVA;             // 
+  PVOID                            HcResourcesPA;             //  
 
 } OHCI_EXTENSION, *POHCI_EXTENSION;
 
