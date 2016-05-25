@@ -331,6 +331,7 @@ typedef struct _OHCI_EXTENSION {
   POHCI_OPERATIONAL_REGISTERS      OperationalRegs;           // HC Operational Registers
   POHCI_HC_RESOURCES               HcResourcesVA;             // 
   PVOID                            HcResourcesPA;             //  
+  OHCI_STATIC_ENDPOINT_DESCRIPTOR  IntStaticED[63];           //
 
 } OHCI_EXTENSION, *POHCI_EXTENSION;
 
