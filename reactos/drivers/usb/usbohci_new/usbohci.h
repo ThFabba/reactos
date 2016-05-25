@@ -201,6 +201,20 @@ typedef union _OHCI_HC_INTERRUPT_ENABLE_DISABLE {
 } OHCI_HC_INTERRUPT_ENABLE_DISABLE, *POHCI_HC_INTERRUPT_ENABLE_DISABLE;
 
 //---------------------------------------------------------------------
+typedef union _OHCI_HC_FRAME_INTERVAL {
+
+  struct {
+    ULONG  FrameInterval        : 14;
+    ULONG  Reserved             : 2;
+    ULONG  FSLargestDataPacket  : 15;
+    ULONG  FrameIntervalToggle  : 1;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_FRAME_INTERVAL, *POHCI_HC_FRAME_INTERVAL;
+
+//---------------------------------------------------------------------
 typedef union _OHCI_HC_RH_DESCRIPTORA {
 
    struct {
