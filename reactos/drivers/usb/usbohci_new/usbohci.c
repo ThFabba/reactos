@@ -16,9 +16,12 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
 
   MiniPortStatus = 0;
-
   OperationalRegs = (POHCI_OPERATIONAL_REGISTERS)Resources->ResourceBase; //HC on-chip operational registers
   OhciExtension->OperationalRegs = OperationalRegs;
+
+  MiniPortStatus = 0;//OHCI_TakeControlHC(OhciExtension);
+  //DPRINT("OHCI_StartController: OHCI_TakeControlHC return MiniPortStatus - %x\n", MiniPortStatus);
+  DPRINT("OHCI_StartController: FIXME OHCI_TakeControlHC \n");
 
 
   return MiniPortStatus;
