@@ -79,6 +79,9 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
                                     jx,            OhciExtension->IntStaticED[jx]);
   }
 
+  OhciExtension->ControlStaticED.HeadIndex = ED_EOF;
+  OhciExtension->BulkStaticED.HeadIndex    = ED_EOF;
+
 
   return MiniPortStatus;
 }
