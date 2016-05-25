@@ -12,9 +12,10 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
   POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
   ULONG                        MiniPortStatus = 0;
-  ULONG                        ix;
+  ULONG                        ix, jx;
   UCHAR                        HeadIndex;
   POHCI_ENDPOINT_DESCRIPTOR    StaticHwED;
+  POHCI_HCCA                   OhciHCCA;
 
   DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
 
@@ -61,6 +62,21 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 
     DPRINT("OHCI_StartController: ix - 0x%02X, HeadIndex - 0x%02X, StaticHwED - %p, StaticHwED->NextED - %p\n",
                                   ix, HeadIndex, StaticHwED, StaticHwED->NextED);
+  }
+
+  OhciHCCA = &OhciExtension->HcResourcesVA->HcHCCA;
+
+  for (ix = 0, jx = 63 - OHCI_NUMBER_OF_INTERRUPTS; ix < OHCI_NUMBER_OF_INTERRUPTS; ix++, jx++)
+  {
+    static UCHAR IndexHCCA[OHCI_NUMBER_OF_INTERRUPTS] =
+    { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
+
+      OhciHCCA->InterrruptTable[IndexHCCA[ix]] = (POHCI_ENDPOINT_DESCRIPTOR)OhciExtension->IntStaticED[jx].PhysicalAddress;
+      OhciExtension->IntStaticED[jx].HccaIndex = IndexHCCA[ix];
+
+      DPRINT("OHCI_StartController: OhciHCCA->InterrruptTable[0x%02X] - %p, OhciExtension->IntStaticED[0x%02X] - %p\n",
+                                    IndexHCCA[ix], OhciHCCA->InterrruptTable[IndexHCCA[ix]],
+                                    jx,            OhciExtension->IntStaticED[jx]);
   }
 
 
