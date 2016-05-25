@@ -344,6 +344,7 @@ typedef struct _OHCI_HC_RESOURCES {
 typedef struct _OHCI_EXTENSION {
 
   POHCI_OPERATIONAL_REGISTERS      OperationalRegs;           // HC Operational Registers
+  OHCI_HC_FRAME_INTERVAL           FrameInterval;             // 
   POHCI_HC_RESOURCES               HcResourcesVA;             // 
   PVOID                            HcResourcesPA;             //  
   OHCI_STATIC_ENDPOINT_DESCRIPTOR  IntStaticED[63];           //
