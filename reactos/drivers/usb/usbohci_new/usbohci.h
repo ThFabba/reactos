@@ -314,7 +314,7 @@ typedef struct _OHCI_OPERATIONAL_REGISTERS {
   ULONG                             HcBulkHeadED;        // +40 +0x28
   ULONG                             HcBulkCurrentED;     // +44 +0x2C
   ULONG                             HcDoneHead;          // +48 +0x30
-  ULONG                             HcFmInterval;        // +52 +0x34
+  OHCI_HC_FRAME_INTERVAL            HcFmInterval;        // +52 +0x34
   ULONG                             HcFmRemaining;       // +56 +0x38
   ULONG                             HcFmNumber;          // +60 +0x3C
   ULONG                             HcPeriodicStart;     // +64 +0x40
