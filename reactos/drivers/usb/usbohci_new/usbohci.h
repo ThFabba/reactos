@@ -96,6 +96,18 @@ typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
 } OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
 
 //---------------------------------------------------------------------
+typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {
+
+  // Software only part
+  POHCI_ENDPOINT_DESCRIPTOR  HwED;              // 
+  ULONG_PTR                  PhysicalAddress;   // 
+  UCHAR                      HeadIndex;         // 
+  UCHAR                      HccaIndex;         // 
+  UCHAR                      Reserved[2];       // 
+
+} OHCI_STATIC_ENDPOINT_DESCRIPTOR, *POHCI_STATIC_ENDPOINT_DESCRIPTOR;
+
+//---------------------------------------------------------------------
 typedef struct _OHCI_HCCA { // 256-byte boundary
 
   POHCI_ENDPOINT_DESCRIPTOR  InterrruptTable[OHCI_NUMBER_OF_INTERRUPTS];
