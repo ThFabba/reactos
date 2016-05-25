@@ -9,11 +9,17 @@ USBPORT_REGISTRATION_PACKET RegPacket;
 
 ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 {
-  ULONG                        MiniPortStatus;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
+  POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
+  ULONG                        MiniPortStatus = 0;
 
   DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
 
   MiniPortStatus = 0;
+
+  OperationalRegs = (POHCI_OPERATIONAL_REGISTERS)Resources->ResourceBase; //HC on-chip operational registers
+  OhciExtension->OperationalRegs = OperationalRegs;
+
 
   return MiniPortStatus;
 }
