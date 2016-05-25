@@ -333,6 +333,8 @@ typedef struct _OHCI_EXTENSION {
   POHCI_HC_RESOURCES               HcResourcesVA;             // 
   PVOID                            HcResourcesPA;             //  
   OHCI_STATIC_ENDPOINT_DESCRIPTOR  IntStaticED[63];           //
+  OHCI_STATIC_ENDPOINT_DESCRIPTOR  ControlStaticED;           // 
+  OHCI_STATIC_ENDPOINT_DESCRIPTOR  BulkStaticED;              // 
 
 } OHCI_EXTENSION, *POHCI_EXTENSION;
 
