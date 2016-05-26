@@ -17,6 +17,7 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   POHCI_ENDPOINT_DESCRIPTOR    StaticHwED;
   POHCI_HCCA                   OhciHCCA;
   OHCI_HC_FRAME_INTERVAL       FrameInterval;
+  OHCI_HC_CONTROL              Control;
 
   DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
 
@@ -95,6 +96,14 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 
   OhciExtension->FrameInterval = FrameInterval;
 
+  //reset
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcCommandStatus.AsULONG, 1);
+  KeStallExecutionProcessor(25);
+
+  Control = (OHCI_HC_CONTROL)READ_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG);
+  Control.HostControllerFunctionalState = OHCI_HC_STATE_RESET;
+
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG, Control.AsULONG);
 
 
   return MiniPortStatus;
