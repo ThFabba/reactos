@@ -93,6 +93,8 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 
   DPRINT("OHCI_StartController: FrameInterval - %p\n", FrameInterval.AsULONG);
 
+  OhciExtension->FrameInterval = FrameInterval;
+
 
 
   return MiniPortStatus;
