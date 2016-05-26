@@ -15,6 +15,11 @@
 #define ED_EOF                      -1
 #define MAXIMUM_OVERHEAD            210
 
+#define OHCI_HC_STATE_RESET         0
+#define OHCI_HC_STATE_RESUME        1
+#define OHCI_HC_STATE_OPERATIONAL   2
+#define OHCI_HC_STATE_SUSPEND       3
+
 
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_TRANSFER_CONTROL {
