@@ -16,6 +16,7 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   UCHAR                        HeadIndex;
   POHCI_ENDPOINT_DESCRIPTOR    StaticHwED;
   POHCI_HCCA                   OhciHCCA;
+  OHCI_HC_FRAME_INTERVAL       FrameInterval;
 
   DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
 
@@ -81,6 +82,9 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 
   OhciExtension->ControlStaticED.HeadIndex = ED_EOF;
   OhciExtension->BulkStaticED.HeadIndex    = ED_EOF;
+
+  FrameInterval = (OHCI_HC_FRAME_INTERVAL)READ_REGISTER_ULONG(&OperationalRegs->HcFmInterval.AsULONG);
+
 
 
   return MiniPortStatus;
