@@ -241,16 +241,26 @@ typedef union _OHCI_HC_RH_DESCRIPTORA {
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_RH_STATUS {
 
-   struct {
+  struct {
+    union {
+      // When read
       ULONG  LocalPowerStatus            : 1;
       ULONG  OverCurrentIndicator        : 1;
-      ULONG  Reserved1                   : 13;
+      ULONG  Reserved10                  : 13;
       ULONG  DeviceRemoteWakeupEnable    : 1;
-
       ULONG  LocalPowerStatusChange      : 1;
-      ULONG  OverCurrentIndicatorChange  : 1;
-      ULONG  Reserved2                   : 13;
+      ULONG  OverCurrentIndicatorChangeR : 1;
+      ULONG  Reserved20                  : 14;
+
+      // When written 
+      ULONG  ClearGlobalPower            : 1;
+      ULONG  Reserved11                  : 14;
+      ULONG  SetRemoteWakeupEnable       : 1;
+      ULONG  SetGlobalPower              : 1;
+      ULONG  OverCurrentIndicatorChangeW : 1;
+      ULONG  Reserved22                  : 13;
       ULONG  ClearRemoteWakeupEnable     : 1;
+    };
   };
 
   ULONG  AsULONG;
