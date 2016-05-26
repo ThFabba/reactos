@@ -18,6 +18,8 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   POHCI_HCCA                   OhciHCCA;
   OHCI_HC_FRAME_INTERVAL       FrameInterval;
   OHCI_HC_CONTROL              Control;
+  LARGE_INTEGER                SystemTime;
+  LARGE_INTEGER                CurrentTime;
 
   DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
 
@@ -105,8 +107,31 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 
   WRITE_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG, Control.AsULONG);
 
+  KeQuerySystemTime(&CurrentTime);
+  CurrentTime.QuadPart += 10000000; // 1 sec
 
-  return MiniPortStatus;
+  while ( 1 )
+  {
+    WRITE_REGISTER_ULONG(&OperationalRegs->HcFmInterval.AsULONG, OhciExtension->FrameInterval.AsULONG);
+    FrameInterval.AsULONG = READ_REGISTER_ULONG(&OperationalRegs->HcFmInterval.AsULONG);
+
+    KeQuerySystemTime(&SystemTime);
+
+    if ( SystemTime.QuadPart >= CurrentTime.QuadPart )
+    {
+      return 1;
+    }
+
+    if ( FrameInterval.AsULONG != OhciExtension->FrameInterval.AsULONG )
+    {
+      return 1;
+    }
+
+    break;
+  }
+
+
+  return 0;
 }
 
 VOID NTAPI OHCI_EnableInterrupts(PVOID Context)
