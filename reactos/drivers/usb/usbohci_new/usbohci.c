@@ -21,6 +21,9 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   LARGE_INTEGER                SystemTime;
   LARGE_INTEGER                CurrentTime;
 
+  OHCI_HC_INTERRUPT_ENABLE_DISABLE  Interrupts;
+  OHCI_HC_RH_STATUS                 HcRhStatus;
+
   DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
 
   MiniPortStatus = 0;
@@ -130,6 +133,30 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
     break;
   }
 
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcPeriodicStart, (OhciExtension->FrameInterval.FrameInterval * 9) / 10); //90%
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcHCCA, (ULONG)&OhciExtension->HcResourcesVA->HcHCCA);
+
+  Interrupts.AsULONG = 0;
+  Interrupts.SchedulingOverrun   = 1;
+  Interrupts.WritebackDoneHead   = 1;
+  Interrupts.UnrecoverableError  = 1;
+  Interrupts.FrameNumberOverflow = 1;
+  Interrupts.OwnershipChange     = 1;
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcInterruptEnable.AsULONG, Interrupts.AsULONG);
+
+  Control = (OHCI_HC_CONTROL)READ_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG);
+
+  Control.ControlBulkServiceRatio       = 0; // FIXME (1 : 1)
+  Control.PeriodicListEnable            = 1;
+  Control.IsochronousEnable             = 1;
+  Control.ControlListEnable             = 1;
+  Control.BulkListEnable                = 1;
+  Control.HostControllerFunctionalState = OHCI_HC_STATE_OPERATIONAL;
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG, Control.AsULONG);
+
+  HcRhStatus.AsULONG = 0;
+  HcRhStatus.SetGlobalPower = 1;
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcRhStatus.AsULONG, HcRhStatus.AsULONG);
 
   return 0;
 }
