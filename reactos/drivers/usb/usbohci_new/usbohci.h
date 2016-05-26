@@ -13,6 +13,7 @@
 
 #define OHCI_NUMBER_OF_INTERRUPTS   32
 #define ED_EOF                      -1
+#define MAXIMUM_OVERHEAD            210
 
 
 //---------------------------------------------------------------------
