@@ -85,6 +85,14 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
 
   FrameInterval = (OHCI_HC_FRAME_INTERVAL)READ_REGISTER_ULONG(&OperationalRegs->HcFmInterval.AsULONG);
 
+  if ( (FrameInterval.FrameInterval) < (11999 - 120) || (FrameInterval.FrameInterval) > (11999 + 120) ) // FIXME 10%
+    FrameInterval.FrameInterval = 11999;
+
+  FrameInterval.FSLargestDataPacket = ((FrameInterval.FrameInterval - MAXIMUM_OVERHEAD) * 6) / 7;
+  FrameInterval.FrameIntervalToggle = 1;
+
+  DPRINT("OHCI_StartController: FrameInterval - %p\n", FrameInterval.AsULONG);
+
 
 
   return MiniPortStatus;
