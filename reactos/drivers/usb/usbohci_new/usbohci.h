@@ -132,17 +132,17 @@ C_ASSERT(sizeof(OHCI_HCCA) == 256);
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_CONTROL {
 
-   struct {
-      ULONG  ControlBulkServiceRatio        : 2;
-      ULONG  PeriodicListEnable             : 1;
-      ULONG  IsochronousEnable              : 1;
-      ULONG  ControlListEnable              : 1;
-      ULONG  BulkListEnable                 : 1;
-      ULONG  HostControllerFunctionalState  : 2;
-      ULONG  InterruptRouting               : 1;
-      ULONG  RemoteWakeupConnected          : 1;
-      ULONG  RemoteWakeupEnable             : 1;
-      ULONG  Reserved                       : 21;
+  struct {
+    ULONG  ControlBulkServiceRatio        : 2;
+    ULONG  PeriodicListEnable             : 1;
+    ULONG  IsochronousEnable              : 1;
+    ULONG  ControlListEnable              : 1;
+    ULONG  BulkListEnable                 : 1;
+    ULONG  HostControllerFunctionalState  : 2;
+    ULONG  InterruptRouting               : 1;
+    ULONG  RemoteWakeupConnected          : 1;
+    ULONG  RemoteWakeupEnable             : 1;
+    ULONG  Reserved                       : 21;
   };
 
   ULONG  AsULONG;
@@ -152,14 +152,14 @@ typedef union _OHCI_HC_CONTROL {
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_COMMAND_STATUS {
 
-   struct {
-      ULONG  HostControllerReset     : 1;
-      ULONG  ControlListFilled       : 1;
-      ULONG  BulkListFilled          : 1;
-      ULONG  OwnershipChangeRequest  : 1;
-      ULONG  Reserved1               : 12;
-      ULONG  SchedulingOverrunCount  : 1;
-      ULONG  Reserved2               : 15;
+  struct {
+    ULONG  HostControllerReset     : 1;
+    ULONG  ControlListFilled       : 1;
+    ULONG  BulkListFilled          : 1;
+    ULONG  OwnershipChangeRequest  : 1;
+    ULONG  Reserved1               : 12;
+    ULONG  SchedulingOverrunCount  : 1;
+    ULONG  Reserved2               : 15;
   };
 
   ULONG  AsULONG;
@@ -169,17 +169,17 @@ typedef union _OHCI_HC_COMMAND_STATUS {
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_INTERRUPT_STATUS {
 
-   struct {
-      ULONG  SchedulingOverrun    : 1;
-      ULONG  WritebackDoneHead    : 1;
-      ULONG  StartofFrame         : 1;
-      ULONG  ResumeDetected       : 1;
-      ULONG  UnrecoverableError   : 1;
-      ULONG  FrameNumberOverflow  : 1;
-      ULONG  RootHubStatusChange  : 1;
-      ULONG  Reserved1            : 23;
-      ULONG  OwnershipChange      : 1;
-      ULONG  Reserved2            : 1; //NULL
+  struct {
+    ULONG  SchedulingOverrun    : 1;
+    ULONG  WritebackDoneHead    : 1;
+    ULONG  StartofFrame         : 1;
+    ULONG  ResumeDetected       : 1;
+    ULONG  UnrecoverableError   : 1;
+    ULONG  FrameNumberOverflow  : 1;
+    ULONG  RootHubStatusChange  : 1;
+    ULONG  Reserved1            : 23;
+    ULONG  OwnershipChange      : 1;
+    ULONG  Reserved2            : 1; //NULL
   };
 
   ULONG  AsULONG;
@@ -189,17 +189,17 @@ typedef union _OHCI_HC_INTERRUPT_STATUS {
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_INTERRUPT_ENABLE_DISABLE {
 
-   struct {
-      ULONG  SchedulingOverrun      : 1;
-      ULONG  WritebackDoneHead      : 1;
-      ULONG  StartofFrame           : 1;
-      ULONG  ResumeDetected         : 1;
-      ULONG  UnrecoverableError     : 1;
-      ULONG  FrameNumberOverflow    : 1;
-      ULONG  RootHubStatusChange    : 1;
-      ULONG  Reserved1              : 23;
-      ULONG  OwnershipChange        : 1;
-      ULONG  MasterInterruptEnable  : 1;
+  struct {
+    ULONG  SchedulingOverrun      : 1;
+    ULONG  WritebackDoneHead      : 1;
+    ULONG  StartofFrame           : 1;
+    ULONG  ResumeDetected         : 1;
+    ULONG  UnrecoverableError     : 1;
+    ULONG  FrameNumberOverflow    : 1;
+    ULONG  RootHubStatusChange    : 1;
+    ULONG  Reserved1              : 23;
+    ULONG  OwnershipChange        : 1;
+    ULONG  MasterInterruptEnable  : 1;
   };
 
   ULONG  AsULONG;
@@ -223,15 +223,15 @@ typedef union _OHCI_HC_FRAME_INTERVAL {
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_RH_DESCRIPTORA {
 
-   struct {
-      ULONG  NumberDownstreamPorts      : 8;
-      ULONG  PowerSwitchingMode         : 1;
-      ULONG  NoPowerSwitching           : 1;
-      ULONG  DeviceType                 : 1;
-      ULONG  OverCurrentProtectionMode  : 1;
-      ULONG  NoOverCurrentProtection    : 1;
-      ULONG  Reserved2                  : 13;
-      ULONG  PowerOnToPowerGoodTime     : 1;
+  struct {
+    ULONG  NumberDownstreamPorts      : 8;
+    ULONG  PowerSwitchingMode         : 1;
+    ULONG  NoPowerSwitching           : 1;
+    ULONG  DeviceType                 : 1;
+    ULONG  OverCurrentProtectionMode  : 1;
+    ULONG  NoOverCurrentProtection    : 1;
+    ULONG  Reserved2                  : 13;
+    ULONG  PowerOnToPowerGoodTime     : 1;
   };
 
   ULONG  AsULONG;
@@ -242,6 +242,7 @@ typedef union _OHCI_HC_RH_DESCRIPTORA {
 typedef union _OHCI_HC_RH_STATUS {
 
   struct {
+
     union {
       // When read
       ULONG  LocalPowerStatus            : 1;
@@ -261,6 +262,7 @@ typedef union _OHCI_HC_RH_STATUS {
       ULONG  Reserved22                  : 13;
       ULONG  ClearRemoteWakeupEnable     : 1;
     };
+
   };
 
   ULONG  AsULONG;
@@ -348,11 +350,11 @@ typedef struct _OHCI_OPERATIONAL_REGISTERS {
 // -------------------------------------------------------------------------------------------------------------
 typedef struct _OHCI_HC_RESOURCES {
 
-    OHCI_HCCA                     HcHCCA;                    // +0x000  (256 byte align)
+  OHCI_HCCA                     HcHCCA;                    // +0x000  (256 byte align)
 
-    OHCI_ENDPOINT_DESCRIPTOR      InterrruptHeadED[63];      // +0x100  (16 byte align)
-    OHCI_ENDPOINT_DESCRIPTOR      ControlHeadED;             // +0x4F0  (16 byte align)
-    OHCI_ENDPOINT_DESCRIPTOR      BulkHeadED;                // +0x500  (16 byte align)
+  OHCI_ENDPOINT_DESCRIPTOR      InterrruptHeadED[63];      // +0x100  (16 byte align)
+  OHCI_ENDPOINT_DESCRIPTOR      ControlHeadED;             // +0x4F0  (16 byte align)
+  OHCI_ENDPOINT_DESCRIPTOR      BulkHeadED;                // +0x500  (16 byte align)
 
 } OHCI_HC_RESOURCES, *POHCI_HC_RESOURCES;
 
@@ -372,8 +374,11 @@ typedef struct _OHCI_EXTENSION {
 
 extern USBPORT_REGISTRATION_PACKET RegPacket;
 
-NTSTATUS NTAPI USBPORT_RegisterUSBPortDriver(PDRIVER_OBJECT DriverObject, ULONG Version, PUSBPORT_REGISTRATION_PACKET RegistrationPacket);
+NTSTATUS NTAPI
+USBPORT_RegisterUSBPortDriver(
+    IN PDRIVER_OBJECT DriverObject,
+    IN ULONG Version,
+    IN PUSBPORT_REGISTRATION_PACKET RegistrationPacket);
 
-ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources);
 
 #endif /* USBOHCI_H__ */

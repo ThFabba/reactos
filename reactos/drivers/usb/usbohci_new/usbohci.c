@@ -7,7 +7,10 @@
 USBPORT_REGISTRATION_PACKET RegPacket;
 
 
-ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
+ULONG NTAPI
+OHCI_StartController(
+    IN PVOID Context,
+    IN PUSBPORT_RESOURCES Resources)
 {
   POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
   POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
@@ -161,17 +164,24 @@ ULONG NTAPI OHCI_StartController(PVOID Context, PUSBPORT_RESOURCES Resources)
   return 0;
 }
 
-VOID NTAPI OHCI_EnableInterrupts(PVOID Context)
+VOID NTAPI
+OHCI_EnableInterrupts(
+    IN PVOID Context)
 {
   DPRINT("OHCI_EnableInterrupts: Context - %p\n", Context);
 }
 
-VOID NTAPI OHCI_DisableInterrupts(PVOID Context)
+VOID NTAPI
+OHCI_DisableInterrupts(
+    IN PVOID Context)
 {
   DPRINT("OHCI_DisableInterrupts: Context - %p\n", Context);
 }
 
-NTSTATUS NTAPI DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
+NTSTATUS NTAPI
+DriverEntry(
+    IN PDRIVER_OBJECT DriverObject,
+    IN PUNICODE_STRING RegistryPath)
 {
     NTSTATUS Status;
 
