@@ -10,14 +10,17 @@ USBPORT_REGISTRATION_PACKET RegPacket;
 ULONG NTAPI
 OHCI_StartController(
     IN PVOID Context,
-    IN PUSBPORT_RESOURCES Resources)
+    IN PUSBPORT_RESOURCES HcResources)
 {
+  POHCI_EXTENSION              OhciExtension;
   POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
-  POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
-  ULONG                        MiniPortStatus = 0;
+  ULONG                        Result = 0;
+  PVOID                        ScheduleStartVA;
+  PVOID                        ScheduleStartPA;
   ULONG                        ix, jx;
   UCHAR                        HeadIndex;
-  POHCI_ENDPOINT_DESCRIPTOR    StaticHwED;
+  POHCI_ENDPOINT_DESCRIPTOR    StaticED;
+  ULONG_PTR                    SchedulePA;
   POHCI_HCCA                   OhciHCCA;
   OHCI_HC_FRAME_INTERVAL       FrameInterval;
   OHCI_HC_CONTROL              Control;
@@ -27,70 +30,91 @@ OHCI_StartController(
   OHCI_HC_INTERRUPT_ENABLE_DISABLE  Interrupts;
   OHCI_HC_RH_STATUS                 HcRhStatus;
 
-  DPRINT("OHCI_StartController: Context - %p, Resources - %p\n", Context, Resources);
+  DPRINT("OHCI_StartController: Context - %p, HcResources - %p\n", Context, HcResources);
 
-  MiniPortStatus = 0;
-  OperationalRegs = (POHCI_OPERATIONAL_REGISTERS)Resources->ResourceBase; //HC on-chip operational registers
+  OhciExtension = (POHCI_EXTENSION)Context;
+  OperationalRegs = (POHCI_OPERATIONAL_REGISTERS)HcResources->ResourceBase; //HC on-chip operational registers
   OhciExtension->OperationalRegs = OperationalRegs;
 
-  MiniPortStatus = 0;//OHCI_TakeControlHC(OhciExtension);
+  Result = 0;//OHCI_TakeControlHC(OhciExtension);
   DPRINT("OHCI_StartController: FIXME OHCI_TakeControlHC \n");
 
-  if ( MiniPortStatus != 0 )
+  if ( Result != 0 )
   {
-    DPRINT1("OHCI_StartController: OHCI_TakeControlHC return MiniPortStatus - %x\n", MiniPortStatus);
-    return MiniPortStatus;
+    DPRINT1("OHCI_StartController: OHCI_TakeControlHC return Result - %x\n", Result);
+    return Result;
   }
 
-  OhciExtension->HcResourcesVA = Resources->StartVA;
-  OhciExtension->HcResourcesPA = Resources->StartPA;
+  OhciExtension->HcResourcesVA = (ULONG_PTR)HcResources->StartVA;
+  OhciExtension->HcResourcesPA = (ULONG_PTR)HcResources->StartPA;
   DPRINT("OHCI_StartController: HcResourcesVA - %p, HcResourcesPA - %p\n", OhciExtension->HcResourcesVA, OhciExtension->HcResourcesPA);
 
-  for (ix = 0; ix < 63; ix++)  // FIXME 63 == 32+16+8+4+2+1 (Endpoint Poll Interval (ms))
-  {
-    StaticHwED = &OhciExtension->HcResourcesVA->InterrruptHeadED[ix];
+  ScheduleStartVA = (PVOID)((ULONG_PTR)HcResources->StartVA + sizeof(OHCI_HCCA));
+  ScheduleStartPA = (PVOID)((ULONG_PTR)HcResources->StartPA + sizeof(OHCI_HCCA));
 
+  OhciExtension->ScheduleStartVA = ScheduleStartVA; // HcResources->CommonBufferVa + 0x100
+  OhciExtension->ScheduleStartPA = ScheduleStartPA; // +0x100
+
+  StaticED = (POHCI_ENDPOINT_DESCRIPTOR)ScheduleStartVA;
+  SchedulePA = (ULONG_PTR)ScheduleStartPA;
+  ix = 0;
+
+  for ( ix = 0; ix < 63; ix++ )  // FIXME 63 == 32+16+8+4+2+1 (Endpoint Poll Interval (ms))
+  {
     if ( ix == 0 )
     {
       HeadIndex = ED_EOF;
-      StaticHwED->NextED = 0;
+      StaticED->NextED = 0;
     }
     else
     {
       HeadIndex = ((ix - 1) >> 1);
       ASSERT(HeadIndex >= 0 && HeadIndex < 31);
-      StaticHwED->NextED = OhciExtension->IntStaticED[HeadIndex].PhysicalAddress;
+      StaticED->NextED = OhciExtension->InterrruptHeadED[HeadIndex].PhysicalAddress;
+    }
+  
+    StaticED->EndpointControl.sKip = 1;
+    StaticED->TailPointer          = 0;
+    StaticED->HeadPointer          = 0;
+  
+    OhciExtension->InterrruptHeadED[ix].HwED            = StaticED;
+    OhciExtension->InterrruptHeadED[ix].PhysicalAddress = SchedulePA;
+    OhciExtension->InterrruptHeadED[ix].HeadIndex       = HeadIndex;
+    OhciExtension->InterrruptHeadED[ix].pNextED         = (POHCI_ENDPOINT_DESCRIPTOR *)&StaticED->NextED;
+  
+    InitializeListHead(&OhciExtension->InterrruptHeadED[ix].Link);
+  
+    StaticED   += 1;
+    SchedulePA += sizeof(OHCI_ENDPOINT_DESCRIPTOR);
+  }
+
+  OhciHCCA = (POHCI_HCCA)OhciExtension->HcResourcesVA;
+  DPRINT("OHCI_InitializeSchedule: OhciHCCA - %p\n", OhciHCCA);
+
+  for (ix = 0, jx = 31; ix < 32; ix++, jx++)
+  {
+    static UCHAR Balance[32] =
+    { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31  };
+  
+      OhciHCCA->InterrruptTable[Balance[ix]] = (POHCI_ENDPOINT_DESCRIPTOR)(OhciExtension->InterrruptHeadED[jx].PhysicalAddress);
+  
+      OhciExtension->InterrruptHeadED[jx].pNextED   = (POHCI_ENDPOINT_DESCRIPTOR *)&OhciHCCA->InterrruptTable[Balance[ix]];
+      OhciExtension->InterrruptHeadED[jx].HccaIndex = Balance[ix];
     }
 
-    StaticHwED->EndpointControl.sKip = 1;           // 
-    StaticHwED->TailPointer          = 0;           // 
-    StaticHwED->HeadPointer          = 0;           // 
+  DPRINT("OHCI_InitializeSchedule: ix - %x\n", ix);
 
-    OhciExtension->IntStaticED[ix].HwED             = StaticHwED;
-    OhciExtension->IntStaticED[ix].PhysicalAddress  = (ULONG)OhciExtension->HcResourcesPA + sizeof(OHCI_HCCA) + ix * sizeof(OHCI_ENDPOINT_DESCRIPTOR); 
-    OhciExtension->IntStaticED[ix].HeadIndex        = HeadIndex;
-
-    DPRINT("OHCI_StartController: ix - 0x%02X, HeadIndex - 0x%02X, StaticHwED - %p, StaticHwED->NextED - %p\n",
-                                  ix, HeadIndex, StaticHwED, StaticHwED->NextED);
-  }
-
-  OhciHCCA = &OhciExtension->HcResourcesVA->HcHCCA;
-
-  for (ix = 0, jx = 63 - OHCI_NUMBER_OF_INTERRUPTS; ix < OHCI_NUMBER_OF_INTERRUPTS; ix++, jx++)
-  {
-    static UCHAR IndexHCCA[OHCI_NUMBER_OF_INTERRUPTS] =
-    { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
-
-      OhciHCCA->InterrruptTable[IndexHCCA[ix]] = (POHCI_ENDPOINT_DESCRIPTOR)OhciExtension->IntStaticED[jx].PhysicalAddress;
-      OhciExtension->IntStaticED[jx].HccaIndex = IndexHCCA[ix];
-
-      DPRINT("OHCI_StartController: OhciHCCA->InterrruptTable[0x%02X] - %p, OhciExtension->IntStaticED[0x%02X] - %p\n",
-                                    IndexHCCA[ix], OhciHCCA->InterrruptTable[IndexHCCA[ix]],
-                                    jx,            OhciExtension->IntStaticED[jx]);
-  }
+  InitializeListHead(&OhciExtension->ControlStaticED.Link);
 
   OhciExtension->ControlStaticED.HeadIndex = ED_EOF;
-  OhciExtension->BulkStaticED.HeadIndex    = ED_EOF;
+  OhciExtension->ControlStaticED.Type      = OHCI_NUMBER_OF_INTERRUPTS + 1;
+  OhciExtension->ControlStaticED.pNextED   = (POHCI_ENDPOINT_DESCRIPTOR *)&OperationalRegs->HcControlHeadED; //OperationalRegs + 32
+
+  InitializeListHead(&OhciExtension->BulkStaticED.Link);
+
+  OhciExtension->BulkStaticED.HeadIndex = ED_EOF;
+  OhciExtension->BulkStaticED.Type      = OHCI_NUMBER_OF_INTERRUPTS + 2;
+  OhciExtension->BulkStaticED.pNextED   = (POHCI_ENDPOINT_DESCRIPTOR *)&OperationalRegs->HcBulkHeadED; //OperationalRegs + 40
 
   FrameInterval = (OHCI_HC_FRAME_INTERVAL)READ_REGISTER_ULONG(&OperationalRegs->HcFmInterval.AsULONG);
 
@@ -114,7 +138,7 @@ OHCI_StartController(
   WRITE_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG, Control.AsULONG);
 
   KeQuerySystemTime(&CurrentTime);
-  CurrentTime.QuadPart += 10000000; // 1 sec
+  CurrentTime.QuadPart += 5000000; // 0.5 sec
 
   while ( 1 )
   {
@@ -137,7 +161,7 @@ OHCI_StartController(
   }
 
   WRITE_REGISTER_ULONG(&OperationalRegs->HcPeriodicStart, (OhciExtension->FrameInterval.FrameInterval * 9) / 10); //90%
-  WRITE_REGISTER_ULONG(&OperationalRegs->HcHCCA, (ULONG)&OhciExtension->HcResourcesVA->HcHCCA);
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcHCCA, (ULONG)OhciExtension->HcResourcesPA);
 
   Interrupts.AsULONG = 0;
   Interrupts.SchedulingOverrun   = 1;

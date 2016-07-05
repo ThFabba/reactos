@@ -106,11 +106,14 @@ typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
 typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {
 
   // Software only part
-  POHCI_ENDPOINT_DESCRIPTOR  HwED;              // 
-  ULONG_PTR                  PhysicalAddress;   // 
-  UCHAR                      HeadIndex;         // 
-  UCHAR                      HccaIndex;         // 
-  UCHAR                      Reserved[2];       // 
+  POHCI_ENDPOINT_DESCRIPTOR   HwED;              // 
+  ULONG_PTR                   PhysicalAddress;   // 
+  UCHAR                       HeadIndex;         // 
+  UCHAR                       Reserved[3];       // 
+  LIST_ENTRY                  Link;              // 
+  ULONG                       Type;              //  
+  POHCI_ENDPOINT_DESCRIPTOR * pNextED;           //  
+  ULONG                       HccaIndex;         //  
 
 } OHCI_STATIC_ENDPOINT_DESCRIPTOR, *POHCI_STATIC_ENDPOINT_DESCRIPTOR;
 
@@ -363,11 +366,13 @@ typedef struct _OHCI_EXTENSION {
 
   POHCI_OPERATIONAL_REGISTERS      OperationalRegs;           // HC Operational Registers
   OHCI_HC_FRAME_INTERVAL           FrameInterval;             // 
-  POHCI_HC_RESOURCES               HcResourcesVA;             // 
-  PVOID                            HcResourcesPA;             //  
-  OHCI_STATIC_ENDPOINT_DESCRIPTOR  IntStaticED[63];           //
-  OHCI_STATIC_ENDPOINT_DESCRIPTOR  ControlStaticED;           // 
-  OHCI_STATIC_ENDPOINT_DESCRIPTOR  BulkStaticED;              // 
+  ULONG                            HcResourcesVA;             // 
+  ULONG                            HcResourcesPA;             //  
+  PVOID                            ScheduleStartVA;           // 
+  PVOID                            ScheduleStartPA;           // 
+  OHCI_STATIC_ENDPOINT_DESCRIPTOR  InterrruptHeadED[63];      //
+  OHCI_STATIC_ENDPOINT_DESCRIPTOR  ControlStaticED;           // [64]
+  OHCI_STATIC_ENDPOINT_DESCRIPTOR  BulkStaticED;              // [65]
 
 } OHCI_EXTENSION, *POHCI_EXTENSION;
 
