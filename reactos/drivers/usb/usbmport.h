@@ -17,14 +17,15 @@ typedef struct _USBPORT_RESOURCES {
 
 } USBPORT_RESOURCES, *PUSBPORT_RESOURCES;
 
-typedef ULONG   (NTAPI * PHCI_START_CONTROLLER                        )(PVOID, PUSBPORT_RESOURCES);
-typedef VOID    (NTAPI * PHCI_ENABLE_INTERRUPTS                       )(PVOID);
-typedef VOID    (NTAPI * PHCI_DISABLE_INTERRUPTS                      )(PVOID);
+typedef ULONG    (NTAPI * PHCI_START_CONTROLLER                        )(PVOID, PUSBPORT_RESOURCES);
+typedef VOID     (NTAPI * PHCI_ENABLE_INTERRUPTS                       )(PVOID);
+typedef VOID     (NTAPI * PHCI_DISABLE_INTERRUPTS                      )(PVOID);
 
 typedef struct _USBPORT_REGISTRATION_PACKET {
 
   ULONG                                          Version;                               // Type: 1 - OHCI, 2 - UHCI, 3 - EHCI
   ULONG                                          MiniPortExtensionSize;                 // 
+  ULONG                                          MiniPortTransferSize;                  // 
   ULONG                                          MiniPortResourcesSize;                 // 
   PHCI_START_CONTROLLER                          StartController;                       //
   PHCI_ENABLE_INTERRUPTS                         EnableInterrupts;                      // 
@@ -41,5 +42,24 @@ typedef struct _USBPORT_MINIPORT_INTERFACE {
 
 } USBPORT_MINIPORT_INTERFACE, *PUSBPORT_MINIPORT_INTERFACE;
 
+//----------------------------------------------
+typedef struct _USBPORT_SCATTER_GATHER_ELEMENT {
+
+  PHYSICAL_ADDRESS                SgPhysicalAddress;
+  ULONG                           SgTransferLength;
+  ULONG                           SgOffset;
+
+} USBPORT_SCATTER_GATHER_ELEMENT, *PUSBPORT_SCATTER_GATHER_ELEMENT;
+
+//----------------------------------------------
+typedef struct _USBPORT_SCATTER_GATHER_LIST {
+
+  ULONG_PTR                       CurrentVa;
+  PVOID                           MappedSystemVa;
+  ULONG                           SgElementCount;
+
+  USBPORT_SCATTER_GATHER_ELEMENT  SgElement[1];
+
+} USBPORT_SCATTER_GATHER_LIST, *PUSBPORT_SCATTER_GATHER_LIST;
 
 #endif /* USBMPORT_H__ */
