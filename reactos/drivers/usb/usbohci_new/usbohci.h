@@ -379,6 +379,13 @@ typedef struct _OHCI_EXTENSION {
 
 extern USBPORT_REGISTRATION_PACKET RegPacket;
 
+//- roothub.c -----------------------------------------------------------------
+ULONG NTAPI 
+OHCI_RH_GetRootHubData(
+    IN PVOID Context,
+    IN PVOID RootHubData);
+
+//- usbohci.c -----------------------------------------------------------------
 NTSTATUS NTAPI
 USBPORT_RegisterUSBPortDriver(
     IN PDRIVER_OBJECT DriverObject,

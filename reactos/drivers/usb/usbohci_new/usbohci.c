@@ -12,23 +12,22 @@ OHCI_StartController(
     IN PVOID Context,
     IN PUSBPORT_RESOURCES HcResources)
 {
-  POHCI_EXTENSION              OhciExtension;
-  POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
-  ULONG                        Result = 0;
-  PVOID                        ScheduleStartVA;
-  PVOID                        ScheduleStartPA;
-  ULONG                        ix, jx;
-  UCHAR                        HeadIndex;
-  POHCI_ENDPOINT_DESCRIPTOR    StaticED;
-  ULONG_PTR                    SchedulePA;
-  POHCI_HCCA                   OhciHCCA;
-  OHCI_HC_FRAME_INTERVAL       FrameInterval;
-  OHCI_HC_CONTROL              Control;
-  LARGE_INTEGER                SystemTime;
-  LARGE_INTEGER                CurrentTime;
-
+  POHCI_EXTENSION                   OhciExtension;
+  POHCI_OPERATIONAL_REGISTERS       OperationalRegs;
   OHCI_HC_INTERRUPT_ENABLE_DISABLE  Interrupts;
   OHCI_HC_RH_STATUS                 HcRhStatus;
+  OHCI_HC_FRAME_INTERVAL            FrameInterval;
+  OHCI_HC_CONTROL                   Control;
+  PVOID                             ScheduleStartVA;
+  PVOID                             ScheduleStartPA;
+  ULONG                             ix, jx;
+  UCHAR                             HeadIndex;
+  POHCI_ENDPOINT_DESCRIPTOR         StaticED;
+  ULONG_PTR                         SchedulePA;
+  POHCI_HCCA                        OhciHCCA;
+  LARGE_INTEGER                     SystemTime;
+  LARGE_INTEGER                     CurrentTime;
+  ULONG                             Result = 0;
 
   DPRINT("OHCI_StartController: Context - %p, HcResources - %p\n", Context, HcResources);
 
@@ -108,13 +107,13 @@ OHCI_StartController(
 
   OhciExtension->ControlStaticED.HeadIndex = ED_EOF;
   OhciExtension->ControlStaticED.Type      = OHCI_NUMBER_OF_INTERRUPTS + 1;
-  OhciExtension->ControlStaticED.pNextED   = (POHCI_ENDPOINT_DESCRIPTOR *)&OperationalRegs->HcControlHeadED; //OperationalRegs + 32
+  OhciExtension->ControlStaticED.pNextED   = (POHCI_ENDPOINT_DESCRIPTOR *)&OperationalRegs->HcControlHeadED;
 
   InitializeListHead(&OhciExtension->BulkStaticED.Link);
 
   OhciExtension->BulkStaticED.HeadIndex = ED_EOF;
   OhciExtension->BulkStaticED.Type      = OHCI_NUMBER_OF_INTERRUPTS + 2;
-  OhciExtension->BulkStaticED.pNextED   = (POHCI_ENDPOINT_DESCRIPTOR *)&OperationalRegs->HcBulkHeadED; //OperationalRegs + 40
+  OhciExtension->BulkStaticED.pNextED   = (POHCI_ENDPOINT_DESCRIPTOR *)&OperationalRegs->HcBulkHeadED;
 
   FrameInterval = (OHCI_HC_FRAME_INTERVAL)READ_REGISTER_ULONG(&OperationalRegs->HcFmInterval.AsULONG);
 
@@ -220,6 +219,7 @@ DriverEntry(
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;
+    RegPacket.RH_GetRootHubData                     = OHCI_RH_GetRootHubData;
 
     Status = USBPORT_RegisterUSBPortDriver(DriverObject, 1, &RegPacket);
     DPRINT("DriverEntry: USBPORT_RegisterUSBPortDriver return Status - %x\n", Status);
