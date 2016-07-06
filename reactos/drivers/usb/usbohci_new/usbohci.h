@@ -361,6 +361,13 @@ typedef struct _OHCI_HC_RESOURCES {
 
 } OHCI_HC_RESOURCES, *POHCI_HC_RESOURCES;
 
+//---------------------------------------------------------------------
+typedef struct _OHCI_ENDPOINT {
+
+  ULONG                             MaxTransferDescriptors;  // TdCount
+
+} OHCI_ENDPOINT, *POHCI_ENDPOINT;
+
 // -------------------------------------------------------------------------------------------------------------
 typedef struct _OHCI_EXTENSION {
 
