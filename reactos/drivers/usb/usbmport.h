@@ -79,4 +79,13 @@ typedef struct _USBPORT_SCATTER_GATHER_LIST {
 
 } USBPORT_SCATTER_GATHER_LIST, *PUSBPORT_SCATTER_GATHER_LIST;
 
+//----------------------------------------------
+typedef struct _USBPORT_TRANSFER_PARAMETERS {
+
+  ULONG                           TransferFlags;
+  ULONG                           TransferBufferLength;
+  USB_DEFAULT_PIPE_SETUP_PACKET   SetupPacket;
+
+} USBPORT_TRANSFER_PARAMETERS, *PUSBPORT_TRANSFER_PARAMETERS;
+
 #endif /* USBMPORT_H__ */
