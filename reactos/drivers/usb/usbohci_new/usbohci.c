@@ -221,6 +221,8 @@ DriverEntry(
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;
     RegPacket.RH_GetRootHubData                     = OHCI_RH_GetRootHubData;
+    RegPacket.RH_SetFeaturePortPower                = OHCI_RH_SetFeaturePortPower;
+    RegPacket.RH_ClearFeaturePortConnectChange      = OHCI_RH_ClearFeaturePortConnectChange;
 
     Status = USBPORT_RegisterUSBPortDriver(DriverObject, 1, &RegPacket);
     DPRINT("DriverEntry: USBPORT_RegisterUSBPortDriver return Status - %x\n", Status);

@@ -4,6 +4,30 @@
 #include <debug.h>
 
 
+ULONG NTAPI
+OHCI_RH_ClearFeaturePortConnectChange(
+    IN PVOID Context,
+    IN USHORT Port)
+{
+  POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs = OhciExtension->OperationalRegs;
+  DPRINT("OHCI_RH_ClearFeaturePortConnectChange: Context - %p, Port - %x\n", Context, Port);
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcRhPortStatus[Port-1].AsULONG, 0x10000);
+  return 0;
+}
+
+ULONG NTAPI
+OHCI_RH_SetFeaturePortPower(
+    IN PVOID Context,
+    IN USHORT Port)
+{
+  POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs = OhciExtension->OperationalRegs;
+  DPRINT("OHCI_RH_SetFeaturePortPower: Context - %p, Port - %x\n", Context, Port);
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcRhPortStatus[Port-1].AsULONG, 0x100);
+  return 0;
+}
+
 ULONG NTAPI 
 OHCI_RH_GetRootHubData(
     IN PVOID Context,

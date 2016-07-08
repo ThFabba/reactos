@@ -387,6 +387,16 @@ typedef struct _OHCI_EXTENSION {
 extern USBPORT_REGISTRATION_PACKET RegPacket;
 
 //- roothub.c -----------------------------------------------------------------
+ULONG NTAPI
+OHCI_RH_ClearFeaturePortConnectChange(
+    IN PVOID Context,
+    IN USHORT Port);
+
+ULONG NTAPI
+OHCI_RH_SetFeaturePortPower(
+    IN PVOID Context,
+    IN USHORT Port);
+
 ULONG NTAPI 
 OHCI_RH_GetRootHubData(
     IN PVOID Context,
