@@ -402,6 +402,25 @@ OHCI_RH_GetRootHubData(
     IN PVOID Context,
     IN PVOID RootHubData);
 
+ULONG NTAPI
+OHCI_RH_GetPortStatus(
+    IN PVOID Context,
+    IN USHORT Port,
+    IN PULONG PortStatus);
+
+ULONG NTAPI
+OHCI_RH_GetHubStatus(
+    IN PVOID Context,
+    IN PULONG HubStatus);
+
+VOID NTAPI
+OHCI_RH_EnableIrq(
+    IN PVOID Context);
+
+VOID NTAPI
+OHCI_RH_DisableIrq(
+    IN PVOID Context);
+
 //- usbohci.c -----------------------------------------------------------------
 NTSTATUS NTAPI
 USBPORT_RegisterUSBPortDriver(

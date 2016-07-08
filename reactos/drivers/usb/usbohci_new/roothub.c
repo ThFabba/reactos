@@ -88,3 +88,73 @@ OHCI_RH_GetRootHubData(
 
   return Result;
 }
+
+ULONG NTAPI
+OHCI_RH_GetPortStatus(
+    IN PVOID Context,
+    IN USHORT Port,
+    IN PULONG PortStatus)
+{
+  POHCI_EXTENSION              OhciExtension;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
+  ULONG                        portStatus;
+  ULONG                        ix;
+
+  DPRINT("OHCI_RH_GetPortStatus: Port - %x, PortStatus - %p\n", Port, *PortStatus);
+
+  OhciExtension = (POHCI_EXTENSION)Context;
+  OperationalRegs = ((POHCI_EXTENSION)OhciExtension)->OperationalRegs;
+
+  ix = 0;
+
+  do
+  {
+    portStatus = READ_REGISTER_ULONG(&OperationalRegs->HcRhPortStatus[Port-1].AsULONG);
+
+    if ( portStatus && !(portStatus & 0xFFE0FCE0) )
+      break;
+
+    KeStallExecutionProcessor(5);
+
+    ++ix;
+  }
+  while ( ix < 10 );
+
+  *PortStatus = portStatus;
+
+  return 0;
+}
+
+ULONG NTAPI
+OHCI_RH_GetHubStatus(
+    IN PVOID Context,
+    IN PULONG HubStatus)
+{
+  POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs = OhciExtension->OperationalRegs;
+  DPRINT("OHCI_RH_GetHubStatus: Context - %p, HubStatus - %x\n", Context, HubStatus);
+  *HubStatus &= ~0x10001;
+  *HubStatus ^= (READ_REGISTER_ULONG(&OperationalRegs->HcRhStatus.AsULONG) ^ *HubStatus) & 0x20002;
+  return 0;
+}
+
+VOID NTAPI
+OHCI_RH_EnableIrq(
+    IN PVOID Context)
+{
+  POHCI_EXTENSION  OhciExtension = (POHCI_EXTENSION)Context;
+
+  DPRINT("OHCI_RH_EnableIrq: OhciExtension - %p\n", OhciExtension);
+  WRITE_REGISTER_ULONG(&OhciExtension->OperationalRegs->HcInterruptEnable.AsULONG, 0x40);
+}
+
+VOID NTAPI
+OHCI_RH_DisableIrq(
+    IN PVOID Context)
+{
+  POHCI_EXTENSION  OhciExtension = (POHCI_EXTENSION)Context;
+
+  DPRINT("OHCI_RH_DisableIrq: OhciExtension - %p\n", OhciExtension);
+  WRITE_REGISTER_ULONG(&OhciExtension->OperationalRegs->HcInterruptDisable.AsULONG, 0x40);
+}
+
