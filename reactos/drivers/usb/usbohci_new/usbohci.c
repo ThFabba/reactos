@@ -7,6 +7,40 @@
 USBPORT_REGISTRATION_PACKET RegPacket;
 
 
+BOOLEAN NTAPI
+OHCI_InterruptService(
+    PVOID Context)
+{
+  POHCI_EXTENSION                   OhciExtension = (POHCI_EXTENSION)Context;
+  POHCI_OPERATIONAL_REGISTERS       OperationalRegs;
+  OHCI_HC_INTERRUPT_ENABLE_DISABLE  InterruptEnable;
+  OHCI_HC_INTERRUPT_STATUS          InterruptStatus; 
+  BOOLEAN                           Result = FALSE;
+
+  DPRINT("OHCI_InterruptService: OhciExtension - %p\n", OhciExtension);
+
+  OperationalRegs = OhciExtension->OperationalRegs;
+
+  InterruptEnable.AsULONG = READ_REGISTER_ULONG(&OperationalRegs->HcInterruptEnable.AsULONG);
+  InterruptStatus.AsULONG = InterruptEnable.AsULONG &
+                            READ_REGISTER_ULONG(&OperationalRegs->HcInterruptStatus.AsULONG);
+
+  if ( InterruptStatus.AsULONG && InterruptEnable.MasterInterruptEnable )
+  {
+    if ( InterruptStatus.FrameNumberOverflow )
+      DPRINT("OHCI_InterruptService: FIXME. FrameNumberOverflow. InterruptStatus.AsULONG - %p\n", InterruptStatus.AsULONG);
+
+    if ( InterruptStatus.AsULONG & 0x10 )
+ASSERT(FALSE);
+
+    Result = TRUE;
+
+    WRITE_REGISTER_ULONG(&OperationalRegs->HcInterruptDisable.AsULONG, 0x80000000);
+  }
+
+  return Result;
+}
+
 ULONG NTAPI
 OHCI_StartController(
     IN PVOID Context,
@@ -227,6 +261,7 @@ DriverEntry(
     //RegPacket.MiniPortTransferSize                  = sizeof();
     RegPacket.MiniPortResourcesSize                 = sizeof(OHCI_HC_RESOURCES);                  // 
     RegPacket.StartController                       = OHCI_StartController;
+    RegPacket.InterruptService                      = OHCI_InterruptService;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;
     RegPacket.RH_GetRootHubData                     = OHCI_RH_GetRootHubData;
