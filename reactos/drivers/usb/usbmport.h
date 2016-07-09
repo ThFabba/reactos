@@ -85,6 +85,9 @@ typedef struct _USBPORT_ENDPOINT_PROPERTIES {
   ULONG                         DeviceSpeed;
   ULONG                         TransferType;
   ULONG                         MaxTransferSize;
+  ULONG                         BufferVA;
+  ULONG                         BufferPA;
+  ULONG                         BufferLength;
 
 } USBPORT_ENDPOINT_PROPERTIES, *PUSBPORT_ENDPOINT_PROPERTIES;
 
