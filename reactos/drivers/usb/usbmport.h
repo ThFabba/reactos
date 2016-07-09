@@ -33,6 +33,9 @@ typedef ULONG    (NTAPI * PHCI_RH_CLEAR_FEATURE_PORT_RESET_CHANGE      )(PVOID, 
 typedef VOID     (NTAPI * PHCI_RH_DISABLE_IRQ                          )(PVOID);
 typedef VOID     (NTAPI * PHCI_RH_ENABLE_IRQ                           )(PVOID);
 
+typedef VOID     (NTAPI * PUSBPORT_INVALIDATE_ROOT_HUB                 )(PVOID);
+
+
 typedef struct _USBPORT_REGISTRATION_PACKET {
 
   ULONG                                          Version;                               // Type: 1 - OHCI, 2 - UHCI, 3 - EHCI
@@ -55,6 +58,8 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
   PHCI_RH_CLEAR_FEATURE_PORT_RESET_CHANGE        RH_ClearFeaturePortResetChange;        // 
   PHCI_RH_DISABLE_IRQ                            RH_DisableIrq;                         // 
   PHCI_RH_ENABLE_IRQ                             RH_EnableIrq;                          // 
+
+  PUSBPORT_INVALIDATE_ROOT_HUB                   UsbPortInvalidateRootHub;              // 
 
 } USBPORT_REGISTRATION_PACKET, *PUSBPORT_REGISTRATION_PACKET;
 

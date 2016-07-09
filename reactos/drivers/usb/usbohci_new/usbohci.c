@@ -25,7 +25,8 @@ OHCI_InterruptDpc(
 
   if ( InterruptStatus & 0x40 ) // RootHubStatusChange
   {
-ASSERT(FALSE);
+    DPRINT("OHCI_InterruptDpc: RootHubStatusChange\n");
+    RegPacket.UsbPortInvalidateRootHub(OhciExtension);
   }
 
   if ( InterruptStatus & 2 ) // WritebackDoneHead
@@ -35,7 +36,7 @@ ASSERT(FALSE);
 
   if ( InterruptStatus & 4 ) // StartofFrame
   {
-ASSERT(FALSE);
+    WRITE_REGISTER_ULONG(&OperationalRegs->HcInterruptDisable.AsULONG, 4);
   }
 
   if ( InterruptStatus & 8 ) // ResumeDetected
