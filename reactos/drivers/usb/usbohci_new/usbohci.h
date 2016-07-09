@@ -299,20 +299,20 @@ typedef union _OHCI_HC_RH_PORT_STATUS {
       // When read
       UCHAR  PortPowerStatus                 : 1;
       UCHAR  LowSpeedDeviceAttached          : 1;
-      UCHAR  Reserved2r                      : 3;
+      UCHAR  Reserved2r                      : 6;
 
       // When written 
       UCHAR  SetPortPower                    : 1;
       UCHAR  ClearPortPower                  : 1;
-      UCHAR  Reserved2w                      : 3;
+      UCHAR  Reserved2w                      : 6;
     };
 
-      ULONG  ConnectStatusChange             : 1;
-      ULONG  PortEnableStatusChange          : 1;
-      ULONG  PortSuspendStatusChange         : 1;
-      ULONG  PortOverCurrentIndicatorChange  : 1;
-      ULONG  PortResetStatusChange           : 1;
-      ULONG  Reserved3                       : 11;
+      USHORT ConnectStatusChange             : 1;
+      USHORT PortEnableStatusChange          : 1;
+      USHORT PortSuspendStatusChange         : 1;
+      USHORT PortOverCurrentIndicatorChange  : 1;
+      USHORT PortResetStatusChange           : 1;
+      USHORT Reserved3                       : 11;
   };
 
   ULONG  AsULONG;
