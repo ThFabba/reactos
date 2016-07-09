@@ -193,7 +193,13 @@ VOID NTAPI
 OHCI_EnableInterrupts(
     IN PVOID Context)
 {
-  DPRINT("OHCI_EnableInterrupts: Context - %p\n", Context);
+  POHCI_EXTENSION              OhciExtension;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
+ 
+  OhciExtension = (POHCI_EXTENSION)Context;
+  DPRINT("OHCI_EnableInterrupts: OhciExtension - %p\n", OhciExtension);
+  OperationalRegs = OhciExtension->OperationalRegs;
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcInterruptEnable.AsULONG, 0x80000000); //HcInterruptEnable.MIE - Master Interrupt Enable
 }
 
 VOID NTAPI
