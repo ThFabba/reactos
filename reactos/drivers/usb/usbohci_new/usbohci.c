@@ -296,6 +296,34 @@ OHCI_DisableInterrupts(
 }
 
 VOID NTAPI
+OHCI_SetEndpointState(
+    IN PVOID Context,
+    IN PVOID MiniportEndpoint,
+    IN ULONG State)
+{
+  DPRINT("OHCI_SetEndpointState: State - %x\n", State);
+
+  switch ( State )
+  {
+    case 2: // ENDPOINT_PAUSED
+ASSERT(FALSE);
+      break;
+
+    case 3: // ENDPOINT_ACTIVE
+ASSERT(FALSE);
+      break;
+
+    case 4: // ENDPOINT_CLOSED
+ASSERT(FALSE);
+      break;
+
+    default:
+ASSERT(FALSE);
+      break;
+  }
+}
+
+VOID NTAPI
 OHCI_InterruptNextSOF(
     IN PVOID Context)
 {
@@ -449,6 +477,7 @@ DriverEntry(
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.InterruptService                      = OHCI_InterruptService;
     RegPacket.InterruptDpc                          = OHCI_InterruptDpc;
+    RegPacket.SetEndpointState                      = OHCI_SetEndpointState;
     RegPacket.InterruptNextSOF                      = OHCI_InterruptNextSOF;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;
