@@ -296,6 +296,15 @@ OHCI_DisableInterrupts(
 }
 
 VOID NTAPI
+OHCI_InterruptNextSOF(
+    IN PVOID Context)
+{
+  POHCI_EXTENSION  OhciExtension = (POHCI_EXTENSION)Context;
+  DPRINT("OHCI_InterruptNextSOF: OhciExtension - %p\n", OhciExtension);
+  WRITE_REGISTER_ULONG(&OhciExtension->OperationalRegs->HcInterruptEnable.AsULONG, 4);
+}
+
+VOID NTAPI
 OHCI_QueryEndpointRequirements(
     IN PVOID Context,
     IN PVOID PortEndpointProperties,
@@ -440,6 +449,7 @@ DriverEntry(
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.InterruptService                      = OHCI_InterruptService;
     RegPacket.InterruptDpc                          = OHCI_InterruptDpc;
+    RegPacket.InterruptNextSOF                      = OHCI_InterruptNextSOF;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;
     RegPacket.RH_GetRootHubData                     = OHCI_RH_GetRootHubData;
