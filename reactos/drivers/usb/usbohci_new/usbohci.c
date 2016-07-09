@@ -233,6 +233,7 @@ DriverEntry(
     RegPacket.RH_GetStatus                          = OHCI_RH_GetStatus;
     RegPacket.RH_GetPortStatus                      = OHCI_RH_GetPortStatus;
     RegPacket.RH_GetHubStatus                       = OHCI_RH_GetHubStatus;
+    RegPacket.RH_SetFeaturePortReset                = OHCI_RH_SetFeaturePortReset;
     RegPacket.RH_SetFeaturePortPower                = OHCI_RH_SetFeaturePortPower;
     RegPacket.RH_ClearFeaturePortConnectChange      = OHCI_RH_ClearFeaturePortConnectChange;
     RegPacket.RH_ClearFeaturePortResetChange        = OHCI_RH_ClearFeaturePortResetChange;

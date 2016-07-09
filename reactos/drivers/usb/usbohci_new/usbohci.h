@@ -433,6 +433,11 @@ OHCI_RH_ClearFeaturePortResetChange(
     IN PVOID Context,
     IN USHORT Port);
 
+ULONG NTAPI
+OHCI_RH_SetFeaturePortReset(
+    IN PVOID Context,
+    IN USHORT Port);
+
 //- usbohci.c -----------------------------------------------------------------
 NTSTATUS NTAPI
 USBPORT_RegisterUSBPortDriver(

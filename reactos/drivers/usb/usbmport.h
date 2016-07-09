@@ -24,6 +24,7 @@ typedef ULONG    (NTAPI * PHCI_RH_GET_ROOT_HUB_DATA                    )(PVOID, 
 typedef ULONG    (NTAPI * PHCI_RH_GET_STATUS                           )(PVOID, PULONG);
 typedef ULONG    (NTAPI * PHCI_RH_GET_PORT_STATUS                      )(PVOID, USHORT, PULONG);
 typedef ULONG    (NTAPI * PHCI_RH_GET_HUB_STATUS                       )(PVOID, PULONG);
+typedef ULONG    (NTAPI * PHCI_RH_SET_FEATURE_PORT_RESET               )(PVOID, USHORT);
 typedef ULONG    (NTAPI * PHCI_RH_SET_FEATURE_PORT_POWER               )(PVOID, USHORT);
 typedef ULONG    (NTAPI * PHCI_RH_CLEAR_FEATURE_PORT_CONNECT_CHANGE    )(PVOID, USHORT);
 typedef ULONG    (NTAPI * PHCI_RH_CLEAR_FEATURE_PORT_RESET_CHANGE      )(PVOID, USHORT);
@@ -44,6 +45,7 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
   PHCI_RH_GET_STATUS                             RH_GetStatus;                          // 
   PHCI_RH_GET_PORT_STATUS                        RH_GetPortStatus;                      // 
   PHCI_RH_GET_HUB_STATUS                         RH_GetHubStatus;                       // 
+  PHCI_RH_SET_FEATURE_PORT_RESET                 RH_SetFeaturePortReset;
   PHCI_RH_SET_FEATURE_PORT_POWER                 RH_SetFeaturePortPower;                // 
   PHCI_RH_CLEAR_FEATURE_PORT_CONNECT_CHANGE      RH_ClearFeaturePortConnectChange;      // 
   PHCI_RH_CLEAR_FEATURE_PORT_RESET_CHANGE        RH_ClearFeaturePortResetChange;        // 

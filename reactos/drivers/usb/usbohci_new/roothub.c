@@ -179,3 +179,15 @@ OHCI_RH_ClearFeaturePortResetChange(
   WRITE_REGISTER_ULONG(&OperationalRegs->HcRhPortStatus[Port-1].AsULONG, 0x100000);
   return 0;
 }
+
+ULONG NTAPI
+OHCI_RH_SetFeaturePortReset(
+    IN PVOID Context,
+    IN USHORT Port)
+{
+  POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs = OhciExtension->OperationalRegs;
+  DPRINT("OHCI_RH_SetFeaturePortReset: Context - %p, Port - %x\n", Context, Port);
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcRhPortStatus[Port-1].AsULONG, 0x10);
+  return 0;
+}
