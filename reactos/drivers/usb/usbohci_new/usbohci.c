@@ -131,7 +131,7 @@ OHCI_StartController(
   WRITE_REGISTER_ULONG(&OperationalRegs->HcCommandStatus.AsULONG, 1);
   KeStallExecutionProcessor(25);
 
-  Control = (OHCI_HC_CONTROL)READ_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG);
+  Control.AsULONG = READ_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG);
   Control.HostControllerFunctionalState = OHCI_HC_STATE_RESET;
 
   WRITE_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG, Control.AsULONG);
@@ -160,9 +160,10 @@ OHCI_StartController(
   }
 
   WRITE_REGISTER_ULONG(&OperationalRegs->HcPeriodicStart, (OhciExtension->FrameInterval.FrameInterval * 9) / 10); //90%
-  WRITE_REGISTER_ULONG(&OperationalRegs->HcHCCA, (ULONG)OhciExtension->HcResourcesPA);
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcHCCA, OhciExtension->HcResourcesPA);
 
   Interrupts.AsULONG = 0;
+
   Interrupts.SchedulingOverrun   = 1;
   Interrupts.WritebackDoneHead   = 1;
   Interrupts.UnrecoverableError  = 1;
@@ -170,7 +171,7 @@ OHCI_StartController(
   Interrupts.OwnershipChange     = 1;
   WRITE_REGISTER_ULONG(&OperationalRegs->HcInterruptEnable.AsULONG, Interrupts.AsULONG);
 
-  Control = (OHCI_HC_CONTROL)READ_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG);
+  Control.AsULONG = READ_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG);
 
   Control.ControlBulkServiceRatio       = 0; // FIXME (1 : 1)
   Control.PeriodicListEnable            = 1;
@@ -179,8 +180,9 @@ OHCI_StartController(
   Control.BulkListEnable                = 1;
   Control.HostControllerFunctionalState = OHCI_HC_STATE_OPERATIONAL;
   WRITE_REGISTER_ULONG(&OperationalRegs->HcControl.AsULONG, Control.AsULONG);
-
+  
   HcRhStatus.AsULONG = 0;
+
   HcRhStatus.SetGlobalPower = 1;
   WRITE_REGISTER_ULONG(&OperationalRegs->HcRhStatus.AsULONG, HcRhStatus.AsULONG);
 
