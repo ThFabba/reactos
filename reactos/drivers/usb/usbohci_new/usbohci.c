@@ -295,6 +295,53 @@ OHCI_DisableInterrupts(
   DPRINT("OHCI_DisableInterrupts: Context - %p\n", Context);
 }
 
+VOID NTAPI
+OHCI_QueryEndpointRequirements(
+    IN PVOID Context,
+    IN PVOID PortEndpointProperties,
+    IN OUT PULONG TransferParams)
+{
+  PUSBPORT_ENDPOINT_PROPERTIES  EndpointProperties;
+  ULONG                         TransferType;
+
+  DPRINT("OHCI_QueryEndpointRequirements: ... \n");
+
+  EndpointProperties = (PUSBPORT_ENDPOINT_PROPERTIES)PortEndpointProperties;
+  TransferType = EndpointProperties->TransferType;
+
+  switch ( TransferType )
+  {
+    case 0: // Control
+      DPRINT("OHCI_QueryEndpointRequirements: TransferType == 1 ControlTransfer\n");
+      *((PULONG)TransferParams + 1) = 0x10000;
+      *TransferParams = sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR) +
+                        0x26 * sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR);
+      break;
+
+    case 1: // Iso
+      ASSERT(FALSE);
+      break;
+
+    case 2: // Bulk
+      DPRINT("OHCI_QueryEndpointRequirements: TransferType == 2 BulkTransfer\n");
+      *((PULONG)TransferParams + 1) = 0x40000;
+      *TransferParams = sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR) +
+                        0x44 * sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR);
+      break;
+
+    case 3:  // Interrupt
+      DPRINT("OHCI_QueryEndpointRequirements: TransferType == 3 InterruptTransfer\n");
+      *((PULONG)TransferParams + 1) = 0x1000;
+      *TransferParams = sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR) +
+                        4 * sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR);
+      break;
+
+    default:
+      ASSERT(FALSE);
+      break;
+  }
+}
+
 NTSTATUS NTAPI
 DriverEntry(
     IN PDRIVER_OBJECT DriverObject,
@@ -312,6 +359,7 @@ DriverEntry(
     RegPacket.MiniPortEndpointSize                  = sizeof(OHCI_ENDPOINT);                      // 
     //RegPacket.MiniPortTransferSize                  = sizeof();
     RegPacket.MiniPortResourcesSize                 = sizeof(OHCI_HC_RESOURCES);                  // 
+    RegPacket.QueryEndpointRequirements             = OHCI_QueryEndpointRequirements;
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.InterruptService                      = OHCI_InterruptService;
     RegPacket.InterruptDpc                          = OHCI_InterruptDpc;
