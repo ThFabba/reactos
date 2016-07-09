@@ -405,6 +405,11 @@ OHCI_RH_GetRootHubData(
     IN PVOID RootHubData);
 
 ULONG NTAPI
+OHCI_RH_GetStatus(
+    IN PVOID Context,
+    IN PULONG RhStatus);
+
+ULONG NTAPI
 OHCI_RH_GetPortStatus(
     IN PVOID Context,
     IN USHORT Port,
@@ -422,6 +427,11 @@ OHCI_RH_EnableIrq(
 VOID NTAPI
 OHCI_RH_DisableIrq(
     IN PVOID Context);
+
+ULONG NTAPI
+OHCI_RH_ClearFeaturePortResetChange(
+    IN PVOID Context,
+    IN USHORT Port);
 
 //- usbohci.c -----------------------------------------------------------------
 NTSTATUS NTAPI

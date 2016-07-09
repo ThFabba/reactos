@@ -90,6 +90,16 @@ OHCI_RH_GetRootHubData(
 }
 
 ULONG NTAPI
+OHCI_RH_GetStatus(
+    IN PVOID Context,
+    IN PULONG RhStatus)
+{
+  DPRINT("OHCI_RH_GetStatus: \n");
+  *(PUSHORT)RhStatus = 1;
+  return 0;
+}
+
+ULONG NTAPI
 OHCI_RH_GetPortStatus(
     IN PVOID Context,
     IN USHORT Port,
@@ -158,3 +168,14 @@ OHCI_RH_DisableIrq(
   WRITE_REGISTER_ULONG(&OhciExtension->OperationalRegs->HcInterruptDisable.AsULONG, 0x40);
 }
 
+ULONG NTAPI
+OHCI_RH_ClearFeaturePortResetChange(
+    IN PVOID Context,
+    IN USHORT Port)
+{
+  POHCI_EXTENSION              OhciExtension = (POHCI_EXTENSION)Context;
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs = OhciExtension->OperationalRegs;
+  DPRINT("OHCI_RH_ClearFeaturePortResetChange: Context - %p, Port - %x\n", Context, Port);
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcRhPortStatus[Port-1].AsULONG, 0x100000);
+  return 0;
+}

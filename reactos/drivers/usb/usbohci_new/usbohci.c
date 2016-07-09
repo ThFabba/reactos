@@ -224,15 +224,18 @@ DriverEntry(
     RegPacket.Version                               = 1;                                          // Type: 1 - OHCI, 2 - UHCI, 3 - EHCI
     RegPacket.MiniPortExtensionSize                 = sizeof(OHCI_EXTENSION);                     // Size OHCI MiniPort Extension
     RegPacket.MiniPortEndpointSize                  = sizeof(OHCI_ENDPOINT);                      // 
+    //RegPacket.MiniPortTransferSize                  = sizeof();
     RegPacket.MiniPortResourcesSize                 = sizeof(OHCI_HC_RESOURCES);                  // 
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;
     RegPacket.RH_GetRootHubData                     = OHCI_RH_GetRootHubData;
+    RegPacket.RH_GetStatus                          = OHCI_RH_GetStatus;
     RegPacket.RH_GetPortStatus                      = OHCI_RH_GetPortStatus;
     RegPacket.RH_GetHubStatus                       = OHCI_RH_GetHubStatus;
     RegPacket.RH_SetFeaturePortPower                = OHCI_RH_SetFeaturePortPower;
     RegPacket.RH_ClearFeaturePortConnectChange      = OHCI_RH_ClearFeaturePortConnectChange;
+    RegPacket.RH_ClearFeaturePortResetChange        = OHCI_RH_ClearFeaturePortResetChange;
     RegPacket.RH_DisableIrq                         = OHCI_RH_DisableIrq;
     RegPacket.RH_EnableIrq                          = OHCI_RH_EnableIrq;
 

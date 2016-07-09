@@ -21,10 +21,12 @@ typedef ULONG    (NTAPI * PHCI_START_CONTROLLER                        )(PVOID, 
 typedef VOID     (NTAPI * PHCI_ENABLE_INTERRUPTS                       )(PVOID);
 typedef VOID     (NTAPI * PHCI_DISABLE_INTERRUPTS                      )(PVOID);
 typedef ULONG    (NTAPI * PHCI_RH_GET_ROOT_HUB_DATA                    )(PVOID, PVOID);
+typedef ULONG    (NTAPI * PHCI_RH_GET_STATUS                           )(PVOID, PULONG);
 typedef ULONG    (NTAPI * PHCI_RH_GET_PORT_STATUS                      )(PVOID, USHORT, PULONG);
 typedef ULONG    (NTAPI * PHCI_RH_GET_HUB_STATUS                       )(PVOID, PULONG);
 typedef ULONG    (NTAPI * PHCI_RH_SET_FEATURE_PORT_POWER               )(PVOID, USHORT);
 typedef ULONG    (NTAPI * PHCI_RH_CLEAR_FEATURE_PORT_CONNECT_CHANGE    )(PVOID, USHORT);
+typedef ULONG    (NTAPI * PHCI_RH_CLEAR_FEATURE_PORT_RESET_CHANGE      )(PVOID, USHORT);
 typedef VOID     (NTAPI * PHCI_RH_DISABLE_IRQ                          )(PVOID);
 typedef VOID     (NTAPI * PHCI_RH_ENABLE_IRQ                           )(PVOID);
 
@@ -39,12 +41,14 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
   PHCI_ENABLE_INTERRUPTS                         EnableInterrupts;                      // 
   PHCI_DISABLE_INTERRUPTS                        DisableInterrupts;                     // 
   PHCI_RH_GET_ROOT_HUB_DATA                      RH_GetRootHubData;                     // 
-  PHCI_RH_GET_PORT_STATUS                        RH_GetPortStatus;
-  PHCI_RH_GET_HUB_STATUS                         RH_GetHubStatus;
+  PHCI_RH_GET_STATUS                             RH_GetStatus;                          // 
+  PHCI_RH_GET_PORT_STATUS                        RH_GetPortStatus;                      // 
+  PHCI_RH_GET_HUB_STATUS                         RH_GetHubStatus;                       // 
   PHCI_RH_SET_FEATURE_PORT_POWER                 RH_SetFeaturePortPower;                // 
   PHCI_RH_CLEAR_FEATURE_PORT_CONNECT_CHANGE      RH_ClearFeaturePortConnectChange;      // 
-  PHCI_RH_DISABLE_IRQ                            RH_DisableIrq;
-  PHCI_RH_ENABLE_IRQ                             RH_EnableIrq;
+  PHCI_RH_CLEAR_FEATURE_PORT_RESET_CHANGE        RH_ClearFeaturePortResetChange;        // 
+  PHCI_RH_DISABLE_IRQ                            RH_DisableIrq;                         // 
+  PHCI_RH_ENABLE_IRQ                             RH_EnableIrq;                          // 
 
 } USBPORT_REGISTRATION_PACKET, *PUSBPORT_REGISTRATION_PACKET;
 
