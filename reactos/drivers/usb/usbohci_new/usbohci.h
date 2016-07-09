@@ -366,7 +366,9 @@ typedef struct _OHCI_HC_RESOURCES {
 //---------------------------------------------------------------------
 typedef struct _OHCI_ENDPOINT {
 
+  USBPORT_ENDPOINT_PROPERTIES       OhciEndpointProperties;  // 
   ULONG                             MaxTransferDescriptors;  // TdCount
+  LIST_ENTRY                        TDList;                  // 
 
 } OHCI_ENDPOINT, *POHCI_ENDPOINT;
 

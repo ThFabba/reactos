@@ -342,6 +342,82 @@ OHCI_QueryEndpointRequirements(
   }
 }
 
+ULONG NTAPI
+OHCI_OpenControlEndpoint(
+         IN POHCI_EXTENSION OhciExtension,
+         IN PUSBPORT_ENDPOINT_PROPERTIES EndpointProperties,
+         IN POHCI_ENDPOINT OhciEndpoint)
+{
+  DPRINT("OHCI_OpenControlEndpoint: ... \n");
+ASSERT(FALSE);
+  return 0;
+}
+
+ULONG NTAPI
+OHCI_OpenBulkEndpoint(
+         IN POHCI_EXTENSION OhciExtension,
+         IN PUSBPORT_ENDPOINT_PROPERTIES EndpointProperties,
+         IN POHCI_ENDPOINT OhciEndpoint)
+{
+  DPRINT("OHCI_OpenBulkEndpoint: ... \n");
+ASSERT(FALSE);
+  return 0;
+}
+
+ULONG NTAPI
+OHCI_OpenEndpoint(
+    IN PVOID Context,
+    IN PVOID PortEndpointParameters,
+    IN PVOID MiniportEndpoint)
+{
+  POHCI_EXTENSION               OhciExtension;
+  POHCI_ENDPOINT                OhciEndpoint;
+  PUSBPORT_ENDPOINT_PROPERTIES  EndpointProperties;
+  ULONG                         TransferType;
+  ULONG                         Result;
+
+  DPRINT("OHCI_OpenEndpoint: ... \n");
+
+  OhciExtension = (POHCI_EXTENSION)Context;
+  OhciEndpoint = (POHCI_ENDPOINT)MiniportEndpoint;
+  EndpointProperties = (PUSBPORT_ENDPOINT_PROPERTIES)PortEndpointParameters;
+
+  RtlCopyMemory(&OhciEndpoint->OhciEndpointProperties,
+                PortEndpointParameters,
+                sizeof(USBPORT_ENDPOINT_PROPERTIES));
+
+  InitializeListHead(&OhciEndpoint->TDList);
+
+  TransferType = EndpointProperties->TransferType;
+
+  switch ( TransferType )
+  {
+    case 0: // Control
+      Result = OHCI_OpenControlEndpoint(
+                        OhciExtension, EndpointProperties, OhciEndpoint);
+      break;
+
+    case 1: // Iso
+      ASSERT(FALSE);
+      break;
+
+    case 2: // Bulk
+      Result = OHCI_OpenBulkEndpoint(
+                        OhciExtension, EndpointProperties, OhciEndpoint);
+      break;
+
+    case 3: // Interrupt
+      ASSERT(FALSE);
+      break;
+
+    default:
+      Result = 1;
+      break;
+  }
+
+  return Result;
+}
+
 NTSTATUS NTAPI
 DriverEntry(
     IN PDRIVER_OBJECT DriverObject,
@@ -359,6 +435,7 @@ DriverEntry(
     RegPacket.MiniPortEndpointSize                  = sizeof(OHCI_ENDPOINT);                      // 
     //RegPacket.MiniPortTransferSize                  = sizeof();
     RegPacket.MiniPortResourcesSize                 = sizeof(OHCI_HC_RESOURCES);                  // 
+    RegPacket.OpenEndpoint                          = OHCI_OpenEndpoint;
     RegPacket.QueryEndpointRequirements             = OHCI_QueryEndpointRequirements;
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.InterruptService                      = OHCI_InterruptService;
