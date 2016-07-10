@@ -560,6 +560,39 @@ OHCI_AllocateTD(
   return TD;
 }
 
+ULONG NTAPI 
+OHCI_MaximumFreeTDs(
+    POHCI_EXTENSION OhciExtension,
+    POHCI_ENDPOINT OhciEndpoint)
+{
+  POHCI_HCD_TRANSFER_DESCRIPTOR  TD;
+  ULONG                          MaxTDs;
+  ULONG                          Result;
+
+  DPRINT("OHCI_MaximumFreeTDs: ... \n");
+
+  MaxTDs = OhciEndpoint->MaxTransferDescriptors;
+
+  if ( MaxTDs == 0 )
+    return 0;
+
+  TD = (POHCI_HCD_TRANSFER_DESCRIPTOR)OhciEndpoint->FirstTD;
+
+  Result = 0;
+
+  do
+  {
+    if ( !(TD->Flags & OHCI_HCD_TD_FLAG_ALLOCATED) )
+      ++Result;
+
+    TD += 1;
+    --MaxTDs;
+  }
+  while ( MaxTDs > 0 );
+
+  return Result;
+}
+
 ULONG NTAPI
 OHCI_OpenControlEndpoint(
          IN POHCI_EXTENSION OhciExtension,
@@ -696,8 +729,13 @@ OHCI_ControlTransfer(
   POHCI_HCD_TRANSFER_DESCRIPTOR  NextTD;
   POHCI_HCD_TRANSFER_DESCRIPTOR  LastTd;
   ULONG                          SetupPacket;
+  ULONG                          MaxTDs;
 
   DPRINT("OHCI_ControlTransfer: ... \n");
+
+  MaxTDs = OHCI_MaximumFreeTDs(OhciExtension, OhciEndpoint)
+  if ( TransferSGList->SgElementCount + 2 > MaxTDs )
+    return 1;
 
   FirstTD = OhciEndpoint->HcdHeadP;
 
