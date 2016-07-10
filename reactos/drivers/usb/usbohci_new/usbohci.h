@@ -99,11 +99,11 @@ typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
   struct _OHCI_HCD_TRANSFER_DESCRIPTOR *  PhysicalAddress;           // TdPA (+32)
   ULONG                                   Flags;                     // 
   POHCI_TRANSFER                          OhciTransfer;              // 
-  ULONG                                   Pad[21];
+  ULONG                                   Pad[5];
 
 } OHCI_HCD_TRANSFER_DESCRIPTOR, *POHCI_HCD_TRANSFER_DESCRIPTOR;
 
-C_ASSERT(sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) == 0x80);
+C_ASSERT(sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) == 0x40);
 
 //---------------------------------------------------------------------
 typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
@@ -113,11 +113,12 @@ typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
 
   // Software part
   ULONG_PTR                               PhysicalAddress;           // EdPA
-  ULONG                                   Pad[27];
+  LIST_ENTRY                              HcdEDLink;
+  ULONG                                   Pad[9];
 
 } OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
 
-C_ASSERT(sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR) == 0x80);
+C_ASSERT(sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR) == 0x40);
 
 //---------------------------------------------------------------------
 typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {

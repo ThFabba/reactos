@@ -383,8 +383,45 @@ VOID NTAPI
 OHCI_InsertEndpointInSchedule(
     POHCI_ENDPOINT OhciEndpoint)
 {
-  DPRINT("OHCI_InsertEndpointInSchedule: ... \n");
-ASSERT(FALSE);
+  POHCI_STATIC_ENDPOINT_DESCRIPTOR  HeadED;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     ED;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     PrevED;
+  PLIST_ENTRY                       HeadLink;
+
+  DPRINT("OHCI_InsertEndpointInSchedule: OhciEndpoint - %p\n", OhciEndpoint);
+
+  ED = OhciEndpoint->ED;
+
+  HeadED = OhciEndpoint->HeadED;
+  HeadLink = &HeadED->Link;
+
+  if ( IsListEmpty(HeadLink) )
+  {
+    InsertHeadList(HeadLink, &ED->HcdEDLink);
+
+    if ( HeadED->Type & 0x20 ) // ControlTransfer or BulkTransfer
+    {
+      ED->HwED.NextED = READ_REGISTER_ULONG((PULONG)HeadED->pNextED);
+      WRITE_REGISTER_ULONG((PULONG)HeadED->pNextED, ED->PhysicalAddress);
+    }
+    else
+    {
+      ED->HwED.NextED = (ULONG_PTR)*HeadED->pNextED;
+      *HeadED->pNextED = (POHCI_ENDPOINT_DESCRIPTOR)ED->PhysicalAddress;
+    }
+  }
+  else
+  {
+    PrevED = CONTAINING_RECORD(
+               HeadLink->Blink,
+               OHCI_HCD_ENDPOINT_DESCRIPTOR,
+               HcdEDLink);
+
+    InsertTailList(HeadLink, &ED->HcdEDLink);
+
+    ED->HwED.NextED = 0;
+    PrevED->HwED.NextED = ED->PhysicalAddress;
+  }
 }
 
 POHCI_HCD_ENDPOINT_DESCRIPTOR
