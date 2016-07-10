@@ -21,6 +21,8 @@
 #define OHCI_HC_STATE_SUSPEND       3
 
 
+typedef struct _OHCI_TRANSFER *POHCI_TRANSFER;
+
 //---------------------------------------------------------------------
 typedef union _OHCI_HC_TRANSFER_CONTROL {
 
@@ -84,23 +86,36 @@ C_ASSERT(sizeof(OHCI_ENDPOINT_DESCRIPTOR) == 16);
 typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
 
   // Hardware part
-  OHCI_TRANSFER_DESCRIPTOR    HwTD;                      // dword 0
+  OHCI_TRANSFER_DESCRIPTOR                HwTD;                      // dword 0
+
+  // Hardware part for Isochronous Transfer Descriptor (FIXME)
+  // Software part for General Transfer Descriptor
+  USB_DEFAULT_PIPE_SETUP_PACKET           SetupPacket;               // FIXME for Isochronous (may be union ...)
+  ULONG                                   Padded[2];                 // 
 
   // Software part
-  // TODO
+  struct _OHCI_HCD_TRANSFER_DESCRIPTOR *  PhysicalAddress;           // TdPA (+32)
+  ULONG                                   Flags;                     // 
+  POHCI_TRANSFER                          OhciTransfer;              // 
+  ULONG                                   Pad[21];
 
 } OHCI_HCD_TRANSFER_DESCRIPTOR, *POHCI_HCD_TRANSFER_DESCRIPTOR;
+
+C_ASSERT(sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) == 0x80);
 
 //---------------------------------------------------------------------
 typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
 
   // Hardware part
-  OHCI_ENDPOINT_DESCRIPTOR      HwED;                      // dword 0
+  OHCI_ENDPOINT_DESCRIPTOR                HwED;                      // dword 0
 
   // Software part
-  //TODO
+  ULONG_PTR                               PhysicalAddress;           // EdPA
+  ULONG                                   Pad[27];
 
 } OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
+
+C_ASSERT(sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR) == 0x80);
 
 //---------------------------------------------------------------------
 typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {
@@ -367,10 +382,20 @@ typedef struct _OHCI_HC_RESOURCES {
 typedef struct _OHCI_ENDPOINT {
 
   USBPORT_ENDPOINT_PROPERTIES       OhciEndpointProperties;  // 
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     ED;                      // 
   ULONG                             MaxTransferDescriptors;  // TdCount
+  POHCI_STATIC_ENDPOINT_DESCRIPTOR  HeadED;                  // 
+  POHCI_HCD_TRANSFER_DESCRIPTOR     FirstTD;                 // 
   LIST_ENTRY                        TDList;                  // 
 
 } OHCI_ENDPOINT, *POHCI_ENDPOINT;
+
+//---------------------------------------------------------------------
+typedef struct _OHCI_TRANSFER {
+
+  PUSBPORT_TRANSFER_PARAMETERS      TransferParameters;      // 
+
+} OHCI_TRANSFER, *POHCI_TRANSFER;
 
 // -------------------------------------------------------------------------------------------------------------
 typedef struct _OHCI_EXTENSION {
