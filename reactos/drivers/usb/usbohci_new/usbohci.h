@@ -22,6 +22,8 @@
 
 #define OHCI_HCD_TD_FLAG_ALLOCATED  0x00000001
 
+#define OHCI_TD_CC_NOT_ACCESSED     0x0E
+
 
 typedef struct _OHCI_TRANSFER *POHCI_TRANSFER;
 
@@ -99,7 +101,9 @@ typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
   struct _OHCI_HCD_TRANSFER_DESCRIPTOR *  PhysicalAddress;           // TdPA (+32)
   ULONG                                   Flags;                     // 
   POHCI_TRANSFER                          OhciTransfer;              // 
-  ULONG                                   Pad[5];
+  struct _OHCI_HCD_TRANSFER_DESCRIPTOR *  HcdNextTD;                 // 
+  ULONG                                   TransferLen;               // 
+  ULONG                                   Pad[3];
 
 } OHCI_HCD_TRANSFER_DESCRIPTOR, *POHCI_HCD_TRANSFER_DESCRIPTOR;
 
@@ -398,8 +402,10 @@ typedef struct _OHCI_ENDPOINT {
 //---------------------------------------------------------------------
 typedef struct _OHCI_TRANSFER {
 
+  ULONG                             Flags;                   // 
   PUSBPORT_TRANSFER_PARAMETERS      TransferParameters;      // 
   POHCI_ENDPOINT                    OhciEndpoint;            // 
+  ULONG                             PendingTds;              // 
 
 } OHCI_TRANSFER, *POHCI_TRANSFER;
 
