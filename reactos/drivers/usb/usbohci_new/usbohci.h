@@ -399,6 +399,7 @@ typedef struct _OHCI_ENDPOINT {
 typedef struct _OHCI_TRANSFER {
 
   PUSBPORT_TRANSFER_PARAMETERS      TransferParameters;      // 
+  POHCI_ENDPOINT                    OhciEndpoint;            // 
 
 } OHCI_TRANSFER, *POHCI_TRANSFER;
 

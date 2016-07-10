@@ -648,6 +648,68 @@ OHCI_OpenEndpoint(
   return Result;
 }
 
+ULONG NTAPI
+OHCI_ControlTransfer(
+    POHCI_EXTENSION OhciExtension,
+    POHCI_ENDPOINT OhciEndpoint,
+    PUSBPORT_TRANSFER_PARAMETERS TransferParameters,
+    POHCI_TRANSFER OhciTransfer,
+    PUSBPORT_SCATTER_GATHER_LIST TransferSGList)
+{
+  DPRINT("OHCI_ControlTransfer: \n");
+ASSERT(FALSE);
+  return 0;
+}
+
+ULONG NTAPI
+OHCI_SubmitTransfer(
+    IN PVOID Context,
+    IN PVOID OhciEndpoint,
+    IN PVOID TransferParameters,
+    IN PVOID OhciTransfer,
+    IN PVOID TransferSGList)
+{
+  POHCI_EXTENSION               ohciExtension;
+  POHCI_ENDPOINT                ohciEndpoint;
+  PUSBPORT_TRANSFER_PARAMETERS  transferParameters;
+  POHCI_TRANSFER                ohciTransfer;
+  PUSBPORT_SCATTER_GATHER_LIST  transferSGList;
+  ULONG                         TransferType;
+
+  DPRINT("OHCI_SubmitTransfer: ... \n");
+
+  ohciExtension      = (POHCI_EXTENSION)Context;
+  ohciEndpoint       = (POHCI_ENDPOINT)OhciEndpoint;
+  transferParameters = (PUSBPORT_TRANSFER_PARAMETERS)TransferParameters;
+  ohciTransfer       = (POHCI_TRANSFER)OhciTransfer;
+  transferSGList     = (PUSBPORT_SCATTER_GATHER_LIST)TransferSGList;
+
+  RtlZeroMemory(ohciTransfer, sizeof(OHCI_TRANSFER));
+
+  ohciTransfer->TransferParameters = transferParameters;
+  ohciTransfer->OhciEndpoint       = ohciEndpoint;
+
+  TransferType = ohciEndpoint->OhciEndpointProperties.TransferType;
+
+  if ( TransferType == 0 )
+  {
+ASSERT(FALSE);
+    return OHCI_ControlTransfer(
+               ohciExtension,
+               ohciEndpoint,
+               transferParameters,
+               ohciTransfer,
+               transferSGList);
+  }
+
+  if ( TransferType == 2 || TransferType == 3 )
+  {
+ASSERT(FALSE);
+  }
+
+  return 1;
+}
+
 NTSTATUS NTAPI
 DriverEntry(
     IN PDRIVER_OBJECT DriverObject,
@@ -670,6 +732,7 @@ DriverEntry(
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.InterruptService                      = OHCI_InterruptService;
     RegPacket.InterruptDpc                          = OHCI_InterruptDpc;
+    RegPacket.SubmitTransfer                        = OHCI_SubmitTransfer;
     RegPacket.SetEndpointState                      = OHCI_SetEndpointState;
     RegPacket.InterruptNextSOF                      = OHCI_InterruptNextSOF;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;

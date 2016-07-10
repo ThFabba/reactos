@@ -20,8 +20,9 @@ typedef struct _USBPORT_RESOURCES {
 typedef ULONG    (NTAPI * PHCI_OPEN_ENDPOINT                           )(PVOID, PVOID, PVOID);
 typedef VOID     (NTAPI * PHCI_QUERY_ENDPOINT_REQUIREMENTS             )(PVOID, PVOID, PULONG);
 typedef ULONG    (NTAPI * PHCI_START_CONTROLLER                        )(PVOID, PUSBPORT_RESOURCES);
-typedef VOID     (NTAPI * PHCI_INTERRUPT_DPC                           )(PVOID, BOOLEAN);
 typedef BOOLEAN  (NTAPI * PHCI_INTERRUPT_SERVICE                       )(PVOID);
+typedef VOID     (NTAPI * PHCI_INTERRUPT_DPC                           )(PVOID, BOOLEAN);
+typedef ULONG    (NTAPI * PHCI_SUBMIT_TRANSFER                         )(PVOID, PVOID, PVOID, PVOID, PVOID);
 typedef VOID     (NTAPI * PHCI_SET_ENDPOINT_STATE                      )(PVOID, PVOID, ULONG);
 typedef VOID     (NTAPI * PHCI_INTERRUPT_NEXT_SOF                      )(PVOID);
 typedef VOID     (NTAPI * PHCI_ENABLE_INTERRUPTS                       )(PVOID);
@@ -52,6 +53,7 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
   PHCI_START_CONTROLLER                          StartController;                       //
   PHCI_INTERRUPT_SERVICE                         InterruptService;                      // 
   PHCI_INTERRUPT_DPC                             InterruptDpc;                          // 
+  PHCI_SUBMIT_TRANSFER                           SubmitTransfer;                        // 
   PHCI_SET_ENDPOINT_STATE                        SetEndpointState;                      // 
   PHCI_INTERRUPT_NEXT_SOF                        InterruptNextSOF;                      // 
   PHCI_ENABLE_INTERRUPTS                         EnableInterrupts;                      // 
