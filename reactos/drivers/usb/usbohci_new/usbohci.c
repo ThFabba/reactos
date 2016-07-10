@@ -379,14 +379,72 @@ OHCI_QueryEndpointRequirements(
   }
 }
 
+POHCI_HCD_ENDPOINT_DESCRIPTOR
+OHCI_InitializeED(
+    IN POHCI_ENDPOINT OhciEndpoint,
+    IN POHCI_HCD_ENDPOINT_DESCRIPTOR ED,
+    IN POHCI_HCD_TRANSFER_DESCRIPTOR FirstTD,
+    IN ULONG_PTR EdPA)
+{
+  DPRINT("OHCI_InitializeED: OhciEndpoint - %p, ED - %p, FirstTD - %p, EdPA - %p\n", OhciEndpoint, ED, FirstTD, EdPA);
+ASSERT(FALSE);
+  return ED;
+}
+
 ULONG NTAPI
 OHCI_OpenControlEndpoint(
          IN POHCI_EXTENSION OhciExtension,
          IN PUSBPORT_ENDPOINT_PROPERTIES EndpointProperties,
          IN POHCI_ENDPOINT OhciEndpoint)
 {
+  POHCI_HCD_TRANSFER_DESCRIPTOR  TdPA;
+  POHCI_HCD_TRANSFER_DESCRIPTOR  TdVA;
+  ULONG                          TdCount;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR  ED;
+
   DPRINT("OHCI_OpenControlEndpoint: ... \n");
-ASSERT(FALSE);
+
+  TdCount = (EndpointProperties->BufferLength - sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR)) / 
+            sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR);
+
+  OhciEndpoint->MaxTransferDescriptors = TdCount;
+  OhciEndpoint->HeadED = &OhciExtension->ControlStaticED;
+
+  OhciEndpoint->FirstTD = (POHCI_HCD_TRANSFER_DESCRIPTOR)
+                          ((ULONG_PTR)EndpointProperties->BufferVA + 
+                           sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+  if ( TdCount )
+  {
+    TdVA = OhciEndpoint->FirstTD;
+    TdPA = (POHCI_HCD_TRANSFER_DESCRIPTOR)
+           ((ULONG_PTR)EndpointProperties->BufferPA + 
+           sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+    do
+    {
+      DPRINT("OHCI_OpenControlEndpoint: InitTD. TdVA - %p, TdPA - %p\n", TdVA, TdPA);
+
+      TdVA->PhysicalAddress  = TdPA;
+      TdVA->Flags            = 0;
+      TdVA->OhciTransfer     = NULL;
+
+      ++TdPA;
+      ++TdVA;
+      --TdCount;
+    }
+    while ( TdCount );
+  }
+
+  ED = (POHCI_HCD_ENDPOINT_DESCRIPTOR)EndpointProperties->BufferVA;
+
+  OhciEndpoint->ED = OHCI_InitializeED(OhciEndpoint,
+                                       ED,
+                                       OhciEndpoint->FirstTD,
+                                       EndpointProperties->BufferPA);
+
+  //OHCI_InsertEndpointInSchedule(OhciEndpoint);
+
   return 0;
 }
 
@@ -470,7 +528,7 @@ DriverEntry(
     RegPacket.Version                               = 1;                                          // Type: 1 - OHCI, 2 - UHCI, 3 - EHCI
     RegPacket.MiniPortExtensionSize                 = sizeof(OHCI_EXTENSION);                     // Size OHCI MiniPort Extension
     RegPacket.MiniPortEndpointSize                  = sizeof(OHCI_ENDPOINT);                      // 
-    //RegPacket.MiniPortTransferSize                  = sizeof();
+    RegPacket.MiniPortTransferSize                  = sizeof(OHCI_TRANSFER);                      // 
     RegPacket.MiniPortResourcesSize                 = sizeof(OHCI_HC_RESOURCES);                  // 
     RegPacket.OpenEndpoint                          = OHCI_OpenEndpoint;
     RegPacket.QueryEndpointRequirements             = OHCI_QueryEndpointRequirements;
