@@ -296,21 +296,64 @@ OHCI_DisableInterrupts(
 }
 
 VOID NTAPI
+OHCI_EnableList(
+    POHCI_EXTENSION OhciExtension,
+    POHCI_ENDPOINT OhciEndpoint)
+{
+  POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
+  ULONG                        TransferType;
+  ULONG                        CommandStatus;
+
+  DPRINT("OHCI_EnableList: ... \n");
+
+  OperationalRegs = OhciExtension->OperationalRegs;
+
+  CommandStatus = 0;
+
+  if ( READ_REGISTER_ULONG((PULONG)&OperationalRegs->HcControlHeadED) )
+    CommandStatus = 2;
+
+  if ( READ_REGISTER_ULONG((PULONG)&OperationalRegs->HcBulkHeadED) )
+    CommandStatus |= 4;
+
+  TransferType = OhciEndpoint->OhciEndpointProperties.TransferType;
+
+  if ( TransferType == 2 ) // ENDPOINT_TYPE_BULK
+  {
+    CommandStatus |= 4;
+  }
+  else if ( TransferType == 0 ) // ENDPOINT_TYPE_CONTROL
+  {
+    CommandStatus |= 2;
+  }
+
+  WRITE_REGISTER_ULONG(&OperationalRegs->HcCommandStatus.AsULONG, CommandStatus);
+}
+
+VOID NTAPI
 OHCI_SetEndpointState(
     IN PVOID Context,
     IN PVOID MiniportEndpoint,
     IN ULONG State)
 {
+  POHCI_EXTENSION                OhciExtension = (POHCI_EXTENSION)Context;
+  POHCI_ENDPOINT                 OhciEndpoint = (POHCI_ENDPOINT)MiniportEndpoint;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR  ED;
+
   DPRINT("OHCI_SetEndpointState: State - %x\n", State);
+
+  ED = OhciEndpoint->ED;
 
   switch ( State )
   {
     case 2: // ENDPOINT_PAUSED
+      ED->HwED.EndpointControl.sKip = 1;
 ASSERT(FALSE);
       break;
 
     case 3: // ENDPOINT_ACTIVE
-ASSERT(FALSE);
+      ED->HwED.EndpointControl.sKip = 0;
+      OHCI_EnableList(OhciExtension, OhciEndpoint);
       break;
 
     case 4: // ENDPOINT_CLOSED
