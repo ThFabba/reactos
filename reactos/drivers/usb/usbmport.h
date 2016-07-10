@@ -109,6 +109,7 @@ typedef struct _USBPORT_SCATTER_GATHER_ELEMENT {
 //----------------------------------------------
 typedef struct _USBPORT_SCATTER_GATHER_LIST {
 
+  ULONG                           Flags;
   ULONG_PTR                       CurrentVa;
   PVOID                           MappedSystemVa;
   ULONG                           SgElementCount;
