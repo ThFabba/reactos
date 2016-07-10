@@ -379,6 +379,14 @@ OHCI_QueryEndpointRequirements(
   }
 }
 
+VOID NTAPI
+OHCI_InsertEndpointInSchedule(
+    POHCI_ENDPOINT OhciEndpoint)
+{
+  DPRINT("OHCI_InsertEndpointInSchedule: ... \n");
+ASSERT(FALSE);
+}
+
 POHCI_HCD_ENDPOINT_DESCRIPTOR
 OHCI_InitializeED(
     IN POHCI_ENDPOINT OhciEndpoint,
@@ -386,8 +394,55 @@ OHCI_InitializeED(
     IN POHCI_HCD_TRANSFER_DESCRIPTOR FirstTD,
     IN ULONG_PTR EdPA)
 {
+  OHCI_HC_ENDPOINT_CONTROL      EndpointControl;
+  PUSBPORT_ENDPOINT_PROPERTIES  EndpointProperties;
+
   DPRINT("OHCI_InitializeED: OhciEndpoint - %p, ED - %p, FirstTD - %p, EdPA - %p\n", OhciEndpoint, ED, FirstTD, EdPA);
-ASSERT(FALSE);
+
+  RtlZeroMemory(ED, sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+  ED->PhysicalAddress = EdPA;
+
+  EndpointProperties = &OhciEndpoint->OhciEndpointProperties;
+
+  ED->HwED.EndpointControl.FunctionAddress = EndpointProperties->DeviceAddress;
+  ED->HwED.EndpointControl.EndpointNumber  = EndpointProperties->EndpointAddress;
+
+  EndpointControl = ED->HwED.EndpointControl;
+
+  if ( EndpointProperties->TransferType == 0 )
+  {
+    EndpointControl.Direction = 0; // Get direction From TD
+  }
+  else if ( EndpointProperties->Direction )
+  {
+    EndpointControl.Direction = 1; // OUT
+  }
+  else
+  {
+    EndpointControl.Direction = 2; // IN
+  }
+
+  ED->HwED.EndpointControl = EndpointControl;
+
+  if ( EndpointProperties->DeviceSpeed == 0 )
+    ED->HwED.EndpointControl.Speed = 1; // full-speed (S = 0) or low-speed (S = 1.)
+
+  if ( EndpointProperties->TransferType == 1 )
+    ED->HwED.EndpointControl.Format = 1;
+  else
+    ED->HwED.EndpointControl.sKip = 1;
+
+  ED->HwED.EndpointControl.MaximumPacketSize = EndpointProperties->MaxPacketSize;
+
+  ED->HwED.TailPointer = (ULONG_PTR)FirstTD->PhysicalAddress;
+  ED->HwED.HeadPointer = (ULONG_PTR)FirstTD->PhysicalAddress;
+
+  FirstTD->Flags |= OHCI_HCD_TD_FLAG_ALLOCATED;
+
+  OhciEndpoint->HcdHeadP  = FirstTD;
+  OhciEndpoint->HcdTailP = FirstTD;
+
   return ED;
 }
 
@@ -443,7 +498,7 @@ OHCI_OpenControlEndpoint(
                                        OhciEndpoint->FirstTD,
                                        EndpointProperties->BufferPA);
 
-  //OHCI_InsertEndpointInSchedule(OhciEndpoint);
+  OHCI_InsertEndpointInSchedule(OhciEndpoint);
 
   return 0;
 }

@@ -20,6 +20,8 @@
 #define OHCI_HC_STATE_OPERATIONAL   2
 #define OHCI_HC_STATE_SUSPEND       3
 
+#define OHCI_HCD_TD_FLAG_ALLOCATED  0x00000001
+
 
 typedef struct _OHCI_TRANSFER *POHCI_TRANSFER;
 
@@ -387,6 +389,8 @@ typedef struct _OHCI_ENDPOINT {
   POHCI_STATIC_ENDPOINT_DESCRIPTOR  HeadED;                  // 
   POHCI_HCD_TRANSFER_DESCRIPTOR     FirstTD;                 // 
   LIST_ENTRY                        TDList;                  // 
+  POHCI_HCD_TRANSFER_DESCRIPTOR     HcdHeadP;                // 
+  POHCI_HCD_TRANSFER_DESCRIPTOR     HcdTailP;                // 
 
 } OHCI_ENDPOINT, *POHCI_ENDPOINT;
 
