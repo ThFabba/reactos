@@ -1027,6 +1027,15 @@ ASSERT(FALSE);
   return 1;
 }
 
+VOID
+OHCI_ProcessDoneTD(
+    IN POHCI_EXTENSION OhciExtension,
+    IN POHCI_HCD_TRANSFER_DESCRIPTOR TD)
+{
+  DPRINT("OHCI_ProcessDoneTD: ... \n");
+ASSERT(FALSE);
+}
+
 VOID NTAPI 
 OHCI_PollEndpoint(
     IN POHCI_EXTENSION OhciExtension,
@@ -1078,7 +1087,7 @@ OHCI_PollEndpoint(
     if ( TD->Flags & OHCI_HCD_TD_FLAG_DONE )
     {
       if ( TD->Flags & 2 )
-        ASSERT(FALSE);
+        OHCI_ProcessDoneTD(OhciExtension, TD);
     }
   }
 }
