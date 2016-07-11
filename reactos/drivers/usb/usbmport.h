@@ -24,6 +24,7 @@ typedef BOOLEAN  (NTAPI * PHCI_INTERRUPT_SERVICE                       )(PVOID);
 typedef VOID     (NTAPI * PHCI_INTERRUPT_DPC                           )(PVOID, BOOLEAN);
 typedef ULONG    (NTAPI * PHCI_SUBMIT_TRANSFER                         )(PVOID, PVOID, PVOID, PVOID, PVOID);
 typedef VOID     (NTAPI * PHCI_SET_ENDPOINT_STATE                      )(PVOID, PVOID, ULONG);
+typedef ULONG    (NTAPI * PHCI_POLL_ENDPOINT                           )(PVOID, ULONG_PTR);
 typedef VOID     (NTAPI * PHCI_INTERRUPT_NEXT_SOF                      )(PVOID);
 typedef VOID     (NTAPI * PHCI_ENABLE_INTERRUPTS                       )(PVOID);
 typedef VOID     (NTAPI * PHCI_DISABLE_INTERRUPTS                      )(PVOID);
@@ -56,6 +57,7 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
   PHCI_INTERRUPT_DPC                             InterruptDpc;                          // 
   PHCI_SUBMIT_TRANSFER                           SubmitTransfer;                        // 
   PHCI_SET_ENDPOINT_STATE                        SetEndpointState;                      // 
+  PHCI_POLL_ENDPOINT                             PollEndpoint;                          // 
   PHCI_INTERRUPT_NEXT_SOF                        InterruptNextSOF;                      // 
   PHCI_ENABLE_INTERRUPTS                         EnableInterrupts;                      // 
   PHCI_DISABLE_INTERRUPTS                        DisableInterrupts;                     // 

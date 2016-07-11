@@ -1027,6 +1027,31 @@ ASSERT(FALSE);
   return 1;
 }
 
+ULONG NTAPI
+OHCI_MiniportPollEndpoint(
+    PVOID Context,
+    ULONG_PTR MiniportEndpoint)
+{
+  POHCI_ENDPOINT  OhciEndpoint;
+  ULONG           TransferType;
+
+  DPRINT("OHCI_MiniportPollEndpoint: ... \n");
+
+  OhciEndpoint = (POHCI_ENDPOINT)MiniportEndpoint;
+  TransferType = OhciEndpoint->OhciEndpointProperties.TransferType;
+
+  if ( TransferType == 1 ) //IsoEndpoint
+  {
+ASSERT(FALSE);
+  }
+  else
+  {
+ASSERT(FALSE);
+  }
+
+  return TransferType;
+}
+
 NTSTATUS NTAPI
 DriverEntry(
     IN PDRIVER_OBJECT DriverObject,
@@ -1051,6 +1076,7 @@ DriverEntry(
     RegPacket.InterruptDpc                          = OHCI_InterruptDpc;
     RegPacket.SubmitTransfer                        = OHCI_SubmitTransfer;
     RegPacket.SetEndpointState                      = OHCI_SetEndpointState;
+    RegPacket.PollEndpoint                          = OHCI_MiniportPollEndpoint;
     RegPacket.InterruptNextSOF                      = OHCI_InterruptNextSOF;
     RegPacket.EnableInterrupts                      = OHCI_EnableInterrupts;
     RegPacket.DisableInterrupts                     = OHCI_DisableInterrupts;
