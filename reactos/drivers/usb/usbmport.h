@@ -24,7 +24,7 @@ typedef BOOLEAN  (NTAPI * PHCI_INTERRUPT_SERVICE                       )(PVOID);
 typedef VOID     (NTAPI * PHCI_INTERRUPT_DPC                           )(PVOID, BOOLEAN);
 typedef ULONG    (NTAPI * PHCI_SUBMIT_TRANSFER                         )(PVOID, PVOID, PVOID, PVOID, PVOID);
 typedef VOID     (NTAPI * PHCI_SET_ENDPOINT_STATE                      )(PVOID, PVOID, ULONG);
-typedef ULONG    (NTAPI * PHCI_POLL_ENDPOINT                           )(PVOID, ULONG_PTR);
+typedef VOID     (NTAPI * PHCI_POLL_ENDPOINT                           )(PVOID, ULONG_PTR);
 typedef VOID     (NTAPI * PHCI_INTERRUPT_NEXT_SOF                      )(PVOID);
 typedef VOID     (NTAPI * PHCI_ENABLE_INTERRUPTS                       )(PVOID);
 typedef VOID     (NTAPI * PHCI_DISABLE_INTERRUPTS                      )(PVOID);

@@ -21,6 +21,7 @@
 #define OHCI_HC_STATE_SUSPEND       3
 
 #define OHCI_HCD_TD_FLAG_ALLOCATED  0x00000001
+#define OHCI_HCD_TD_FLAG_DONE       0x00000008
 
 #define OHCI_TD_CC_NOT_ACCESSED     0x0E
 
@@ -103,7 +104,8 @@ typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
   POHCI_TRANSFER                          OhciTransfer;              // 
   struct _OHCI_HCD_TRANSFER_DESCRIPTOR *  HcdNextTD;                 // 
   ULONG                                   TransferLen;               // 
-  ULONG                                   Pad[3];
+  LIST_ENTRY                              DoneLink;                  // 
+  ULONG                                   Pad[1];
 
 } OHCI_HCD_TRANSFER_DESCRIPTOR, *POHCI_HCD_TRANSFER_DESCRIPTOR;
 

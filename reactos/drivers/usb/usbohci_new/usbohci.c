@@ -1027,7 +1027,16 @@ ASSERT(FALSE);
   return 1;
 }
 
-ULONG NTAPI
+VOID NTAPI 
+OHCI_PollEndpoint(
+    POHCI_EXTENSION OhciExtension,
+    POHCI_ENDPOINT OhciEndpoint)
+{
+  DPRINT("OHCI_PollEndpoint: ... \n");
+  ASSERT(FALSE);
+}
+
+VOID NTAPI
 OHCI_MiniportPollEndpoint(
     PVOID Context,
     ULONG_PTR MiniportEndpoint)
@@ -1046,10 +1055,9 @@ ASSERT(FALSE);
   }
   else
   {
-ASSERT(FALSE);
+    ASSERT( TransferType == 0 || TransferType == 2 || TransferType == 3 );
+    OHCI_PollEndpoint((POHCI_EXTENSION)Context, OhciEndpoint);
   }
-
-  return TransferType;
 }
 
 NTSTATUS NTAPI
