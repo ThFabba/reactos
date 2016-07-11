@@ -722,11 +722,78 @@ OHCI_MapTransferToTd(
     IN OUT ULONG TransferedLen,
     IN POHCI_TRANSFER OhciTransfer,
     IN POHCI_HCD_TRANSFER_DESCRIPTOR TD,
-    IN PUSBPORT_SCATTER_GATHER_LIST TransferSGList)
+    IN PUSBPORT_SCATTER_GATHER_LIST SGList)
 {
-  DPRINT("OHCI_MapAsyncTransferToTd: TransferedLen - %x\n", TransferedLen);
-ASSERT(FALSE);
-  return 0;
+  PUSBPORT_SCATTER_GATHER_ELEMENT  SgElement;
+  ULONG                            SgIdx;
+  ULONG                            SgRemain;
+  ULONG                            LengthThisTd;
+  ULONG_PTR                        BufferEnd;
+
+  DPRINT("OHCI_MapTransferToTd: TransferedLen - %x\n", TransferedLen);
+
+  SgIdx = 0;
+
+  if ( SGList->SgElementCount > 0 )
+  {
+    SgElement = &SGList->SgElement[0];
+
+    do
+    {
+      if ( TransferedLen >= SgElement->SgOffset &&
+           TransferedLen < SgElement->SgOffset + SgElement->SgTransferLength )
+        break;
+
+      ++SgIdx;
+
+      SgElement += 1;
+    }
+    while ( SgIdx < SGList->SgElementCount );
+  }
+
+  DPRINT("OHCI_MapTransferToTd: SgIdx - %x, SgCount - %x\n", SgIdx, SGList->SgElementCount);
+
+  ASSERT(SgIdx < SGList->SgElementCount);
+
+  if ( SGList->Flags & 1 )
+  {
+ ASSERT(FALSE);
+  }
+
+  ASSERT(SGList->SgElement[SgIdx].SgOffset == TransferedLen);
+
+  SgRemain = SGList->SgElementCount - SgIdx;
+
+  if ( SgRemain == 1 )
+  {
+    LengthThisTd = OhciTransfer->TransferParameters->TransferBufferLength -
+                   TransferedLen;
+
+    BufferEnd = SGList->SgElement[SgIdx].SgPhysicalAddress.LowPart +
+                LengthThisTd;
+  }
+  else if ( SgRemain == 2 )
+  {
+    LengthThisTd = OhciTransfer->TransferParameters->TransferBufferLength - 
+                   TransferedLen;
+
+    BufferEnd = SGList->SgElement[SgIdx + 1].SgPhysicalAddress.LowPart + 
+                SGList->SgElement[SgIdx + 1].SgTransferLength;
+  }
+  else
+  {
+    LengthThisTd = SGList->SgElement[SgIdx].SgTransferLength +
+                   SGList->SgElement[SgIdx + 1].SgTransferLength;
+
+    BufferEnd = SGList->SgElement[SgIdx + 1].SgPhysicalAddress.LowPart + 
+                SGList->SgElement[SgIdx + 1].SgTransferLength;
+  }
+
+  TD->HwTD.CurrentBuffer = (PVOID)SGList->SgElement[SgIdx].SgPhysicalAddress.LowPart;
+  TD->HwTD.BufferEnd     = (PVOID)(BufferEnd - 1);
+  TD->TransferLen        = LengthThisTd;
+
+  return TransferedLen + LengthThisTd;
 }
 
 ULONG NTAPI
@@ -735,7 +802,7 @@ OHCI_ControlTransfer(
     IN POHCI_ENDPOINT OhciEndpoint,
     IN PUSBPORT_TRANSFER_PARAMETERS TransferParameters,
     IN POHCI_TRANSFER OhciTransfer,
-    IN PUSBPORT_SCATTER_GATHER_LIST TransferSGList)
+    IN PUSBPORT_SCATTER_GATHER_LIST SGList)
 {
   POHCI_HCD_TRANSFER_DESCRIPTOR  FirstTD;
   POHCI_HCD_TRANSFER_DESCRIPTOR  TD;
@@ -749,7 +816,7 @@ OHCI_ControlTransfer(
   DPRINT("OHCI_ControlTransfer: ... \n");
 
   MaxTDs = OHCI_MaximumFreeTDs(OhciExtension, OhciEndpoint);
-  if ( TransferSGList->SgElementCount + 2 > MaxTDs )
+  if ( SGList->SgElementCount + 2 > MaxTDs )
     return 1;
 
   FirstTD = OhciEndpoint->HcdHeadP;
@@ -833,7 +900,7 @@ OHCI_ControlTransfer(
                           TransferedLen,
                           OhciTransfer,
                           TD,
-                          TransferSGList);
+                          SGList);
 
       LastTd = TD;
 
@@ -914,7 +981,7 @@ OHCI_SubmitTransfer(
     IN PVOID OhciEndpoint,
     IN PVOID TransferParameters,
     IN PVOID OhciTransfer,
-    IN PVOID TransferSGList)
+    IN PVOID SGList)
 {
   POHCI_EXTENSION               ohciExtension;
   POHCI_ENDPOINT                ohciEndpoint;
@@ -929,7 +996,7 @@ OHCI_SubmitTransfer(
   ohciEndpoint       = (POHCI_ENDPOINT)OhciEndpoint;
   transferParameters = (PUSBPORT_TRANSFER_PARAMETERS)TransferParameters;
   ohciTransfer       = (POHCI_TRANSFER)OhciTransfer;
-  transferSGList     = (PUSBPORT_SCATTER_GATHER_LIST)TransferSGList;
+  transferSGList     = (PUSBPORT_SCATTER_GATHER_LIST)SGList;
 
   RtlZeroMemory(ohciTransfer, sizeof(OHCI_TRANSFER));
 
