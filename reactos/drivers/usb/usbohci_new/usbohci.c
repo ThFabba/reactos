@@ -1036,6 +1036,7 @@ OHCI_PollEndpoint(
   ULONG_PTR                      NextTdPA;
   POHCI_HCD_TRANSFER_DESCRIPTOR  NextTD;
   POHCI_HCD_TRANSFER_DESCRIPTOR  TD;
+  PLIST_ENTRY                    DoneList;
 
   DPRINT("OHCI_PollEndpoint: ... \n");
 
@@ -1060,7 +1061,26 @@ OHCI_PollEndpoint(
     TD = TD->HcdNextTD;
   }
 
-  ASSERT(FALSE);
+  TD = NextTD;
+  OhciEndpoint->HcdTailP = NextTD;
+
+  DoneList = &OhciEndpoint->TDList;
+
+  while ( !IsListEmpty(DoneList) )
+  {
+    TD = CONTAINING_RECORD(
+           DoneList->Flink,
+           OHCI_HCD_TRANSFER_DESCRIPTOR,
+           DoneLink);
+
+    RemoveHeadList(DoneList);
+
+    if ( TD->Flags & OHCI_HCD_TD_FLAG_DONE )
+    {
+      if ( TD->Flags & 2 )
+        ASSERT(FALSE);
+    }
+  }
 }
 
 VOID NTAPI
