@@ -1033,6 +1033,7 @@ OHCI_ProcessDoneTD(
     IN POHCI_HCD_TRANSFER_DESCRIPTOR TD)
 {
   POHCI_TRANSFER   OhciTransfer;
+  POHCI_ENDPOINT   OhciEndpoint;
   ULONG_PTR        Buffer;
   ULONG_PTR        BufferEnd;
   ULONG            Length;
@@ -1040,6 +1041,7 @@ OHCI_ProcessDoneTD(
   DPRINT("OHCI_ProcessDoneTD: ... \n");
 
   OhciTransfer = TD->OhciTransfer;
+  OhciEndpoint = OhciTransfer->OhciEndpoint;
 
   --OhciTransfer->PendingTds;
 
@@ -1072,7 +1074,12 @@ OHCI_ProcessDoneTD(
 
   if ( OhciTransfer->PendingTds == 0 )
   {
-ASSERT(FALSE);
+    RegPacket.UsbPortCompleteTransfer(
+                     OhciExtension,
+                     OhciEndpoint,
+                     OhciTransfer->TransferParameters,
+                     OhciTransfer->USBDStatus,
+                     OhciTransfer->TransferLen);
   }
 }
 

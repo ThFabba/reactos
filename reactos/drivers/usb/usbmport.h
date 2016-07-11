@@ -41,6 +41,7 @@ typedef VOID     (NTAPI * PHCI_RH_ENABLE_IRQ                           )(PVOID);
 
 typedef VOID     (NTAPI * PUSBPORT_INVALIDATE_ROOT_HUB                 )(PVOID);
 typedef VOID     (NTAPI * PUSBPORT_INVALIDATE_ENDPOINT                 )(PVOID);
+typedef ULONG    (NTAPI * PUSBPORT_COMPLETE_TRANSFER                   )(PVOID, PVOID, PVOID, USBD_STATUS, ULONG);
 typedef ULONG    (NTAPI * PUSBPORT_GET_MAPPED_VIRTUAL_ADDRESS          )(ULONG_PTR, PVOID, PVOID);
 
 
@@ -75,6 +76,7 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
 
   PUSBPORT_INVALIDATE_ROOT_HUB                   UsbPortInvalidateRootHub;              // 
   PUSBPORT_INVALIDATE_ENDPOINT                   UsbPortInvalidateEndpoint;             // 
+  PUSBPORT_COMPLETE_TRANSFER                     UsbPortCompleteTransfer;               // 
   PUSBPORT_GET_MAPPED_VIRTUAL_ADDRESS            UsbPortGetMappedVirtualAddress;        // 
 
 } USBPORT_REGISTRATION_PACKET, *PUSBPORT_REGISTRATION_PACKET;
