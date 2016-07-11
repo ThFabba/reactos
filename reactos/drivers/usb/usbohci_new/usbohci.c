@@ -1029,10 +1029,37 @@ ASSERT(FALSE);
 
 VOID NTAPI 
 OHCI_PollEndpoint(
-    POHCI_EXTENSION OhciExtension,
-    POHCI_ENDPOINT OhciEndpoint)
+    IN POHCI_EXTENSION OhciExtension,
+    IN POHCI_ENDPOINT OhciEndpoint)
 {
+  POHCI_HCD_ENDPOINT_DESCRIPTOR  ED;
+  ULONG_PTR                      NextTdPA;
+  POHCI_HCD_TRANSFER_DESCRIPTOR  NextTD;
+  POHCI_HCD_TRANSFER_DESCRIPTOR  TD;
+
   DPRINT("OHCI_PollEndpoint: ... \n");
+
+  ED = OhciEndpoint->ED;
+  NextTdPA = ED->HwED.HeadPointer & 0xFFFFFFF0; // physical pointer to the next OHCI_TRANSFER_DESCRIPTOR
+
+  NextTD = (POHCI_HCD_TRANSFER_DESCRIPTOR)
+           RegPacket.UsbPortGetMappedVirtualAddress(
+                            NextTdPA,
+                            OhciExtension,
+                            OhciEndpoint);
+
+  if ( ED->HwED.HeadPointer & 1 ) //Halted FIXME
+    ASSERT(FALSE);
+
+  TD = OhciEndpoint->HcdTailP;
+
+  while ( TD != NextTD )
+  {
+    TD->Flags |= OHCI_HCD_TD_FLAG_DONE;
+    InsertTailList(&OhciEndpoint->TDList, &TD->DoneLink);
+    TD = TD->HcdNextTD;
+  }
+
   ASSERT(FALSE);
 }
 
