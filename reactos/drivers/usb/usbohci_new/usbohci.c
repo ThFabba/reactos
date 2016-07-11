@@ -1032,8 +1032,48 @@ OHCI_ProcessDoneTD(
     IN POHCI_EXTENSION OhciExtension,
     IN POHCI_HCD_TRANSFER_DESCRIPTOR TD)
 {
+  POHCI_TRANSFER   OhciTransfer;
+  ULONG_PTR        Buffer;
+  ULONG_PTR        BufferEnd;
+  ULONG            Length;
+
   DPRINT("OHCI_ProcessDoneTD: ... \n");
+
+  OhciTransfer = TD->OhciTransfer;
+
+  --OhciTransfer->PendingTds;
+
+  Buffer    = (ULONG_PTR)TD->HwTD.CurrentBuffer;
+  BufferEnd = (ULONG_PTR)TD->HwTD.BufferEnd;
+
+  if ( TD->HwTD.CurrentBuffer )
+  {
+    if ( TD->TransferLen )
+    {
+      Length = (((Buffer ^ BufferEnd) & 0xFFFFF000) != 0 ? 0x1000 : 0) +
+               (BufferEnd & 0xFFF) + 1 - (Buffer & 0xFFF);
+
+      TD->TransferLen -= Length;
+    }
+  }
+
+  if ( TD->HwTD.Control.DirectionPID != 0 )
+    OhciTransfer->TransferLen += TD->TransferLen;
+
+  if ( TD->HwTD.Control.ConditionCode )
+    OhciTransfer->USBDStatus = USBD_STATUS_HALTED | TD->HwTD.Control.ConditionCode;
+
+  TD->Flags = 0;
+  TD->HwTD.NextTD = NULL;
+  TD->OhciTransfer = NULL;
+
+  TD->DoneLink.Flink = NULL;
+  TD->DoneLink.Blink = NULL;
+
+  if ( OhciTransfer->PendingTds == 0 )
+  {
 ASSERT(FALSE);
+  }
 }
 
 VOID NTAPI 

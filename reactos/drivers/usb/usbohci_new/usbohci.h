@@ -408,6 +408,8 @@ typedef struct _OHCI_TRANSFER {
   PUSBPORT_TRANSFER_PARAMETERS      TransferParameters;      // 
   POHCI_ENDPOINT                    OhciEndpoint;            // 
   ULONG                             PendingTds;              // 
+  ULONG                             TransferLen;             // 
+  USBD_STATUS                       USBDStatus;              // 
 
 } OHCI_TRANSFER, *POHCI_TRANSFER;
 
