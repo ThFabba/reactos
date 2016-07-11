@@ -299,10 +299,10 @@ OHCI_DisableInterrupts(
   DPRINT("OHCI_DisableInterrupts: Context - %p\n", Context);
 }
 
-VOID NTAPI
+VOID
 OHCI_EnableList(
-    POHCI_EXTENSION OhciExtension,
-    POHCI_ENDPOINT OhciEndpoint)
+    IN POHCI_EXTENSION OhciExtension,
+    IN POHCI_ENDPOINT OhciEndpoint)
 {
   POHCI_OPERATIONAL_REGISTERS  OperationalRegs;
   ULONG                        TransferType;
@@ -334,6 +334,38 @@ OHCI_EnableList(
   WRITE_REGISTER_ULONG(&OperationalRegs->HcCommandStatus.AsULONG, CommandStatus);
 }
 
+VOID
+OHCI_RemoveEndpointFromSchedule(
+    IN POHCI_ENDPOINT OhciEndpoint)
+{
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     ED;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     PreviousED;
+  POHCI_STATIC_ENDPOINT_DESCRIPTOR  HeadED;
+
+  DPRINT("OHCI_RemoveEndpointFromSchedule \n");
+
+  ED = OhciEndpoint->ED;
+  HeadED = OhciEndpoint->HeadED;
+
+  if ( &HeadED->Link == ED->HcdEDLink.Blink )
+  {
+    *HeadED->pNextED = (POHCI_ENDPOINT_DESCRIPTOR)ED->HwED.NextED;
+  }
+  else
+  {
+    PreviousED = CONTAINING_RECORD(
+                   ED->HcdEDLink.Blink,
+                   OHCI_HCD_ENDPOINT_DESCRIPTOR,
+                   HcdEDLink);
+
+    PreviousED->HwED.NextED = ED->HwED.NextED;
+  }
+
+  RemoveEntryList(&ED->HcdEDLink);
+
+  OhciEndpoint->HeadED = NULL;
+}
+
 VOID NTAPI
 OHCI_SetEndpointState(
     IN PVOID Context,
@@ -361,7 +393,8 @@ ASSERT(FALSE);
       break;
 
     case 4: // ENDPOINT_CLOSED
-ASSERT(FALSE);
+      ED->HwED.EndpointControl.sKip = 1;
+      OHCI_RemoveEndpointFromSchedule(OhciEndpoint);
       break;
 
     default:
