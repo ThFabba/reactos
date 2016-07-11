@@ -718,6 +718,14 @@ OHCI_OpenEndpoint(
 
   return Result;
 }
+VOID NTAPI
+OHCI_CloseEndpoint(
+    IN PVOID Context,
+    IN PVOID OhciEndpoint,
+    IN BOOLEAN Type)
+{
+  DPRINT("OHCI_CloseEndpoint: UNIMPLEMENTED !!!\n");
+}
 
 ULONG NTAPI 
 OHCI_MapTransferToTd(
@@ -1182,6 +1190,7 @@ DriverEntry(
     RegPacket.MiniPortResourcesSize                 = sizeof(OHCI_HC_RESOURCES);                  // 
     RegPacket.OpenEndpoint                          = OHCI_OpenEndpoint;
     RegPacket.QueryEndpointRequirements             = OHCI_QueryEndpointRequirements;
+    RegPacket.CloseEndpoint                         = OHCI_CloseEndpoint;
     RegPacket.StartController                       = OHCI_StartController;
     RegPacket.InterruptService                      = OHCI_InterruptService;
     RegPacket.InterruptDpc                          = OHCI_InterruptDpc;

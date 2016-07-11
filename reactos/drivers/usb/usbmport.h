@@ -19,6 +19,7 @@ typedef struct _USBPORT_RESOURCES {
 
 typedef ULONG    (NTAPI * PHCI_OPEN_ENDPOINT                           )(PVOID, PVOID, PVOID);
 typedef VOID     (NTAPI * PHCI_QUERY_ENDPOINT_REQUIREMENTS             )(PVOID, PVOID, PULONG);
+typedef VOID     (NTAPI * PHCI_CLOSE_ENDPOINT                          )(PVOID, PVOID, BOOLEAN);
 typedef ULONG    (NTAPI * PHCI_START_CONTROLLER                        )(PVOID, PUSBPORT_RESOURCES);
 typedef BOOLEAN  (NTAPI * PHCI_INTERRUPT_SERVICE                       )(PVOID);
 typedef VOID     (NTAPI * PHCI_INTERRUPT_DPC                           )(PVOID, BOOLEAN);
@@ -54,6 +55,7 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
   ULONG                                          MiniPortResourcesSize;                 // 
   PHCI_OPEN_ENDPOINT                             OpenEndpoint;                          // 
   PHCI_QUERY_ENDPOINT_REQUIREMENTS               QueryEndpointRequirements;             // 
+  PHCI_CLOSE_ENDPOINT                            CloseEndpoint;                         // 
   PHCI_START_CONTROLLER                          StartController;                       //
   PHCI_INTERRUPT_SERVICE                         InterruptService;                      // 
   PHCI_INTERRUPT_DPC                             InterruptDpc;                          // 
