@@ -39,6 +39,7 @@ typedef VOID     (NTAPI * PHCI_RH_DISABLE_IRQ                          )(PVOID);
 typedef VOID     (NTAPI * PHCI_RH_ENABLE_IRQ                           )(PVOID);
 
 typedef VOID     (NTAPI * PUSBPORT_INVALIDATE_ROOT_HUB                 )(PVOID);
+typedef VOID     (NTAPI * PUSBPORT_INVALIDATE_ENDPOINT                 )(PVOID);
 
 
 typedef struct _USBPORT_REGISTRATION_PACKET {
@@ -70,6 +71,7 @@ typedef struct _USBPORT_REGISTRATION_PACKET {
   PHCI_RH_ENABLE_IRQ                             RH_EnableIrq;                          // 
 
   PUSBPORT_INVALIDATE_ROOT_HUB                   UsbPortInvalidateRootHub;              // 
+  PUSBPORT_INVALIDATE_ENDPOINT                   UsbPortInvalidateEndpoint;             // 
 
 } USBPORT_REGISTRATION_PACKET, *PUSBPORT_REGISTRATION_PACKET;
 

@@ -31,7 +31,11 @@ OHCI_InterruptDpc(
 
   if ( InterruptStatus & 2 ) // WritebackDoneHead
   {
-ASSERT(FALSE);
+    POHCI_HCCA  HCCA = (POHCI_HCCA)OhciExtension->HcResourcesVA;
+
+    DPRINT("OHCI_InterruptDpc: WritebackDoneHead\n");
+    HCCA->DoneHead = 0;
+    RegPacket.UsbPortInvalidateEndpoint(OhciExtension);
   }
 
   if ( InterruptStatus & 4 ) // StartofFrame
