@@ -1134,6 +1134,7 @@ OHCI_PollEndpoint(
   POHCI_HCD_TRANSFER_DESCRIPTOR  NextTD;
   POHCI_HCD_TRANSFER_DESCRIPTOR  TD;
   PLIST_ENTRY                    DoneList;
+  BOOLEAN                        IsHalted = FALSE;
 
   DPRINT("OHCI_PollEndpoint: ... \n");
 
@@ -1147,7 +1148,16 @@ OHCI_PollEndpoint(
                             OhciEndpoint);
 
   if ( ED->HwED.HeadPointer & 1 ) //Halted FIXME
+  {
+    DPRINT("OHCI_ControlTransfer: ED                               - %p\n", ED);
+    DPRINT("OHCI_ControlTransfer: ED->HwED.EndpointControl.AsULONG - %p\n", ED->HwED.EndpointControl.AsULONG);
+    DPRINT("OHCI_ControlTransfer: ED->HwED.TailPointer             - %p\n", ED->HwED.TailPointer);
+    DPRINT("OHCI_ControlTransfer: ED->HwED.HeadPointer             - %p\n", ED->HwED.HeadPointer);
+    DPRINT("OHCI_ControlTransfer: ED->HwED.NextED                  - %p\n", ED->HwED.NextED);
+
     ASSERT(FALSE);
+    //IsHalted = TRUE;
+  }
 
   TD = OhciEndpoint->HcdTailP;
 
@@ -1177,6 +1187,11 @@ OHCI_PollEndpoint(
       if ( TD->Flags & 2 )
         OHCI_ProcessDoneTD(OhciExtension, TD);
     }
+  }
+
+  if ( IsHalted )
+  {
+    ED->HwED.HeadPointer &= ~1;
   }
 }
 
@@ -1244,7 +1259,7 @@ DriverEntry(
     RegPacket.RH_DisableIrq                         = OHCI_RH_DisableIrq;
     RegPacket.RH_EnableIrq                          = OHCI_RH_EnableIrq;
 
-    Status = USBPORT_RegisterUSBPortDriver(DriverObject, 1, &RegPacket);
+    Status = USBPORT_RegisterUSBPortDriver(DriverObject, 100, &RegPacket);
     DPRINT("DriverEntry: USBPORT_RegisterUSBPortDriver return Status - %x\n", Status);
 
     return Status;
