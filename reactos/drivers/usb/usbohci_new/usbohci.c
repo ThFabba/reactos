@@ -653,7 +653,7 @@ OHCI_OpenControlEndpoint(
                           ((ULONG_PTR)EndpointProperties->BufferVA + 
                            sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
 
-  if ( TdCount )
+  if ( TdCount > 0 )
   {
     TdVA = OhciEndpoint->FirstTD;
     TdPA = (POHCI_HCD_TRANSFER_DESCRIPTOR)
@@ -664,15 +664,17 @@ OHCI_OpenControlEndpoint(
     {
       DPRINT("OHCI_OpenControlEndpoint: InitTD. TdVA - %p, TdPA - %p\n", TdVA, TdPA);
 
-      TdVA->PhysicalAddress  = TdPA;
-      TdVA->Flags            = 0;
-      TdVA->OhciTransfer     = NULL;
+      RtlZeroMemory(TdVA, sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR));
+
+      TdVA->PhysicalAddress = TdPA;
+      TdVA->Flags           = 0;
+      TdVA->OhciTransfer    = NULL;
 
       ++TdPA;
       ++TdVA;
       --TdCount;
     }
-    while ( TdCount );
+    while ( TdCount > 0 );
   }
 
   ED = (POHCI_HCD_ENDPOINT_DESCRIPTOR)EndpointProperties->BufferVA;
@@ -689,14 +691,67 @@ OHCI_OpenControlEndpoint(
 
 ULONG NTAPI
 OHCI_OpenBulkEndpoint(
-         IN POHCI_EXTENSION OhciExtension,
-         IN PUSBPORT_ENDPOINT_PROPERTIES EndpointProperties,
-         IN POHCI_ENDPOINT OhciEndpoint)
+     IN POHCI_EXTENSION OhciExtension,
+     IN PUSBPORT_ENDPOINT_PROPERTIES EndpointProperties,
+     IN POHCI_ENDPOINT OhciEndpoint)
 {
+  POHCI_HCD_TRANSFER_DESCRIPTOR  TdPA;
+  POHCI_HCD_TRANSFER_DESCRIPTOR  TdVA;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR  ED;
+  ULONG                          TdCount;
+
   DPRINT("OHCI_OpenBulkEndpoint: ... \n");
-ASSERT(FALSE);
+
+  TdCount = (EndpointProperties->BufferLength - sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR)) /
+            sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR);
+
+  OhciEndpoint->MaxTransferDescriptors = TdCount;
+  OhciEndpoint->HeadED = &OhciExtension->BulkStaticED;
+
+  OhciEndpoint->FirstTD = (POHCI_HCD_TRANSFER_DESCRIPTOR)
+                          ((ULONG_PTR)EndpointProperties->BufferVA + 
+                          sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+  if ( TdCount > 0 )
+  {
+    TdVA = OhciEndpoint->FirstTD;
+
+    TdPA = (POHCI_HCD_TRANSFER_DESCRIPTOR)
+           ((ULONG_PTR)EndpointProperties->BufferPA +
+           sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+    do
+    {
+      DPRINT("OHCI_OpenBulkEndpoint: InitTD. TdVA - %p, TdPA - %p\n", TdVA, TdPA);
+
+      RtlZeroMemory(TdVA, sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR));
+
+      TdVA->PhysicalAddress = TdPA;
+      TdVA->Flags           = 0;
+      TdVA->OhciTransfer    = NULL;
+
+      TdVA += 1;
+      TdPA += 1;
+      --TdCount;
+    }
+    while ( TdCount > 0 );
+  }
+
+  ED = (POHCI_HCD_ENDPOINT_DESCRIPTOR)EndpointProperties->BufferVA;
+
+  OhciEndpoint->ED = OHCI_InitializeED(
+                          OhciEndpoint,
+                          ED,
+                          OhciEndpoint->FirstTD,
+                          EndpointProperties->BufferPA );
+
+  OHCI_InsertEndpointInSchedule(OhciEndpoint);
+
   return 0;
 }
+
+
+
 
 ULONG NTAPI
 OHCI_OpenEndpoint(
