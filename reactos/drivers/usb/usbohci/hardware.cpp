@@ -10,7 +10,7 @@
 
 #include "usbohci.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 typedef VOID __stdcall HD_INIT_CALLBACK(IN PVOID CallBackContext);
@@ -81,13 +81,11 @@ protected:
     PDEVICE_OBJECT m_FunctionalDeviceObject;                                           // fdo (hcd controller)
     PDEVICE_OBJECT m_NextDeviceObject;                                                 // lower device object
     KSPIN_LOCK m_Lock;                                                                 // hardware lock
-    PKINTERRUPT m_Interrupt;                                                           // interrupt object
     KDPC m_IntDpcObject;                                                               // dpc object for deferred isr processing
     PVOID VirtualBase;                                                                 // virtual base for memory manager
     PHYSICAL_ADDRESS PhysicalAddress;                                                  // physical base for memory manager
     PULONG m_Base;                                                                     // OHCI operational port base registers
     PDMA_ADAPTER m_Adapter;                                                            // dma adapter object
-    ULONG m_MapRegisters;                                                              // map registers count
     USHORT m_VendorID;                                                                 // vendor id
     USHORT m_DeviceID;                                                                 // device id
     POHCIQUEUE m_UsbQueue;                                                              // usb request queue
@@ -105,6 +103,8 @@ protected:
     volatile LONG m_StatusChangeWorkItemStatus;                                        // work item active status
     ULONG m_SyncFramePhysAddr;                                                         // periodic frame list physical address
     ULONG m_IntervalValue;                                                             // periodic interval value
+    PLIBUSB_RESOURCES m_Resources;                                                     // 
+
 };
 
 //=================================================================================================
@@ -225,113 +225,35 @@ CUSBHardwareDevice::Initialize(
 NTSTATUS
 STDMETHODCALLTYPE
 CUSBHardwareDevice::PnpStart(
-    PCM_RESOURCE_LIST RawResources,
-    PCM_RESOURCE_LIST TranslatedResources)
+    PLIBUSB_RESOURCES Resources,
+    PDMA_ADAPTER DmaAdapter)
 {
-    ULONG Index;
-    PCM_PARTIAL_RESOURCE_DESCRIPTOR ResourceDescriptor;
-    DEVICE_DESCRIPTION DeviceDescription;
-    PVOID ResourceBase;
     NTSTATUS Status;
     ULONG Version;
 
     DPRINT("CUSBHardwareDevice::PnpStart\n");
-    for(Index = 0; Index < TranslatedResources->List[0].PartialResourceList.Count; Index++)
+
+    m_Resources = Resources;
+    m_Adapter = DmaAdapter;
+
+    if ( m_Resources->TypesResources & 2 )
     {
-        //
-        // get resource descriptor
-        //
-        ResourceDescriptor = &TranslatedResources->List[0].PartialResourceList.PartialDescriptors[Index];
+        // Get controllers capabilities
+        Version = READ_REGISTER_ULONG((PULONG)((ULONG_PTR)m_Resources->ResourceBase + OHCI_REVISION_OFFSET));
+        DPRINT("PnpStart: Version %x\n", Version & 0xFFFF);
 
-        switch(ResourceDescriptor->Type)
-        {
-            case CmResourceTypeInterrupt:
-            {
-                KeInitializeDpc(&m_IntDpcObject,
-                                OhciDefferedRoutine,
-                                this);
-
-                Status = IoConnectInterrupt(&m_Interrupt,
-                                            InterruptServiceRoutine,
-                                            (PVOID)this,
-                                            NULL,
-                                            ResourceDescriptor->u.Interrupt.Vector,
-                                            (KIRQL)ResourceDescriptor->u.Interrupt.Level,
-                                            (KIRQL)ResourceDescriptor->u.Interrupt.Level,
-                                            (KINTERRUPT_MODE)(ResourceDescriptor->Flags & CM_RESOURCE_INTERRUPT_LATCHED),
-                                            (ResourceDescriptor->ShareDisposition != CmResourceShareDeviceExclusive),
-                                            ResourceDescriptor->u.Interrupt.Affinity,
-                                            FALSE);
-
-                if (!NT_SUCCESS(Status))
-                {
-                    //
-                    // failed to register interrupt
-                    //
-                    DPRINT1("IoConnect Interrupt failed with %x\n", Status);
-                    return Status;
-                }
-                break;
-            }
-            case CmResourceTypeMemory:
-            {
-                //
-                // get resource base
-                //
-                ResourceBase = MmMapIoSpace(ResourceDescriptor->u.Memory.Start, ResourceDescriptor->u.Memory.Length, MmNonCached);
-                if (!ResourceBase)
-                {
-                    //
-                    // failed to map registers
-                    //
-                    DPRINT1("MmMapIoSpace failed\n");
-                    return STATUS_INSUFFICIENT_RESOURCES;
-                }
-
-                //
-                // Get controllers capabilities
-                //
-                Version = READ_REGISTER_ULONG((PULONG)((ULONG_PTR)ResourceBase + OHCI_REVISION_OFFSET));
-
-                DPRINT("Version %x\n", Version & 0xFFFF);
-
-                //
-                // Store Resource base
-                //
-                m_Base = (PULONG)ResourceBase;
-                break;
-            }
-        }
+        // Store Resource base
+        m_Base = (PULONG)m_Resources->ResourceBase;
+    }
+    else
+    {
+        DPRINT1("PnpStart: No Resource base!\n");
+        return STATUS_NONE_MAPPED;
     }
 
-
-    //
-    // zero device description
-    //
-    RtlZeroMemory(&DeviceDescription, sizeof(DEVICE_DESCRIPTION));
-
-    //
-    // initialize device description
-    //
-    DeviceDescription.Version = DEVICE_DESCRIPTION_VERSION;
-    DeviceDescription.Master = TRUE;
-    DeviceDescription.ScatterGather = TRUE;
-    DeviceDescription.Dma32BitAddresses = TRUE;
-    DeviceDescription.DmaWidth = Width32Bits;
-    DeviceDescription.InterfaceType = PCIBus;
-    DeviceDescription.MaximumLength = MAXULONG;
-
-    //
-    // get dma adapter
-    //
-    m_Adapter = IoGetDmaAdapter(m_PhysicalDeviceObject, &DeviceDescription, &m_MapRegisters);
-    if (!m_Adapter)
+    if ( m_Resources->TypesResources & 4 )
     {
-        //
-        // failed to get dma adapter
-        //
-        DPRINT1("Failed to acquire dma adapter\n");
-        return STATUS_INSUFFICIENT_RESOURCES;
+        KeInitializeDpc(&m_IntDpcObject, OhciDefferedRoutine, this);
     }
 
     //
