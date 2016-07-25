@@ -23,6 +23,19 @@ typedef struct
     LIST_ENTRY InterfaceList;
 }USB_CONFIGURATION, *PUSB_CONFIGURATION;
 
+typedef struct _LIBUSB_RESOURCES {
+
+  ULONG                         TypesResources;               // 1 | 2 | 4  (Port | Memory | Interrupt) FIXME: constant
+  ULONG                         InterruptVector;              // 
+  KIRQL                         InterruptLevel;               // 
+  KAFFINITY                     InterruptAffinity;            // 
+  BOOLEAN                       ShareVector;                  // ShareDisposition == CmResourceShareShared
+  KINTERRUPT_MODE               InterruptMode;                // Flags == CM_RESOURCE_INTERRUPT_LATCHED
+  PVOID                         ResourceBase;                 // MmMapIoSpace(..) or PortDescriptor->u.Port.Start.LowPart
+  ULONG                         IoSpaceLength;                // 
+
+} LIBUSB_RESOURCES, *PLIBUSB_RESOURCES;
+
 //---------------------------------------------------------------------------
 //
 //          Object Hierarchy
