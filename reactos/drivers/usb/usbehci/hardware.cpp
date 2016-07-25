@@ -10,7 +10,7 @@
 
 #include "usbehci.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 typedef VOID __stdcall HD_INIT_CALLBACK(IN PVOID CallBackContext);
@@ -80,13 +80,11 @@ protected:
     PDEVICE_OBJECT m_FunctionalDeviceObject;                                           // fdo (hcd controller)
     PDEVICE_OBJECT m_NextDeviceObject;                                                 // lower device object
     KSPIN_LOCK m_Lock;                                                                 // hardware lock
-    PKINTERRUPT m_Interrupt;                                                           // interrupt object
     KDPC m_IntDpcObject;                                                               // dpc object for deferred isr processing
     PVOID VirtualBase;                                                                 // virtual base for memory manager
     PHYSICAL_ADDRESS PhysicalAddress;                                                  // physical base for memory manager
     PULONG m_Base;                                                                     // EHCI operational port base registers
     PDMA_ADAPTER m_Adapter;                                                            // dma adapter object
-    ULONG m_MapRegisters;                                                              // map registers count
     EHCI_CAPS m_Capabilities;                                                          // EHCI caps
     USHORT m_VendorID;                                                                 // vendor id
     USHORT m_DeviceID;                                                                 // device id
@@ -101,6 +99,7 @@ protected:
     ULONG m_SyncFramePhysAddr;                                                         // periodic frame list physical address
     BUS_INTERFACE_STANDARD m_BusInterface;                                             // pci bus interface
     BOOLEAN m_PortResetInProgress[0xF];                                                // stores reset in progress (vbox hack)
+    PLIBUSB_RESOURCES m_Resources;                                                     // 
 
     // read register
     ULONG EHCI_READ_REGISTER_ULONG(ULONG Offset);
@@ -291,12 +290,10 @@ CUSBHardwareDevice::PrintCapabilities()
 NTSTATUS
 STDMETHODCALLTYPE
 CUSBHardwareDevice::PnpStart(
-    PCM_RESOURCE_LIST RawResources,
-    PCM_RESOURCE_LIST TranslatedResources)
+    PLIBUSB_RESOURCES Resources,
+    PDMA_ADAPTER DmaAdapter)
 {
-    ULONG Index, Count;
-    PCM_PARTIAL_RESOURCE_DESCRIPTOR ResourceDescriptor;
-    DEVICE_DESCRIPTION DeviceDescription;
+    ULONG Count;
     PHYSICAL_ADDRESS AsyncPhysicalAddress;
     PVOID ResourceBase;
     NTSTATUS Status;
@@ -304,133 +301,77 @@ CUSBHardwareDevice::PnpStart(
     UCHAR PortCount;
 
     DPRINT("CUSBHardwareDevice::PnpStart\n");
-    for(Index = 0; Index < TranslatedResources->List[0].PartialResourceList.Count; Index++)
+
+    m_Resources = Resources;
+    m_Adapter = DmaAdapter;
+
+    if ( m_Resources->TypesResources & 2 )
     {
         //
-        // get resource descriptor
+        // get resource base
         //
-        ResourceDescriptor = &TranslatedResources->List[0].PartialResourceList.PartialDescriptors[Index];
-
-        switch(ResourceDescriptor->Type)
+        ResourceBase = m_Resources->ResourceBase;
+        if (!ResourceBase)
         {
-            case CmResourceTypeInterrupt:
-            {
-                KeInitializeDpc(&m_IntDpcObject,
-                                EhciDefferedRoutine,
-                                this);
-
-                Status = IoConnectInterrupt(&m_Interrupt,
-                                            InterruptServiceRoutine,
-                                            (PVOID)this,
-                                            NULL,
-                                            ResourceDescriptor->u.Interrupt.Vector,
-                                            (KIRQL)ResourceDescriptor->u.Interrupt.Level,
-                                            (KIRQL)ResourceDescriptor->u.Interrupt.Level,
-                                            (KINTERRUPT_MODE)(ResourceDescriptor->Flags & CM_RESOURCE_INTERRUPT_LATCHED),
-                                            (ResourceDescriptor->ShareDisposition != CmResourceShareDeviceExclusive),
-                                            ResourceDescriptor->u.Interrupt.Affinity,
-                                            FALSE);
-
-                if (!NT_SUCCESS(Status))
-                {
-                    //
-                    // failed to register interrupt
-                    //
-                    DPRINT1("IoConnect Interrupt failed with %x\n", Status);
-                    return Status;
-                }
-                break;
-            }
-            case CmResourceTypeMemory:
-            {
-                //
-                // get resource base
-                //
-                ResourceBase = MmMapIoSpace(ResourceDescriptor->u.Memory.Start, ResourceDescriptor->u.Memory.Length, MmNonCached);
-                if (!ResourceBase)
-                {
-                    //
-                    // failed to map registers
-                    //
-                    DPRINT1("MmMapIoSpace failed\n");
-                    return STATUS_INSUFFICIENT_RESOURCES;
-                }
-
-                //
-                // Get controllers capabilities
-                //
-                m_Capabilities.Length = READ_REGISTER_UCHAR((PUCHAR)ResourceBase + EHCI_CAPLENGTH);
-                m_Capabilities.HCIVersion = READ_REGISTER_USHORT((PUSHORT)((ULONG_PTR)ResourceBase + EHCI_HCIVERSION));
-                m_Capabilities.HCSParamsLong = READ_REGISTER_ULONG((PULONG)((ULONG_PTR)ResourceBase + EHCI_HCSPARAMS));
-                m_Capabilities.HCCParamsLong = READ_REGISTER_ULONG((PULONG)((ULONG_PTR)ResourceBase + EHCI_HCCPARAMS));
-
-                DPRINT1("Controller Capabilities Length 0x%x\n", m_Capabilities.Length);
-                DPRINT1("Controller EHCI Version 0x%x\n", m_Capabilities.HCIVersion);
-                DPRINT1("Controller EHCI Caps HCSParamsLong 0x%lx\n", m_Capabilities.HCSParamsLong);
-                DPRINT1("Controller EHCI Caps HCCParamsLong 0x%lx\n", m_Capabilities.HCCParamsLong);
-                DPRINT1("Controller has %lu Ports\n", m_Capabilities.HCSParams.PortCount);
-
-                //
-                // print capabilities
-                //
-                PrintCapabilities();
-
-                if (m_Capabilities.HCSParams.PortRouteRules)
-                {
-                    Count = 0;
-                    PortCount = max(m_Capabilities.HCSParams.PortCount/2, (m_Capabilities.HCSParams.PortCount+1)/2);
-                    do
-                    {
-                        //
-                        // each entry is a 4 bit field EHCI 2.2.5
-                        //
-                        Value = READ_REGISTER_UCHAR((PUCHAR)(ULONG)ResourceBase + EHCI_HCSP_PORTROUTE + Count);
-                        m_Capabilities.PortRoute[Count*2] = (Value & 0xF0);
-
-                        if ((Count*2) + 1 < m_Capabilities.HCSParams.PortCount)
-                            m_Capabilities.PortRoute[(Count*2)+1] = (Value & 0x0F);
-
-                        Count++;
-                    } while(Count < PortCount);
-                }
-
-                //
-                // Set m_Base to the address of Operational Register Space
-                //
-                m_Base = (PULONG)((ULONG)ResourceBase + m_Capabilities.Length);
-                break;
-            }
+            //
+            // failed to map registers
+            //
+            DPRINT1("MmMapIoSpace failed\n");
+            return STATUS_INSUFFICIENT_RESOURCES;
         }
+
+        //
+        // Get controllers capabilities
+        //
+        m_Capabilities.Length = READ_REGISTER_UCHAR((PUCHAR)ResourceBase + EHCI_CAPLENGTH);
+        m_Capabilities.HCIVersion = READ_REGISTER_USHORT((PUSHORT)((ULONG_PTR)ResourceBase + EHCI_HCIVERSION));
+        m_Capabilities.HCSParamsLong = READ_REGISTER_ULONG((PULONG)((ULONG_PTR)ResourceBase + EHCI_HCSPARAMS));
+        m_Capabilities.HCCParamsLong = READ_REGISTER_ULONG((PULONG)((ULONG_PTR)ResourceBase + EHCI_HCCPARAMS));
+
+        DPRINT1("Controller Capabilities Length 0x%x\n", m_Capabilities.Length);
+        DPRINT1("Controller EHCI Version 0x%x\n", m_Capabilities.HCIVersion);
+        DPRINT1("Controller EHCI Caps HCSParamsLong 0x%lx\n", m_Capabilities.HCSParamsLong);
+        DPRINT1("Controller EHCI Caps HCCParamsLong 0x%lx\n", m_Capabilities.HCCParamsLong);
+        DPRINT1("Controller has %lu Ports\n", m_Capabilities.HCSParams.PortCount);
+
+        //
+        // print capabilities
+        //
+        PrintCapabilities();
+
+        if (m_Capabilities.HCSParams.PortRouteRules)
+        {
+            Count = 0;
+            PortCount = max(m_Capabilities.HCSParams.PortCount/2, (m_Capabilities.HCSParams.PortCount+1)/2);
+            do
+            {
+                //
+                // each entry is a 4 bit field EHCI 2.2.5
+                //
+                Value = READ_REGISTER_UCHAR((PUCHAR)(ULONG)ResourceBase + EHCI_HCSP_PORTROUTE + Count);
+                m_Capabilities.PortRoute[Count*2] = (Value & 0xF0);
+
+                if ((Count*2) + 1 < m_Capabilities.HCSParams.PortCount)
+                    m_Capabilities.PortRoute[(Count*2)+1] = (Value & 0x0F);
+
+                Count++;
+            } while(Count < PortCount);
+        }
+
+        //
+        // Set m_Base to the address of Operational Register Space
+        //
+        m_Base = (PULONG)((ULONG)ResourceBase + m_Capabilities.Length);
+    }
+    else
+    {
+        DPRINT1("PnpStart: No Resource base!\n");
+        return STATUS_NONE_MAPPED;
     }
 
-
-    //
-    // zero device description
-    //
-    RtlZeroMemory(&DeviceDescription, sizeof(DEVICE_DESCRIPTION));
-
-    //
-    // initialize device description
-    //
-    DeviceDescription.Version = DEVICE_DESCRIPTION_VERSION;
-    DeviceDescription.Master = TRUE;
-    DeviceDescription.ScatterGather = TRUE;
-    DeviceDescription.Dma32BitAddresses = TRUE;
-    DeviceDescription.DmaWidth = Width32Bits;
-    DeviceDescription.InterfaceType = PCIBus;
-    DeviceDescription.MaximumLength = MAXULONG;
-
-    //
-    // get dma adapter
-    //
-    m_Adapter = IoGetDmaAdapter(m_PhysicalDeviceObject, &DeviceDescription, &m_MapRegisters);
-    if (!m_Adapter)
+    if ( m_Resources->TypesResources & 4 )
     {
-        //
-        // failed to get dma adapter
-        //
-        DPRINT1("Failed to acquire dma adapter\n");
-        return STATUS_INSUFFICIENT_RESOURCES;
+        KeInitializeDpc(&m_IntDpcObject, EhciDefferedRoutine, this);
     }
 
     //
