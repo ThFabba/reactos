@@ -160,8 +160,8 @@ struct IUSBQueue;
         IN PDEVICE_OBJECT LowerDeviceObject) PURE;                          \
                                                                             \
      STDMETHOD_(NTSTATUS, PnpStart)( THIS_                                  \
-        IN PCM_RESOURCE_LIST RawResources,                                  \
-        IN PCM_RESOURCE_LIST TranslatedResources) PURE;                     \
+        IN PLIBUSB_RESOURCES Resources,                                     \
+        IN PDMA_ADAPTER DmaAdapter) PURE;                                   \
                                                                             \
      STDMETHOD_(NTSTATUS, PnpStop)( THIS) PURE;                             \
                                                                             \
@@ -208,8 +208,8 @@ struct IUSBQueue;
         IN PDEVICE_OBJECT LowerDeviceObject);                               \
                                                                             \
      STDMETHODIMP_(NTSTATUS) PnpStart(                                      \
-        IN PCM_RESOURCE_LIST RawResources,                                  \
-        IN PCM_RESOURCE_LIST TranslatedResources);                          \
+        IN PLIBUSB_RESOURCES Resources,                                     \
+        IN PDMA_ADAPTER DmaAdapter);                                        \
                                                                             \
      STDMETHODIMP_(NTSTATUS) PnpStop(VOID);                                 \
                                                                             \

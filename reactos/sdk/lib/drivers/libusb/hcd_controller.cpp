@@ -10,7 +10,7 @@
 
 #include "libusb.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 class CHCDController : public IHCDController,
@@ -64,6 +64,10 @@ protected:
     PHUBCONTROLLER m_HubController;
     ULONG m_FDODeviceNumber;
     LPCSTR m_USBType;
+    LIBUSB_RESOURCES m_Resources;                                                      // 
+    PDMA_ADAPTER m_DmaAdapter;                                                         // dma adapter object
+    ULONG m_MapRegisters;                                                              // map registers count
+    PKINTERRUPT m_Interrupt;                                                           // interrupt object
 };
 
 //=================================================================================================
@@ -363,6 +367,20 @@ CHCDController::HandleDeviceControl(
     return Status;
 }
 
+
+BOOLEAN NTAPI
+InterruptService(
+    IN PKINTERRUPT Interrupt,
+    IN PVOID ServiceContext)
+{
+  BOOLEAN Result = 0;
+  DPRINT1("InterruptService: ...\n");
+ASSERT(FALSE);
+  DPRINT1("InterruptService: return - %x\n", Result);
+
+  return Result;
+}
+
 NTSTATUS
 CHCDController::HandlePnp(
     IN PDEVICE_OBJECT DeviceObject,
@@ -370,7 +388,8 @@ CHCDController::HandlePnp(
 {
     PIO_STACK_LOCATION IoStack;
     PCOMMON_DEVICE_EXTENSION DeviceExtension;
-    PCM_RESOURCE_LIST RawResourceList;
+    DEVICE_DESCRIPTION DeviceDescription;
+    //PCM_RESOURCE_LIST RawResourceList;
     PCM_RESOURCE_LIST TranslatedResourceList;
     PDEVICE_RELATIONS DeviceRelations;
     NTSTATUS Status;
@@ -401,34 +420,113 @@ CHCDController::HandlePnp(
             //
             Status = SyncForwardIrp(m_NextDeviceObject, Irp);
 
-            if (NT_SUCCESS(Status))
+            if (!NT_SUCCESS(Status))
+            {
+                DPRINT1("Lower device failed start\n");
+                return Status;
+            }
+
+            //
+            // operation succeeded, lets start the device
+            //
+            //RawResourceList = IoStack->Parameters.StartDevice.AllocatedResources;
+            TranslatedResourceList = IoStack->Parameters.StartDevice.AllocatedResourcesTranslated;
+
+            if ( !TranslatedResourceList )
+            {
+                DPRINT1("No translated resources\n");
+                return STATUS_NONE_MAPPED;
+            }
+
+            Status = ParseResources(TranslatedResourceList, &m_Resources);
+
+            if (!NT_SUCCESS(Status))
+            {
+                DPRINT1("PnpStart: ParseResources() failed with %x\n", Status);
+                return Status;
+            }
+
+        #if 1
+            DPRINT("PnpStart: m_Resources.TypesResources    - %x\n", m_Resources.TypesResources);
+            DPRINT("PnpStart: m_Resources.InterruptVector   - %x\n", m_Resources.InterruptVector);
+            DPRINT("PnpStart: m_Resources.InterruptLevel    - %x\n", m_Resources.InterruptLevel);
+            DPRINT("PnpStart: m_Resources.InterruptAffinity - %x\n", m_Resources.InterruptAffinity);
+            DPRINT("PnpStart: m_Resources.ShareVector       - %x\n", m_Resources.ShareVector);
+            DPRINT("PnpStart: m_Resources.InterruptMode     - %x\n", m_Resources.InterruptMode);
+            DPRINT("PnpStart: m_Resources.ResourceBase      - %p\n", m_Resources.ResourceBase);
+            DPRINT("PnpStart: m_Resources.IoSpaceLength     - %x\n", m_Resources.IoSpaceLength);
+        #endif
+
+            //
+            // zero device description
+            //
+            RtlZeroMemory(&DeviceDescription, sizeof(DeviceDescription));
+
+            //
+            // initialize device description
+            //
+            DeviceDescription.Version = DEVICE_DESCRIPTION_VERSION;
+            DeviceDescription.Master = TRUE;
+            DeviceDescription.ScatterGather = TRUE;
+            DeviceDescription.Dma32BitAddresses = TRUE;
+            DeviceDescription.DmaWidth = Width32Bits;
+            DeviceDescription.InterfaceType = PCIBus;
+            DeviceDescription.MaximumLength = MAXULONG;
+
+            //
+            // get dma adapter
+            //
+            m_DmaAdapter = IoGetDmaAdapter(m_PhysicalDeviceObject, &DeviceDescription, &m_MapRegisters);
+            if (!m_DmaAdapter)
             {
                 //
-                // operation succeeded, lets start the device
+                // failed to get dma adapter
                 //
-                RawResourceList = IoStack->Parameters.StartDevice.AllocatedResources;
-                TranslatedResourceList = IoStack->Parameters.StartDevice.AllocatedResourcesTranslated;
+                DPRINT1("Failed to acquire dma adapter\n");
+                return STATUS_INSUFFICIENT_RESOURCES;
+            }
 
-                if (m_Hardware)
+            if ( m_Resources.TypesResources & 4 )
+            {
+                Status = IoConnectInterrupt(
+                                 &m_Interrupt,
+                                 InterruptService,
+                                 (PVOID)m_FunctionalDeviceObject,
+                                 NULL,
+                                 m_Resources.InterruptVector,
+                                 m_Resources.InterruptLevel,
+                                 m_Resources.InterruptLevel,
+                                 (KINTERRUPT_MODE)m_Resources.InterruptMode,
+                                 m_Resources.ShareVector,
+                                 m_Resources.InterruptAffinity,
+                                 FALSE);
+
+                if (!NT_SUCCESS(Status))
+                {
+                    DPRINT1("IoConnect Interrupt failed with %x\n", Status);
+                    return Status;
+                }
+            }
+
+            if (m_Hardware)
+            {
+                //
+                // start the hardware
+                //
+                Status = m_Hardware->PnpStart(&m_Resources, m_DmaAdapter);
+                if (!NT_SUCCESS(Status))
                 {
                     //
-                    // start the hardware
+                    // failed to start controller
                     //
-                    Status = m_Hardware->PnpStart(RawResourceList, TranslatedResourceList);
-                    if (!NT_SUCCESS(Status))
-                    {
-                        //
-                        // failed to start controller
-                        //
-                        break;
-                    }
+                    break;
                 }
-
-                //
-                // enable symbolic link
-                //
-                Status = SetSymbolicLink(TRUE);
             }
+
+            //
+            // enable symbolic link
+            //
+            Status = SetSymbolicLink(TRUE);
 
             DPRINT("[%s] HandlePnp IRP_MN_START FDO: Status %x\n", m_USBType ,Status);
             break;
