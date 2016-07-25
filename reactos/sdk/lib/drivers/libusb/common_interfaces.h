@@ -681,7 +681,7 @@ DECLARE_INTERFACE_(IUSBDevice, IUnknown)
 //
 // GetMaxPacketSize
 //
-// Description: aborts all pending requests
+// Description: return bMaxPacketSize0 from USB device descriptor
 
     virtual UCHAR GetMaxPacketSize() = 0;
 };
