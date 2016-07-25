@@ -10,7 +10,7 @@
 
 #include "libusb.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 //
@@ -27,7 +27,7 @@ SyncForwardIrpCompletionRoutine(
 {
     if (Irp->PendingReturned)
     {
-        KeSetEvent((PKEVENT)Context, IO_NO_INCREMENT, FALSE);
+        KeSetEvent((PKEVENT)Context, EVENT_INCREMENT, FALSE);
     }
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
@@ -133,5 +133,128 @@ GetBusInterface(
     }
 
     return Status;
+}
+
+NTSTATUS NTAPI
+ParseResources(
+    IN PCM_RESOURCE_LIST AllocatedResourcesTranslated,
+    IN PLIBUSB_RESOURCES Resources)
+{
+  PCM_PARTIAL_RESOURCE_LIST        ResourceList;
+  PCM_PARTIAL_RESOURCE_DESCRIPTOR  PortDescriptor = NULL;
+  PCM_PARTIAL_RESOURCE_DESCRIPTOR  InterruptDescriptor = NULL;
+  PCM_PARTIAL_RESOURCE_DESCRIPTOR  MemoryDescriptor = NULL;
+  PCM_PARTIAL_RESOURCE_DESCRIPTOR  PartialDescriptors;
+  ULONG                            ix;
+  NTSTATUS                         Status = STATUS_SUCCESS;
+
+  DPRINT("ParseResources: AllocatedResourcesTranslated - %p, Resources - %p\n", AllocatedResourcesTranslated, Resources);
+
+  RtlZeroMemory(Resources, sizeof(LIBUSB_RESOURCES));
+
+  if ( !AllocatedResourcesTranslated )
+  {
+    return STATUS_NONE_MAPPED;
+  }
+
+  ResourceList = &AllocatedResourcesTranslated->List[0].PartialResourceList;
+
+  if ( ResourceList->Count == 0 )
+  {
+    return STATUS_NONE_MAPPED;
+  }
+
+  PartialDescriptors = &ResourceList->PartialDescriptors[0];
+
+  ix = 0;
+
+  do
+  {
+    if ( PartialDescriptors->Type == CmResourceTypePort )
+    {
+      if ( !PortDescriptor )
+        PortDescriptor = PartialDescriptors;
+    }
+    else if ( PartialDescriptors->Type == CmResourceTypeMemory )
+    {
+      if ( !MemoryDescriptor )
+        MemoryDescriptor = PartialDescriptors;
+    }
+    else if ( PartialDescriptors->Type == CmResourceTypeInterrupt )
+    {
+      if ( !InterruptDescriptor )
+        InterruptDescriptor = PartialDescriptors;
+    }
+
+    ++ix;
+    PartialDescriptors += 1;
+  }
+  while ( ix < ResourceList->Count );
+
+  if ( PortDescriptor )
+  {
+    if ( PortDescriptor->Flags & CM_RESOURCE_PORT_IO )
+    {
+      Resources->ResourceBase = (PVOID)PortDescriptor->u.Port.Start.LowPart;
+    }
+    else
+    {
+      Resources->ResourceBase = MmMapIoSpace(
+                                  PortDescriptor->u.Port.Start,
+                                  PortDescriptor->u.Port.Length,
+                                  MmNonCached);
+    }
+
+    Resources->IoSpaceLength = PortDescriptor->u.Port.Length;
+
+    if ( Resources->ResourceBase )
+    {
+      Resources->TypesResources |= 1;
+    }
+    else
+    {
+      Status = STATUS_NONE_MAPPED;
+    }
+  }
+
+  if ( MemoryDescriptor && NT_SUCCESS(Status) ) 
+  {
+    Resources->IoSpaceLength = MemoryDescriptor->u.Memory.Length;
+
+    Resources->ResourceBase = MmMapIoSpace(
+                                MemoryDescriptor->u.Memory.Start,
+                                MemoryDescriptor->u.Memory.Length,
+                                MmNonCached);
+
+    if ( Resources->ResourceBase )
+    {
+      Resources->TypesResources |= 2;
+    }
+    else
+    {
+      Status = STATUS_NONE_MAPPED;
+    }
+  }
+
+  if ( InterruptDescriptor && NT_SUCCESS(Status) )
+  {
+    Resources->TypesResources |= 4;
+
+    Resources->InterruptVector   = InterruptDescriptor->u.Interrupt.Vector;
+    Resources->InterruptLevel    = InterruptDescriptor->u.Interrupt.Level;
+    Resources->InterruptAffinity = InterruptDescriptor->u.Interrupt.Affinity;
+    Resources->ShareVector       = InterruptDescriptor->ShareDisposition == CmResourceShareShared;
+
+    if ( InterruptDescriptor->Flags == CM_RESOURCE_INTERRUPT_LATCHED )
+    {
+        Resources->InterruptMode = Latched;
+    }
+    else
+    {
+        Resources->InterruptMode = LevelSensitive;
+    }
+  }
+
+  return Status;
 }
 
