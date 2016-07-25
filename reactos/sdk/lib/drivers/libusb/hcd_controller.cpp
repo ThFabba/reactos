@@ -171,7 +171,7 @@ CHCDController::Initialize(
     //
     // set device flags
     //
-    m_FunctionalDeviceObject->Flags |= DO_BUFFERED_IO | DO_POWER_PAGABLE;
+    //m_FunctionalDeviceObject->Flags |= DO_BUFFERED_IO | DO_POWER_PAGABLE;
 
 
     //

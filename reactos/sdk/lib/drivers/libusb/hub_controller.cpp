@@ -277,6 +277,7 @@ CHubController::Initialize(
     //
     // clear init flag
     //
+    m_HubControllerDeviceObject->Flags |= DO_POWER_PAGABLE;
     m_HubControllerDeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
     return STATUS_SUCCESS;
