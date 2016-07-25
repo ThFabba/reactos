@@ -415,6 +415,13 @@ CHCDController::HandlePnp(
                     // start the hardware
                     //
                     Status = m_Hardware->PnpStart(RawResourceList, TranslatedResourceList);
+                    if (!NT_SUCCESS(Status))
+                    {
+                        //
+                        // failed to start controller
+                        //
+                        break;
+                    }
                 }
 
                 //
