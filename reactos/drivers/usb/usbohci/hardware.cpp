@@ -242,31 +242,6 @@ CUSBHardwareDevice::PnpStart(
         KeInitializeDpc(&m_IntDpcObject, OhciDefferedRoutine, this);
     }
 
-#if 0
-    //
-    // Create Common Buffer
-    //
-    VirtualBase = m_Adapter->DmaOperations->AllocateCommonBuffer(m_Adapter,
-                                                                 PAGE_SIZE * 4,
-                                                                 &PhysicalAddress,
-                                                                 FALSE);
-    if (!VirtualBase)
-    {
-        DPRINT1("Failed to allocate a common buffer\n");
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    //
-    // Initialize the DMAMemoryManager
-    //
-    Status = m_MemoryManager->Initialize(this, &m_Lock, PAGE_SIZE * 4, VirtualBase, PhysicalAddress, 32);
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("Failed to initialize the DMAMemoryManager\n");
-        return Status;
-    }
-#endif
-
     //
     // initializes the controller
     //
