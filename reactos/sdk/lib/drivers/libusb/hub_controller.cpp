@@ -411,6 +411,7 @@ CHubController::HandlePnp(
     NTSTATUS Status;
     ULONG Index = 0, Length;
     USHORT VendorID, DeviceID;
+    UCHAR RevisionID;
     ULONG HiSpeed;
     WCHAR Buffer[300];
     LPWSTR DeviceName;
@@ -511,9 +512,7 @@ CHubController::HandlePnp(
                     //
                     // query device id
                     //
-                    Status = m_Hardware->GetDeviceDetails(NULL, &HiSpeed);
-
-                    Status = m_Controller->GetControllerDetails(&VendorID, &DeviceID, NULL, NULL, NULL, NULL);
+                    Status = m_Controller->GetControllerDetails(&VendorID, &DeviceID, &RevisionID, NULL, NULL, NULL);
 
                     if (!NT_SUCCESS(Status))
                     {
@@ -522,12 +521,14 @@ CHubController::HandlePnp(
                          DeviceID = 0x3A37;
                     }
 
+                    Status = m_Hardware->GetDeviceDetails(NULL, &HiSpeed);
+
                     if (HiSpeed == 0x200)
                     {
                         //
                         // USB 2.0 hub
                         //
-                        Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB20&VID%04x&PID%04x&REV0000", VendorID, DeviceID) + 1;
+                        Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB20&VID%04x&PID%04x&REV00%02x", VendorID, DeviceID, RevisionID) + 1;
                         Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB20&VID%04x&PID%04x", VendorID, DeviceID) + 1;
                         Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB20") + 1;
                     }
@@ -536,7 +537,7 @@ CHubController::HandlePnp(
                         //
                         // USB 1.1 hub
                         //
-                        Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB&VID%04x&PID%04x&REV0000", VendorID, DeviceID) + 1;
+                        Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB&VID%04x&PID%04x&REV00%02x", VendorID, DeviceID, RevisionID) + 1;
                         Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB&VID%04x&PID%04x", VendorID, DeviceID) + 1;
                         Index += swprintf(&Buffer[Index], L"USB\\ROOT_HUB") + 1;
                     }
