@@ -40,7 +40,7 @@ public:
     }
 
     // IHubController interface functions
-    virtual NTSTATUS Initialize(IN PDRIVER_OBJECT DriverObject, IN PHCDCONTROLLER Controller, IN PUSBHARDWAREDEVICE Device, IN BOOLEAN IsRootHubDevice, IN ULONG DeviceAddress);
+    virtual NTSTATUS Initialize(IN PDRIVER_OBJECT DriverObject, IN PDEVICE_OBJECT Fdo, IN PHCDCONTROLLER Controller, IN PUSBHARDWAREDEVICE Device, IN BOOLEAN IsRootHubDevice, IN ULONG DeviceAddress);
     virtual NTSTATUS GetHubControllerDeviceObject(PDEVICE_OBJECT * HubDeviceObject);
     virtual NTSTATUS GetHubControllerSymbolicLink(ULONG BufferLength, PVOID Buffer, PULONG RequiredLength);
 
@@ -53,7 +53,7 @@ public:
     // local functions
     NTSTATUS HandleQueryInterface(PIO_STACK_LOCATION IoStack);
     NTSTATUS SetDeviceInterface(BOOLEAN bEnable);
-    NTSTATUS CreatePDO(PDRIVER_OBJECT DriverObject, PDEVICE_OBJECT * OutDeviceObject);
+    NTSTATUS CreatePDO(PDRIVER_OBJECT DriverObject, PDEVICE_OBJECT Fdo, PDEVICE_OBJECT * OutDeviceObject);
     PUSBHARDWAREDEVICE GetUsbHardware();
     ULONG AcquireDeviceAddress();
     VOID ReleaseDeviceAddress(ULONG DeviceAddress);
@@ -189,6 +189,7 @@ CHubController::QueryInterface(
 NTSTATUS
 CHubController::Initialize(
     IN PDRIVER_OBJECT DriverObject,
+    IN PDEVICE_OBJECT Fdo,
     IN PHCDCONTROLLER Controller,
     IN PUSBHARDWAREDEVICE Device,
     IN BOOLEAN IsRootHubDevice,
@@ -232,7 +233,7 @@ CHubController::Initialize(
     //
     // create PDO
     //
-    Status = CreatePDO(m_DriverObject, &m_HubControllerDeviceObject);
+    Status = CreatePDO(m_DriverObject, Fdo, &m_HubControllerDeviceObject);
     if (!NT_SUCCESS(Status))
     {
         //
@@ -3874,6 +3875,7 @@ CHubController::SetDeviceInterface(
 NTSTATUS
 CHubController::CreatePDO(
     PDRIVER_OBJECT DriverObject,
+    PDEVICE_OBJECT Fdo,
     PDEVICE_OBJECT * OutDeviceObject)
 {
     WCHAR CharDeviceName[64];
@@ -3899,7 +3901,7 @@ CHubController::CreatePDO(
         Status = IoCreateDevice(DriverObject,
                                 sizeof(COMMON_DEVICE_EXTENSION),
                                 &DeviceName,
-                                FILE_DEVICE_CONTROLLER,
+                                FILE_DEVICE_BUS_EXTENDER,
                                 0,
                                 FALSE,
                                 OutDeviceObject);
@@ -3935,7 +3937,7 @@ CHubController::CreatePDO(
     //
     // fixup device stack voodoo part #1
     //
-    (*OutDeviceObject)->StackSize++;
+    (*OutDeviceObject)->StackSize = Fdo->StackSize;
 
     /* done */
     return Status;

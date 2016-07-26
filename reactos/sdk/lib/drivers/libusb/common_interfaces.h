@@ -480,6 +480,7 @@ DECLARE_INTERFACE_(IHubController, IUnknown)
 // Description: Initializes the hub controller
 
     virtual NTSTATUS Initialize(IN PDRIVER_OBJECT DriverObject,
+                                IN PDEVICE_OBJECT Fdo,
                                 IN PHCDCONTROLLER Controller,
                                 IN PUSBHARDWAREDEVICE Device,
                                 IN BOOLEAN IsRootHubDevice,

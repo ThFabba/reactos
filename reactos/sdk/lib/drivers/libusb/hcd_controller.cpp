@@ -614,7 +614,14 @@ CHCDController::HandlePnp(
                 //
                 // initialize hub controller
                 //
-                Status = m_HubController->Initialize(m_DriverObject, PHCDCONTROLLER(this), m_Hardware, TRUE, 0 /* FIXME*/);
+                Status = m_HubController->Initialize(
+                                            m_DriverObject,
+                                            m_FunctionalDeviceObject,
+                                            PHCDCONTROLLER(this),
+                                            m_Hardware,
+                                            TRUE,
+                                            0 /* FIXME*/);
+
                 if (!NT_SUCCESS(Status))
                 {
                     //
