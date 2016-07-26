@@ -2355,7 +2355,7 @@ CHubController::HandleDeviceControl(
                 //
                 // FIXME / verify: there is only one hub
                 //
-                *(PULONG)IoStack->Parameters.Others.Argument1 = 1;
+                *(PULONG)IoStack->Parameters.Others.Argument1 = *(PULONG)IoStack->Parameters.Others.Argument1 + 1;
             }
 
             //
