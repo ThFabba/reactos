@@ -123,29 +123,6 @@ typedef struct
 }USBDEVICE_ENTRY, *PUSBDEVICE_ENTRY;
 
 
-const USB_INTERFACE_DESCRIPTOR ROOTHUB2_INTERFACE_DESCRIPTOR =
-{
-    sizeof(USB_INTERFACE_DESCRIPTOR),                            /* bLength */
-    USB_INTERFACE_DESCRIPTOR_TYPE,                               /* bDescriptorType; Interface */
-    0,                                                           /* bInterfaceNumber; */
-    0,                                                           /* bAlternateSetting; */
-    0x1,                                                         /* bNumEndpoints; */
-    0x09,                                                        /* bInterfaceClass; HUB_CLASSCODE */
-    0x01,                                                        /* bInterfaceSubClass; */
-    0x00,                                                        /* bInterfaceProtocol: */
-    0x00,                                                        /* iInterface; */
-};
-
-const USB_ENDPOINT_DESCRIPTOR ROOTHUB2_ENDPOINT_DESCRIPTOR =
-{
-    sizeof(USB_ENDPOINT_DESCRIPTOR),                             /* bLength */
-    USB_ENDPOINT_DESCRIPTOR_TYPE,                                /* bDescriptorType */
-    0x81,                                                        /* bEndPointAddress */
-    USB_ENDPOINT_TYPE_INTERRUPT,                                 /* bmAttributes */
-    0x01,                                                        /* wMaxPacketSize */
-    0xC                                                          /* bInterval */
-};
-
 //----------------------------------------------------------------------------------------
 NTSTATUS
 STDMETHODCALLTYPE
@@ -171,6 +148,8 @@ CHubController::Initialize(
     UCHAR RevisionID;
     PUSB_DEVICE_DESCRIPTOR RHDeviceDescriptor;
     PUSB_CONFIGURATION_DESCRIPTOR RHConfigurationDescriptor;
+    PUSB_INTERFACE_DESCRIPTOR RHInterfaceDescriptor;
+    PUSB_ENDPOINT_DESCRIPTOR RHEndPointDescriptor;
 
     //
     // initialize members
@@ -274,6 +253,31 @@ CHubController::Initialize(
     RHConfigurationDescriptor->iConfiguration      = 0x00;
     RHConfigurationDescriptor->bmAttributes        = 0x40; /* self powered */
     RHConfigurationDescriptor->MaxPower            = 0x00;
+
+    //-----------------------------------------------------------------------------------
+    // intialize interface descriptor
+    RHInterfaceDescriptor = &m_RHDescriptors.InterfaceDescriptor;
+
+    RHInterfaceDescriptor->bLength            = sizeof(USB_INTERFACE_DESCRIPTOR);
+    RHInterfaceDescriptor->bDescriptorType    = USB_INTERFACE_DESCRIPTOR_TYPE;
+    RHInterfaceDescriptor->bInterfaceNumber   = 0x00;
+    RHInterfaceDescriptor->bAlternateSetting  = 0x00;
+    RHInterfaceDescriptor->bNumEndpoints      = 0x01;
+    RHInterfaceDescriptor->bInterfaceClass    = USB_DEVICE_CLASS_HUB;
+    RHInterfaceDescriptor->bInterfaceSubClass = 0x01;
+    RHInterfaceDescriptor->bInterfaceProtocol = 0x00;
+    RHInterfaceDescriptor->iInterface         = 0x00;
+
+    //-----------------------------------------------------------------------------------
+    // intialize endPoint descriptor
+    RHEndPointDescriptor = &m_RHDescriptors.EndPointDescriptor;
+
+    RHEndPointDescriptor->bLength          = sizeof(USB_ENDPOINT_DESCRIPTOR);
+    RHEndPointDescriptor->bDescriptorType  = USB_ENDPOINT_DESCRIPTOR_TYPE;
+    RHEndPointDescriptor->bEndpointAddress = 0x81;
+    RHEndPointDescriptor->bmAttributes     = USB_ENDPOINT_TYPE_INTERRUPT; // SCE endpoint
+    RHEndPointDescriptor->wMaxPacketSize   = 0x0008;
+    RHEndPointDescriptor->bInterval        = 0x0C; // 12 msec
 
     //
     // Set the SCE Callback that the Hardware Device will call on port status change
@@ -1086,10 +1090,10 @@ CHubController::HandleSelectConfiguration(
         //
         InterfaceInfo = &Urb->UrbSelectConfiguration.Interface;
 
-        InterfaceInfo->InterfaceHandle = (USBD_INTERFACE_HANDLE)&ROOTHUB2_INTERFACE_DESCRIPTOR;
-        InterfaceInfo->Class = ROOTHUB2_INTERFACE_DESCRIPTOR.bInterfaceClass;
-        InterfaceInfo->SubClass = ROOTHUB2_INTERFACE_DESCRIPTOR.bInterfaceSubClass;
-        InterfaceInfo->Protocol = ROOTHUB2_INTERFACE_DESCRIPTOR.bInterfaceProtocol;
+        InterfaceInfo->InterfaceHandle = (USBD_INTERFACE_HANDLE)&m_RHDescriptors.InterfaceDescriptor;
+        InterfaceInfo->Class = m_RHDescriptors.InterfaceDescriptor.bInterfaceClass;
+        InterfaceInfo->SubClass = m_RHDescriptors.InterfaceDescriptor.bInterfaceSubClass;
+        InterfaceInfo->Protocol = m_RHDescriptors.InterfaceDescriptor.bInterfaceProtocol;
         InterfaceInfo->Reserved = 0;
 
         //
@@ -1100,11 +1104,11 @@ CHubController::HandleSelectConfiguration(
         //
         // copy pipe info
         //
-        InterfaceInfo->Pipes[0].MaximumPacketSize = ROOTHUB2_ENDPOINT_DESCRIPTOR.wMaxPacketSize;
-        InterfaceInfo->Pipes[0].EndpointAddress = ROOTHUB2_ENDPOINT_DESCRIPTOR.bEndpointAddress;
-        InterfaceInfo->Pipes[0].Interval = ROOTHUB2_ENDPOINT_DESCRIPTOR.bInterval;
-        InterfaceInfo->Pipes[0].PipeType = (USBD_PIPE_TYPE)(ROOTHUB2_ENDPOINT_DESCRIPTOR.bmAttributes & USB_ENDPOINT_TYPE_MASK);
-        InterfaceInfo->Pipes[0].PipeHandle = (PVOID)&ROOTHUB2_ENDPOINT_DESCRIPTOR;
+        InterfaceInfo->Pipes[0].MaximumPacketSize = m_RHDescriptors.EndPointDescriptor.wMaxPacketSize;
+        InterfaceInfo->Pipes[0].EndpointAddress = m_RHDescriptors.EndPointDescriptor.bEndpointAddress;
+        InterfaceInfo->Pipes[0].Interval = m_RHDescriptors.EndPointDescriptor.bInterval;
+        InterfaceInfo->Pipes[0].PipeType = (USBD_PIPE_TYPE)(m_RHDescriptors.EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK);
+        InterfaceInfo->Pipes[0].PipeHandle = (PVOID)&m_RHDescriptors.EndPointDescriptor;
 
         return STATUS_SUCCESS;
     }
@@ -1633,7 +1637,7 @@ CHubController::HandleGetDescriptor(
                 //
                 Length = BufferLength > sizeof(USB_INTERFACE_DESCRIPTOR) ?
                     sizeof(USB_INTERFACE_DESCRIPTOR) : BufferLength;
-                RtlCopyMemory(Buffer, &ROOTHUB2_INTERFACE_DESCRIPTOR, Length);
+                RtlCopyMemory(Buffer, &m_RHDescriptors.InterfaceDescriptor, Length);
 
                 //
                 // Check if we still have some space left
@@ -1654,11 +1658,11 @@ CHubController::HandleGetDescriptor(
 
 
                 //
-                // copy end point descriptor template
+                // copy endpoint descriptor template
                 //
                 Length = BufferLength > sizeof(USB_ENDPOINT_DESCRIPTOR) ?
                     sizeof(USB_ENDPOINT_DESCRIPTOR) : BufferLength;
-                RtlCopyMemory(Buffer, &ROOTHUB2_ENDPOINT_DESCRIPTOR, Length);
+                RtlCopyMemory(Buffer, &m_RHDescriptors.EndPointDescriptor, Length);
 
                 //
                 // done
