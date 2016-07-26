@@ -149,6 +149,20 @@ DECLARE_INTERFACE_(IHCDController, IUnknown)
                                 IN PDRIVER_OBJECT DriverObject,
                                 IN PDEVICE_OBJECT PhysicalDeviceObject) = 0;
 
+//-----------------------------------------------------------------------------------------
+//
+// GetControllerDetails
+//
+// Description:  
+//
+    virtual NTSTATUS GetControllerDetails(
+                        OUT OPTIONAL PUSHORT VendorId,
+                        OUT OPTIONAL PUSHORT DeviceId,
+                        OUT OPTIONAL PUCHAR RevisionId,
+                        OUT OPTIONAL PUCHAR ProgIf,
+                        OUT OPTIONAL PUCHAR SubClass,
+                        OUT OPTIONAL PUCHAR BaseClass) = 0;
+
 };
 
 typedef IHCDController *PHCDCONTROLLER;
@@ -170,6 +184,7 @@ struct IUSBQueue;
         IN PDEVICE_OBJECT FunctionalDeviceObject,                           \
         IN PDEVICE_OBJECT PhysicalDeviceObject,                             \
         IN PDEVICE_OBJECT LowerDeviceObject,                                \
+        IN PHCDCONTROLLER Controller,                                       \
         IN struct IDMAMemoryManager * MemoryManager) PURE;                  \
                                                                             \
      STDMETHOD_(NTSTATUS, PnpStart)( THIS_                                  \
@@ -179,8 +194,6 @@ struct IUSBQueue;
      STDMETHOD_(NTSTATUS, PnpStop)( THIS) PURE;                             \
                                                                             \
      STDMETHOD_(NTSTATUS, GetDeviceDetails)( THIS_                          \
-        OUT OPTIONAL PUSHORT VendorId,                                      \
-        OUT OPTIONAL PUSHORT DeviceId,                                      \
         OUT OPTIONAL PULONG NumberOfPorts,                                  \
         OUT OPTIONAL PULONG Speed) PURE;                                    \
                                                                             \
@@ -222,6 +235,7 @@ struct IUSBQueue;
         IN PDEVICE_OBJECT FunctionalDeviceObject,                           \
         IN PDEVICE_OBJECT PhysicalDeviceObject,                             \
         IN PDEVICE_OBJECT LowerDeviceObject,                                \
+        IN PHCDCONTROLLER Controller,                                       \
         IN struct IDMAMemoryManager * MemoryManager);                       \
                                                                             \
      STDMETHODIMP_(NTSTATUS) PnpStart(                                      \
@@ -231,8 +245,6 @@ struct IUSBQueue;
      STDMETHODIMP_(NTSTATUS) PnpStop(VOID);                                 \
                                                                             \
      STDMETHODIMP_(NTSTATUS) GetDeviceDetails(                              \
-        OUT OPTIONAL PUSHORT VendorId,                                      \
-        OUT OPTIONAL PUSHORT DeviceId,                                      \
         OUT OPTIONAL PULONG NumberOfPorts,                                  \
         OUT OPTIONAL PULONG Speed);                                         \
                                                                             \

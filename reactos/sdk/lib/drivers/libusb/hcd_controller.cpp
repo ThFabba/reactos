@@ -38,6 +38,7 @@ public:
 
     // IHCDController interface functions
     NTSTATUS Initialize(IN PROOTHDCCONTROLLER RootHCDController, IN PDRIVER_OBJECT DriverObject, IN PDEVICE_OBJECT PhysicalDeviceObject);
+    NTSTATUS GetControllerDetails(OUT OPTIONAL PUSHORT VendorId, OUT OPTIONAL PUSHORT DeviceId, OUT OPTIONAL PUCHAR RevisionId, OUT OPTIONAL PUCHAR ProgIf, OUT OPTIONAL PUCHAR SubClass, OUT OPTIONAL PUCHAR BaseClass);
 
     // IDispatchIrp interface functions
     NTSTATUS HandlePnp(IN PDEVICE_OBJECT DeviceObject, IN OUT PIRP Irp);
@@ -71,6 +72,12 @@ protected:
     PDMAMEMORYMANAGER m_MemoryManager;                                                 // memory manager
     PLIBUSB_COMMON_BUFFER_HEADER m_CommonBufferHeader;                                 // 
     KSPIN_LOCK m_Lock;                                                                 // hardware lock
+    USHORT m_VendorID;                                                                 // vendor id
+    USHORT m_DeviceID;                                                                 // device id
+    UCHAR  m_RevisionID;                                                               // 
+    UCHAR  m_ProgIf;                                                                   // 
+    UCHAR  m_SubClass;                                                                 // 
+    UCHAR  m_BaseClass;                                                                // 
 };
 
 //=================================================================================================
@@ -164,6 +171,7 @@ CHCDController::Initialize(
                                     m_FunctionalDeviceObject,
                                     m_PhysicalDeviceObject,
                                     m_NextDeviceObject,
+                                    this,
                                     m_MemoryManager);
 
     if (!NT_SUCCESS(Status))
@@ -240,6 +248,32 @@ CHCDController::Initialize(
     //
     // done
     //
+    return STATUS_SUCCESS;
+}
+
+//-------------------------------------------------------------------------------------------------
+NTSTATUS
+CHCDController::GetControllerDetails(
+    OUT OPTIONAL PUSHORT VendorId,
+    OUT OPTIONAL PUSHORT DeviceId,
+    OUT OPTIONAL PUCHAR RevisionId,
+    OUT OPTIONAL PUCHAR ProgIf,
+    OUT OPTIONAL PUCHAR SubClass,
+    OUT OPTIONAL PUCHAR BaseClass)
+{
+    if (VendorId)
+      *VendorId = m_VendorID;
+    if (DeviceId)
+      *DeviceId = m_DeviceID;
+    if (RevisionId)
+      *RevisionId = m_RevisionID;
+    if (ProgIf)
+      *ProgIf = m_ProgIf;
+    if (SubClass)
+      *SubClass = m_SubClass;
+    if (BaseClass)
+      *BaseClass = m_BaseClass;
+
     return STATUS_SUCCESS;
 }
 
@@ -415,9 +449,11 @@ CHCDController::HandlePnp(
     //PCM_RESOURCE_LIST RawResourceList;
     PCM_RESOURCE_LIST TranslatedResourceList;
     PDEVICE_RELATIONS DeviceRelations;
-    NTSTATUS Status;
-    //PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer;
     SIZE_T HwResoursesSize;
+    BUS_INTERFACE_STANDARD BusInterface;
+    PCI_COMMON_CONFIG PciConfig;
+    ULONG BytesRead;
+    NTSTATUS Status;
 
     //
     // get device extension
@@ -480,6 +516,48 @@ CHCDController::HandlePnp(
             DPRINT("PnpStart: m_Resources.InterruptMode     - %x\n", m_Resources.InterruptMode);
             DPRINT("PnpStart: m_Resources.ResourceBase      - %p\n", m_Resources.ResourceBase);
             DPRINT("PnpStart: m_Resources.IoSpaceLength     - %x\n", m_Resources.IoSpaceLength);
+        #endif
+
+            m_VendorID   = 0;
+            m_DeviceID   = 0;
+            m_RevisionID = 0;
+            m_ProgIf     = 0;
+            m_SubClass   = 0;
+            m_BaseClass  = 0;
+
+            Status = GetBusInterface(m_PhysicalDeviceObject, &BusInterface);
+            if (!NT_SUCCESS(Status))
+            {
+                DPRINT1("Failed to get BusInteface!\n");
+                return Status;
+            }
+
+            BytesRead = (*BusInterface.GetBusData)(BusInterface.Context,
+                                                   PCI_WHICHSPACE_CONFIG,
+                                                   &PciConfig,
+                                                   0,
+                                                   PCI_COMMON_HDR_LENGTH);
+
+            if (BytesRead != PCI_COMMON_HDR_LENGTH)
+            {
+                DPRINT1("Failed to get pci config information!\n");
+                return STATUS_SUCCESS;
+            }
+
+            m_VendorID   = PciConfig.VendorID;
+            m_DeviceID   = PciConfig.DeviceID;
+            m_RevisionID = PciConfig.RevisionID;
+            m_ProgIf     = PciConfig.ProgIf;
+            m_SubClass   = PciConfig.SubClass;
+            m_BaseClass  = PciConfig.BaseClass;
+
+        #if 0
+            DPRINT("PnpStart: m_VendorID   - %x\n", m_VendorID);
+            DPRINT("PnpStart: m_DeviceID   - %x\n", m_DeviceID);
+            DPRINT("PnpStart: m_RevisionID - %x\n", m_RevisionID);
+            DPRINT("PnpStart: m_ProgIf     - %x\n", m_ProgIf);
+            DPRINT("PnpStart: m_SubClass   - %x\n", m_SubClass);
+            DPRINT("PnpStart: m_BaseClass  - %x\n", m_BaseClass);
         #endif
 
             //

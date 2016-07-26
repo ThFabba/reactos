@@ -75,6 +75,7 @@ public:
 
 protected:
     LONG m_Ref;                                                                        // reference count
+    PHCDCONTROLLER m_Controller;                                                       // 
     PDRIVER_OBJECT m_DriverObject;                                                     // driver object
     PDEVICE_OBJECT m_PhysicalDeviceObject;                                             // pdo
     PDEVICE_OBJECT m_FunctionalDeviceObject;                                           // fdo (hcd controller)
@@ -84,8 +85,6 @@ protected:
     PULONG m_Base;                                                                     // EHCI operational port base registers
     PDMA_ADAPTER m_Adapter;                                                            // dma adapter object
     EHCI_CAPS m_Capabilities;                                                          // EHCI caps
-    USHORT m_VendorID;                                                                 // vendor id
-    USHORT m_DeviceID;                                                                 // device id
     PQUEUE_HEAD AsyncQueueHead;                                                        // async queue head terminator
     PEHCIQUEUE m_UsbQueue;                                                              // usb request queue
     PDMAMEMORYMANAGER m_MemoryManager;                                                 // memory manager
@@ -139,14 +138,14 @@ CUSBHardwareDevice::Initialize(
     IN PDEVICE_OBJECT FunctionalDeviceObject,
     IN PDEVICE_OBJECT PhysicalDeviceObject,
     IN PDEVICE_OBJECT LowerDeviceObject,
+    IN PHCDCONTROLLER Controller,
     IN PDMAMEMORYMANAGER MemoryManager)
 {
-    PCI_COMMON_CONFIG PciConfig;
     NTSTATUS Status;
-    ULONG BytesRead;
 
     DPRINT("CUSBHardwareDevice::Initialize\n");
 
+    m_Controller = Controller;
     m_MemoryManager = MemoryManager;
 
     //
@@ -176,31 +175,6 @@ CUSBHardwareDevice::Initialize(
     // initialize status change work item
     //
     ExInitializeWorkItem(&m_StatusChangeWorkItem, StatusChangeWorkItemRoutine, PVOID(this));
-
-    m_VendorID = 0;
-    m_DeviceID = 0;
-
-    Status = GetBusInterface(PhysicalDeviceObject, &m_BusInterface);
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("Failed to get BusInteface!\n");
-        return Status;
-    }
-
-    BytesRead = (*m_BusInterface.GetBusData)(m_BusInterface.Context,
-                                           PCI_WHICHSPACE_CONFIG,
-                                           &PciConfig,
-                                           0,
-                                           PCI_COMMON_HDR_LENGTH);
-
-    if (BytesRead != PCI_COMMON_HDR_LENGTH)
-    {
-        DPRINT1("Failed to get pci config information!\n");
-        return STATUS_SUCCESS;
-    }
-
-    m_VendorID = PciConfig.VendorID;
-    m_DeviceID = PciConfig.DeviceID;
 
     return STATUS_SUCCESS;
 }
@@ -415,15 +389,9 @@ CUSBHardwareDevice::PnpStop(void)
 NTSTATUS
 STDMETHODCALLTYPE
 CUSBHardwareDevice::GetDeviceDetails(
-    OUT OPTIONAL PUSHORT VendorId,
-    OUT OPTIONAL PUSHORT DeviceId,
     OUT OPTIONAL PULONG NumberOfPorts,
     OUT OPTIONAL PULONG Speed)
 {
-    if (VendorId)
-        *VendorId = m_VendorID;
-    if (DeviceId)
-        *DeviceId = m_DeviceID;
     if (NumberOfPorts)
         *NumberOfPorts = m_Capabilities.HCSParams.PortCount;
     //FIXME: What to returned here?
@@ -1295,7 +1263,7 @@ EhciDefferedRoutine(
         This->m_DoorBellRingInProgress = FALSE;
     }
 
-    This->GetDeviceDetails(NULL, NULL, &PortCount, NULL);
+    This->GetDeviceDetails(&PortCount, NULL);
     if (CStatus & EHCI_STS_PCD)
     {
         QueueSCEWorkItem = FALSE;

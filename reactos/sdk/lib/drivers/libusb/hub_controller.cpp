@@ -10,7 +10,7 @@
 
 #include "libusb.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 VOID NTAPI StatusChangeEndpointCallBack(
@@ -198,7 +198,6 @@ CHubController::Initialize(
     NTSTATUS Status;
     PCOMMON_DEVICE_EXTENSION DeviceExtension;
     USHORT VendorID, DeviceID;
-    ULONG Dummy1;
 
     //
     // initialize members
@@ -260,7 +259,7 @@ CHubController::Initialize(
     C_ASSERT(sizeof(USB_DEVICE_DESCRIPTOR) == sizeof(ROOTHUB2_DEVICE_DESCRIPTOR));
     RtlMoveMemory(&m_DeviceDescriptor, ROOTHUB2_DEVICE_DESCRIPTOR, sizeof(USB_DEVICE_DESCRIPTOR));
 
-    if (NT_SUCCESS(m_Hardware->GetDeviceDetails(&VendorID, &DeviceID, &Dummy1, &Dummy1)))
+    if (NT_SUCCESS(m_Controller->GetControllerDetails(&VendorID, &DeviceID, NULL, NULL, NULL, NULL)))
     {
         //
         // update device descriptor
@@ -313,7 +312,7 @@ CHubController::QueryStatusChangeEndpoint(
     //
     // Get the number of ports and check each one for device connected
     //
-    m_Hardware->GetDeviceDetails(NULL, NULL, &PortCount, NULL);
+    m_Hardware->GetDeviceDetails(&PortCount, NULL);
     DPRINT("[%s] SCE Request %p TransferBufferLength %lu Flags %x MDL %p\n", m_USBType, Urb->UrbBulkOrInterruptTransfer.TransferBuffer, Urb->UrbBulkOrInterruptTransfer.TransferBufferLength, Urb->UrbBulkOrInterruptTransfer.TransferFlags, Urb->UrbBulkOrInterruptTransfer.TransferBufferMDL);
 
     TransferBuffer = (PUCHAR)Urb->UrbBulkOrInterruptTransfer.TransferBuffer;
@@ -412,7 +411,7 @@ CHubController::HandlePnp(
     NTSTATUS Status;
     ULONG Index = 0, Length;
     USHORT VendorID, DeviceID;
-    ULONG HiSpeed, NumPorts;
+    ULONG HiSpeed;
     WCHAR Buffer[300];
     LPWSTR DeviceName;
 
@@ -452,7 +451,7 @@ CHubController::HandlePnp(
                     //
                     // query device id
                     //
-                    Status = m_Hardware->GetDeviceDetails(&VendorID, &DeviceID, &NumPorts, &HiSpeed);
+                    Status = m_Hardware->GetDeviceDetails(NULL, &HiSpeed);
 
                     if (HiSpeed == 0x200)
                     {
@@ -512,7 +511,9 @@ CHubController::HandlePnp(
                     //
                     // query device id
                     //
-                    Status = m_Hardware->GetDeviceDetails(&VendorID, &DeviceID, &NumPorts, &HiSpeed);
+                    Status = m_Hardware->GetDeviceDetails(NULL, &HiSpeed);
+
+                    Status = m_Controller->GetControllerDetails(&VendorID, &DeviceID, NULL, NULL, NULL, NULL);
 
                     if (!NT_SUCCESS(Status))
                     {
@@ -913,7 +914,7 @@ CHubController::HandleClassOther(
     //
     // get number of ports available
     //
-    Status = m_Hardware->GetDeviceDetails(NULL, NULL, &NumPort, NULL);
+    Status = m_Hardware->GetDeviceDetails(&NumPort, NULL);
     PC_ASSERT(Status == STATUS_SUCCESS);
 
     //
@@ -1271,8 +1272,7 @@ CHubController::HandleClassDevice(
 {
     NTSTATUS Status = STATUS_NOT_IMPLEMENTED;
     PUSB_HUB_DESCRIPTOR UsbHubDescriptor;
-    ULONG PortCount, Dummy2;
-    USHORT Dummy1;
+    ULONG PortCount;
     PUSBDEVICE UsbDevice;
     USB_DEFAULT_PIPE_SETUP_PACKET CtrlSetup;
 
@@ -1354,7 +1354,7 @@ CHubController::HandleClassDevice(
                         //
                         // get port count
                         //
-                        Status = m_Hardware->GetDeviceDetails(&Dummy1, &Dummy1, &PortCount, &Dummy2);
+                        Status = m_Hardware->GetDeviceDetails(&PortCount, NULL);
                         PC_ASSERT(Status == STATUS_SUCCESS);
 
                         //
@@ -3258,8 +3258,7 @@ USBHI_GetExtendedHubInformation(
     CHubController * Controller;
     PUSBHARDWAREDEVICE Hardware;
     ULONG Index;
-    ULONG NumPort, Dummy2;
-    USHORT Dummy1;
+    ULONG NumPort;
     NTSTATUS Status;
 
     DPRINT("USBHI_GetExtendedHubInformation\n");
@@ -3285,7 +3284,7 @@ USBHI_GetExtendedHubInformation(
     //
     // retrieve number of ports
     //
-    Status = Hardware->GetDeviceDetails(&Dummy1, &Dummy1, &NumPort, &Dummy2);
+    Status = Hardware->GetDeviceDetails(&NumPort, NULL);
     if (!NT_SUCCESS(Status))
     {
         //
@@ -3529,8 +3528,7 @@ USBDI_GetUSBDIVersion(
 {
     CHubController * Controller;
     PUSBHARDWAREDEVICE Device;
-    ULONG Speed, Dummy2;
-    USHORT Dummy1;
+    ULONG Speed;
 
     DPRINT("USBDI_GetUSBDIVersion\n");
 
@@ -3555,7 +3553,7 @@ USBDI_GetUSBDIVersion(
         //
         // get device speed
         //
-        Device->GetDeviceDetails(&Dummy1, &Dummy1, &Dummy2, &Speed);
+        Device->GetDeviceDetails(NULL, &Speed);
 
         //
         // store speed details
@@ -3609,8 +3607,7 @@ USBDI_IsDeviceHighSpeed(
 {
     CHubController * Controller;
     PUSBHARDWAREDEVICE Device;
-    ULONG Speed, Dummy2;
-    USHORT Dummy1;
+    ULONG Speed;
 
     DPRINT("USBDI_IsDeviceHighSpeed\n");
 
@@ -3628,7 +3625,7 @@ USBDI_IsDeviceHighSpeed(
     //
     // get device speed
     //
-    Device->GetDeviceDetails(&Dummy1, &Dummy1, &Dummy2, &Speed);
+    Device->GetDeviceDetails(NULL, &Speed);
 
     //
     // USB 2.0 equals 0x200
