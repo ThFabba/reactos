@@ -417,7 +417,7 @@ CHCDController::HandlePnp(
     PDEVICE_RELATIONS DeviceRelations;
     NTSTATUS Status;
     //PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer;
-    SIZE_T BufferLength;
+    SIZE_T HwResoursesSize;
 
     //
     // get device extension
@@ -537,10 +537,19 @@ CHCDController::HandlePnp(
                 }
             }
 
-            BufferLength = PAGE_SIZE * 4;//FIXME - Get from hardware class
+            ASSERT(m_Hardware);
+
+            Status = m_Hardware->GetHwResoursesSize(&HwResoursesSize);
+            if (!NT_SUCCESS(Status))
+            {
+                //
+                // failed
+                //
+                break;
+            }
 
             m_CommonBufferHeader = m_MemoryManager->
-                                       AllocateCommonBuffer(m_DmaAdapter, BufferLength);
+                                       AllocateCommonBuffer(m_DmaAdapter, HwResoursesSize);
 
             DPRINT("PnpStart: m_CommonBufferHeader - %p\n", m_CommonBufferHeader);
 
@@ -557,7 +566,7 @@ CHCDController::HandlePnp(
             Status = m_MemoryManager->Initialize(
                              m_Hardware,
                              &m_Lock,
-                             BufferLength,
+                             HwResoursesSize,
                              (PVOID)m_CommonBufferHeader->VirtualAddress,
                              m_CommonBufferHeader->LogicalAddress,
                              32);
@@ -568,24 +577,17 @@ CHCDController::HandlePnp(
                 return Status;
             }
 
-            if (m_Hardware)
+            // start the hardware
+            Status = m_Hardware->PnpStart(&m_Resources, m_DmaAdapter);
+            if (!NT_SUCCESS(Status))
             {
                 //
-                // start the hardware
+                // failed to start controller
                 //
-                Status = m_Hardware->PnpStart(&m_Resources, m_DmaAdapter);
-                if (!NT_SUCCESS(Status))
-                {
-                    //
-                    // failed to start controller
-                    //
-                    break;
-                }
+                break;
             }
 
-            //
             // enable symbolic link
-            //
             Status = SetSymbolicLink(TRUE);
 
             DPRINT("[%s] HandlePnp IRP_MN_START FDO: Status %x\n", m_USBType ,Status);

@@ -1100,7 +1100,15 @@ CUSBHardwareDevice::SetPortFeature(
     return STATUS_SUCCESS;
 }
 
-
+NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::GetHwResoursesSize(
+    OUT PULONG HwResoursesSize)
+{
+    *HwResoursesSize = 4 * PAGE_SIZE;
+    DPRINT("GetHwResoursesSize: *HwResoursesSize - %x\n", *HwResoursesSize);
+    return STATUS_SUCCESS;
+}
 
 VOID
 CUSBHardwareDevice::SetStatusChangeEndpointCallBack(

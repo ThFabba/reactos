@@ -170,7 +170,7 @@ struct IUSBQueue;
         IN PDEVICE_OBJECT FunctionalDeviceObject,                           \
         IN PDEVICE_OBJECT PhysicalDeviceObject,                             \
         IN PDEVICE_OBJECT LowerDeviceObject,                                \
-        IN struct IDMAMemoryManager * MemoryManager) PURE;                           \
+        IN struct IDMAMemoryManager * MemoryManager) PURE;                  \
                                                                             \
      STDMETHOD_(NTSTATUS, PnpStart)( THIS_                                  \
         IN PLIBUSB_RESOURCES Resources,                                     \
@@ -210,6 +210,9 @@ struct IUSBQueue;
         IN PVOID CallBack,                                                  \
         IN PVOID Context) PURE;                                             \
                                                                             \
+     STDMETHOD_(NTSTATUS, GetHwResoursesSize)( THIS_                        \
+        OUT PULONG HwResoursesSize) PURE;                                   \
+                                                                            \
      STDMETHOD_(LPCSTR, GetUSBType)(THIS) PURE;
 
 
@@ -219,7 +222,7 @@ struct IUSBQueue;
         IN PDEVICE_OBJECT FunctionalDeviceObject,                           \
         IN PDEVICE_OBJECT PhysicalDeviceObject,                             \
         IN PDEVICE_OBJECT LowerDeviceObject,                                \
-        IN struct IDMAMemoryManager * MemoryManager);                                \
+        IN struct IDMAMemoryManager * MemoryManager);                       \
                                                                             \
      STDMETHODIMP_(NTSTATUS) PnpStart(                                      \
         IN PLIBUSB_RESOURCES Resources,                                     \
@@ -258,6 +261,9 @@ struct IUSBQueue;
      STDMETHODIMP_(VOID) SetStatusChangeEndpointCallBack(                   \
         IN PVOID CallBack,                                                  \
         IN PVOID Context);                                                  \
+                                                                            \
+     STDMETHODIMP_(NTSTATUS) GetHwResoursesSize(                            \
+        OUT PULONG HwResoursesSize);                                        \
                                                                             \
      STDMETHODIMP_(LPCSTR) GetUSBType();
 
