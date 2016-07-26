@@ -471,7 +471,7 @@ CHCDController::HandlePnp(
                 return Status;
             }
 
-        #if 1
+        #if 0
             DPRINT("PnpStart: m_Resources.TypesResources    - %x\n", m_Resources.TypesResources);
             DPRINT("PnpStart: m_Resources.InterruptVector   - %x\n", m_Resources.InterruptVector);
             DPRINT("PnpStart: m_Resources.InterruptLevel    - %x\n", m_Resources.InterruptLevel);
@@ -551,7 +551,7 @@ CHCDController::HandlePnp(
             m_CommonBufferHeader = m_MemoryManager->
                                        AllocateCommonBuffer(m_DmaAdapter, HwResoursesSize);
 
-            DPRINT("PnpStart: m_CommonBufferHeader - %p\n", m_CommonBufferHeader);
+            //DPRINT("PnpStart: m_CommonBufferHeader - %p\n", m_CommonBufferHeader);
 
             if (!m_CommonBufferHeader)
             {
@@ -651,10 +651,11 @@ CHCDController::HandlePnp(
                 DeviceRelations->Count = 1;
                 Status = m_HubController->GetHubControllerDeviceObject(&DeviceRelations->Objects [0]);
 
-                //
-                // sanity check
-                //
-                PC_ASSERT(Status == STATUS_SUCCESS);
+                if ( !NT_SUCCESS(Status) )
+                {
+                  ExFreePool(DeviceRelations);
+                  goto ForwardIrp;
+                }
 
                 ObReferenceObject(DeviceRelations->Objects [0]);
 
@@ -751,9 +752,8 @@ CHCDController::HandlePnp(
         }
         default:
         {
-            //
+ForwardIrp:
             // forward irp to next device object
-            //
             IoSkipCurrentIrpStackLocation(Irp);
             return IoCallDriver(m_NextDeviceObject, Irp);
         }
