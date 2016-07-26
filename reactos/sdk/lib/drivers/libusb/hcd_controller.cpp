@@ -68,6 +68,9 @@ protected:
     PDMA_ADAPTER m_DmaAdapter;                                                         // dma adapter object
     ULONG m_MapRegisters;                                                              // map registers count
     PKINTERRUPT m_Interrupt;                                                           // interrupt object
+    PDMAMEMORYMANAGER m_MemoryManager;                                                 // memory manager
+    PLIBUSB_COMMON_BUFFER_HEADER m_CommonBufferHeader;                                 // 
+    KSPIN_LOCK m_Lock;                                                                 // hardware lock
 };
 
 //=================================================================================================
@@ -140,9 +143,29 @@ CHCDController::Initialize(
     }
 
     //
+    // initialize device lock
+    //
+    KeInitializeSpinLock(&m_Lock);
+
+    //
+    // Create DMAMemoryManager for use with QueueHeads and Transfer Descriptors.
+    //
+    Status =  CreateDMAMemoryManager(&m_MemoryManager);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("Failed to create DMAMemoryManager Object\n");
+        return Status;
+    }
+
+    //
     // initialize hardware object
     //
-    Status = m_Hardware->Initialize(m_DriverObject, m_FunctionalDeviceObject, m_PhysicalDeviceObject, m_NextDeviceObject);
+    Status = m_Hardware->Initialize(m_DriverObject,
+                                    m_FunctionalDeviceObject,
+                                    m_PhysicalDeviceObject,
+                                    m_NextDeviceObject,
+                                    m_MemoryManager);
+
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("[%s] Failed to initialize hardware object %x\n", m_Hardware->GetUSBType(), Status);
@@ -393,6 +416,8 @@ CHCDController::HandlePnp(
     PCM_RESOURCE_LIST TranslatedResourceList;
     PDEVICE_RELATIONS DeviceRelations;
     NTSTATUS Status;
+    //PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer;
+    SIZE_T BufferLength;
 
     //
     // get device extension
@@ -476,7 +501,11 @@ CHCDController::HandlePnp(
             //
             // get dma adapter
             //
-            m_DmaAdapter = IoGetDmaAdapter(m_PhysicalDeviceObject, &DeviceDescription, &m_MapRegisters);
+            m_DmaAdapter = IoGetDmaAdapter(
+                                m_PhysicalDeviceObject,
+                                &DeviceDescription,
+                                &m_MapRegisters);
+
             if (!m_DmaAdapter)
             {
                 //
@@ -506,6 +535,37 @@ CHCDController::HandlePnp(
                     DPRINT1("IoConnect Interrupt failed with %x\n", Status);
                     return Status;
                 }
+            }
+
+            BufferLength = PAGE_SIZE * 4;//FIXME - Get from hardware class
+
+            m_CommonBufferHeader = m_MemoryManager->
+                                       AllocateCommonBuffer(m_DmaAdapter, BufferLength);
+
+            DPRINT("PnpStart: m_CommonBufferHeader - %p\n", m_CommonBufferHeader);
+
+            if (!m_CommonBufferHeader)
+            {
+                DPRINT1("Failed to allocate a common buffer\n");
+                return STATUS_INSUFFICIENT_RESOURCES;
+            }
+
+            //Resources->StartVA = (PVOID)HeaderBuffer->VirtualAddress;
+            //Resources->StartPA = (PVOID)HeaderBuffer->PhysicalAddress;
+
+            // Initialize the DMAMemoryManager
+            Status = m_MemoryManager->Initialize(
+                             m_Hardware,
+                             &m_Lock,
+                             BufferLength,
+                             (PVOID)m_CommonBufferHeader->VirtualAddress,
+                             m_CommonBufferHeader->LogicalAddress,
+                             32);
+
+            if (!NT_SUCCESS(Status))
+            {
+                DPRINT1("Failed to initialize the DMAMemoryManager\n");
+                return Status;
             }
 
             if (m_Hardware)

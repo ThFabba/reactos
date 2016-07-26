@@ -169,7 +169,8 @@ struct IUSBQueue;
         IN PDRIVER_OBJECT DriverObject,                                     \
         IN PDEVICE_OBJECT FunctionalDeviceObject,                           \
         IN PDEVICE_OBJECT PhysicalDeviceObject,                             \
-        IN PDEVICE_OBJECT LowerDeviceObject) PURE;                          \
+        IN PDEVICE_OBJECT LowerDeviceObject,                                \
+        IN struct IDMAMemoryManager * MemoryManager) PURE;                           \
                                                                             \
      STDMETHOD_(NTSTATUS, PnpStart)( THIS_                                  \
         IN PLIBUSB_RESOURCES Resources,                                     \
@@ -217,7 +218,8 @@ struct IUSBQueue;
         IN PDRIVER_OBJECT DriverObject,                                     \
         IN PDEVICE_OBJECT FunctionalDeviceObject,                           \
         IN PDEVICE_OBJECT PhysicalDeviceObject,                             \
-        IN PDEVICE_OBJECT LowerDeviceObject);                               \
+        IN PDEVICE_OBJECT LowerDeviceObject,                                \
+        IN struct IDMAMemoryManager * MemoryManager);                                \
                                                                             \
      STDMETHODIMP_(NTSTATUS) PnpStart(                                      \
         IN PLIBUSB_RESOURCES Resources,                                     \
