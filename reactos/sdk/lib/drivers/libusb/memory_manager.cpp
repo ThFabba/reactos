@@ -10,7 +10,7 @@
 
 #include "libusb.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 class CDMAMemoryManager : public IDMAMemoryManager
@@ -39,6 +39,7 @@ public:
     virtual NTSTATUS Initialize(IN PUSBHARDWAREDEVICE Device, IN PKSPIN_LOCK Lock, IN ULONG DmaBufferSize, IN PVOID VirtualBase, IN PHYSICAL_ADDRESS PhysicalAddress, IN ULONG DefaultBlockSize);
     virtual NTSTATUS Allocate(IN ULONG Size, OUT PVOID *OutVirtualBase, OUT PPHYSICAL_ADDRESS OutPhysicalAddress);
     virtual NTSTATUS Release(IN PVOID VirtualBase, IN ULONG Size);
+    virtual PLIBUSB_COMMON_BUFFER_HEADER AllocateCommonBuffer(IN PDMA_ADAPTER DmaAdapter, IN SIZE_T BufferLength);
 
     // constructor / destructor
     CDMAMemoryManager(IUnknown *OuterUnknown){}
@@ -334,6 +335,58 @@ CDMAMemoryManager::Release(
     // done
     //
     return STATUS_SUCCESS;
+}
+
+PLIBUSB_COMMON_BUFFER_HEADER
+CDMAMemoryManager::AllocateCommonBuffer(
+    IN PDMA_ADAPTER DmaAdapter,
+    IN SIZE_T BufferLength)
+{
+  PLIBUSB_COMMON_BUFFER_HEADER  HeaderBuffer = NULL;
+  SIZE_T                        HeaderSize;
+  ULONG                         Length = 0;
+  ULONG                         LengthPadded;
+  PHYSICAL_ADDRESS              LogicalAddress;
+  ULONG_PTR                     BaseVA;
+  ULONG_PTR                     StartBufferVA;
+  ULONG_PTR                     StartBufferPA;
+
+  DPRINT("AllocateCommonBuffer: BufferLength - %X\n",BufferLength);
+
+  if ( BufferLength == 0 )
+    goto Exit;
+
+  HeaderSize = sizeof(LIBUSB_COMMON_BUFFER_HEADER);
+  Length = ROUND_TO_PAGES(BufferLength + HeaderSize);
+  LengthPadded = Length - (BufferLength + HeaderSize);
+
+  BaseVA = (ULONG_PTR)DmaAdapter->DmaOperations->
+                         AllocateCommonBuffer(
+                                 DmaAdapter,       // IN  PDMA_ADAPTER       DmaAdapter
+                                 Length,           // IN  ULONG              Length,
+                                 &LogicalAddress,  // OUT PPHYSICAL_ADDRESS  LogicalAddress
+                                 TRUE);            // IN  BOOLEAN            CacheEnabled
+
+  if ( !BaseVA )
+    goto Exit;
+
+  StartBufferVA = BaseVA & 0xFFFFF000;
+  StartBufferPA = LogicalAddress.LowPart & 0xFFFFF000;
+
+  HeaderBuffer = (PLIBUSB_COMMON_BUFFER_HEADER)(StartBufferVA + BufferLength + LengthPadded);
+
+  HeaderBuffer->Length          = Length;
+  HeaderBuffer->BaseVA          = BaseVA;
+  HeaderBuffer->LogicalAddress  = LogicalAddress; //PHYSICAL_ADDRESS
+
+  HeaderBuffer->BufferLength    = BufferLength + LengthPadded;
+  HeaderBuffer->VirtualAddress  = StartBufferVA;
+  HeaderBuffer->PhysicalAddress = StartBufferPA;
+
+  RtlZeroMemory((PVOID)StartBufferVA, BufferLength + LengthPadded);
+
+Exit:
+  return HeaderBuffer;
 }
 
 NTSTATUS

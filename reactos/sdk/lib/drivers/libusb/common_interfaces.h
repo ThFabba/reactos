@@ -303,7 +303,6 @@ DECLARE_INTERFACE_(IDMAMemoryManager, IUnknown)
                               OUT PVOID *OutVirtualBase,
                               OUT PPHYSICAL_ADDRESS OutPhysicalAddress) = 0;
 
-
 //-----------------------------------------------------------------------------------------
 //
 // Free
@@ -312,6 +311,16 @@ DECLARE_INTERFACE_(IDMAMemoryManager, IUnknown)
 
     virtual NTSTATUS Release(IN PVOID VirtualBase,
                              IN ULONG Size) = 0;
+
+//-----------------------------------------------------------------------------------------
+//
+// AllocateCommonBuffer
+//
+// Description: allocate contiguous memory block for DMA device
+
+    virtual PLIBUSB_COMMON_BUFFER_HEADER AllocateCommonBuffer(
+                             IN PDMA_ADAPTER DmaAdapter,
+                             IN SIZE_T BufferLength) = 0;
 
 };
 
