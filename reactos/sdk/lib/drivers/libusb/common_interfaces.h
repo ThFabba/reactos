@@ -514,6 +514,13 @@ DECLARE_INTERFACE_(IHubController, IUnknown)
 
     virtual NTSTATUS GetHubControllerSymbolicLink(ULONG BufferLength, PVOID Buffer, PULONG RequiredLength) = 0;
 
+//----------------------------------------------------------------------------------------
+//
+// GetRHDeviceDescriptor
+//
+// Description: Returns the hub controller USB_DEVICE_DESCRIPTOR
+
+    virtual NTSTATUS GetRHDeviceDescriptor(PUSB_DEVICE_DESCRIPTOR * RHDeviceDescriptor) = 0;
 
 };
 

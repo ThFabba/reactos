@@ -43,6 +43,7 @@ public:
     virtual NTSTATUS Initialize(IN PDRIVER_OBJECT DriverObject, IN PDEVICE_OBJECT Fdo, IN PHCDCONTROLLER Controller, IN PUSBHARDWAREDEVICE Device, IN BOOLEAN IsRootHubDevice, IN ULONG DeviceAddress);
     virtual NTSTATUS GetHubControllerDeviceObject(PDEVICE_OBJECT * HubDeviceObject);
     virtual NTSTATUS GetHubControllerSymbolicLink(ULONG BufferLength, PVOID Buffer, PULONG RequiredLength);
+    virtual NTSTATUS GetRHDeviceDescriptor(PUSB_DEVICE_DESCRIPTOR * RHDeviceDescriptor);
 
     // IDispatchIrp interface functions
     virtual NTSTATUS HandlePnp(IN PDEVICE_OBJECT DeviceObject, IN OUT PIRP Irp);
@@ -353,6 +354,15 @@ CHubController::GetHubControllerDeviceObject(PDEVICE_OBJECT * HubDeviceObject)
 
     return STATUS_SUCCESS;
 }
+
+//-----------------------------------------------------------------------------------------
+NTSTATUS
+CHubController::GetRHDeviceDescriptor(PUSB_DEVICE_DESCRIPTOR * RHDeviceDescriptor)
+{
+  *RHDeviceDescriptor = &m_DeviceDescriptor;
+  return STATUS_SUCCESS;
+}
+
 //-----------------------------------------------------------------------------------------
 NTSTATUS
 CHubController::GetHubControllerSymbolicLink(
