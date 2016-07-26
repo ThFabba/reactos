@@ -99,10 +99,7 @@ protected:
     PDEVICE_OBJECT m_PhysicalDeviceObject;                                             // pdo
     PDEVICE_OBJECT m_FunctionalDeviceObject;                                           // fdo (hcd controller)
     PDEVICE_OBJECT m_NextDeviceObject;                                                 // lower device object
-    KSPIN_LOCK m_Lock;                                                                 // hardware lock
     KDPC m_IntDpcObject;                                                               // dpc object for deferred isr processing
-    PVOID VirtualBase;                                                                 // virtual base for memory manager
-    PHYSICAL_ADDRESS PhysicalAddress;                                                  // physical base for memory manager
     PULONG m_Base;                                                                     // UHCI operational port base registers
     PDMA_ADAPTER m_Adapter;                                                            // dma adapter object
     USHORT m_VendorID;                                                                 // vendor id
@@ -155,10 +152,12 @@ CUSBHardwareDevice::GetUSBType()
 
 NTSTATUS
 CUSBHardwareDevice::Initialize(
-    PDRIVER_OBJECT DriverObject,
-    PDEVICE_OBJECT FunctionalDeviceObject,
-    PDEVICE_OBJECT PhysicalDeviceObject,
-    PDEVICE_OBJECT LowerDeviceObject)
+    IN PDRIVER_OBJECT DriverObject,
+    IN PDEVICE_OBJECT FunctionalDeviceObject,
+    IN PDEVICE_OBJECT PhysicalDeviceObject,
+    IN PDEVICE_OBJECT LowerDeviceObject,
+    IN PDMAMEMORYMANAGER MemoryManager)
+
 {
     BUS_INTERFACE_STANDARD BusInterface;
     PCI_COMMON_CONFIG PciConfig;
@@ -167,15 +166,7 @@ CUSBHardwareDevice::Initialize(
 
     DPRINT("CUSBHardwareDevice::Initialize\n");
 
-    //
-    // Create DMAMemoryManager for use with QueueHeads and Transfer Descriptors.
-    //
-    Status =  CreateDMAMemoryManager(&m_MemoryManager);
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("Failed to create DMAMemoryManager Object\n");
-        return Status;
-    }
+    m_MemoryManager = MemoryManager;
 
     //
     // Create the UsbQueue class that will handle the Asynchronous and Periodic Schedules
@@ -194,11 +185,6 @@ CUSBHardwareDevice::Initialize(
     m_FunctionalDeviceObject = FunctionalDeviceObject;
     m_PhysicalDeviceObject = PhysicalDeviceObject;
     m_NextDeviceObject = LowerDeviceObject;
-
-    //
-    // initialize device lock
-    //
-    KeInitializeSpinLock(&m_Lock);
 
     //
     // intialize status change work item
@@ -270,29 +256,6 @@ CUSBHardwareDevice::PnpStart(
     if ( m_Resources->TypesResources & 4 )
     {
         KeInitializeDpc(&m_IntDpcObject, UhciDefferedRoutine, this);
-    }
-
-    //
-    // Create Common Buffer
-    //
-    VirtualBase = m_Adapter->DmaOperations->AllocateCommonBuffer(m_Adapter,
-                                                                 PAGE_SIZE * 4,
-                                                                 &PhysicalAddress,
-                                                                 FALSE);
-    if (!VirtualBase)
-    {
-        DPRINT1("Failed to allocate a common buffer\n");
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    //
-    // Initialize the DMAMemoryManager
-    //
-    Status = m_MemoryManager->Initialize(this, &m_Lock, PAGE_SIZE * 4, VirtualBase, PhysicalAddress, 32);
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("Failed to initialize the DMAMemoryManager\n");
-        return Status;
     }
 
     //
