@@ -122,17 +122,6 @@ typedef struct
     PUSBDEVICE Device;
 }USBDEVICE_ENTRY, *PUSBDEVICE_ENTRY;
 
-const USB_CONFIGURATION_DESCRIPTOR ROOTHUB2_CONFIGURATION_DESCRIPTOR =
-{
-    sizeof(USB_CONFIGURATION_DESCRIPTOR),
-    USB_CONFIGURATION_DESCRIPTOR_TYPE,
-    sizeof(USB_CONFIGURATION_DESCRIPTOR) + sizeof(USB_INTERFACE_DESCRIPTOR) + sizeof(USB_ENDPOINT_DESCRIPTOR),
-    1,
-    1,
-    0,
-    0x40, /* self powered */
-    0x0
-};
 
 const USB_INTERFACE_DESCRIPTOR ROOTHUB2_INTERFACE_DESCRIPTOR =
 {
@@ -181,6 +170,8 @@ CHubController::Initialize(
     USHORT VendorID, DeviceID;
     UCHAR RevisionID;
     PUSB_DEVICE_DESCRIPTOR RHDeviceDescriptor;
+    PUSB_CONFIGURATION_DESCRIPTOR RHConfigurationDescriptor;
+
     //
     // initialize members
     //
@@ -235,9 +226,10 @@ CHubController::Initialize(
     DeviceExtension->IsHub = TRUE; //FIXME
     DeviceExtension->Dispatcher = PDISPATCHIRP(this);
 
-    // intialize device descriptor
     RtlZeroMemory(&m_RHDescriptors, sizeof(LIBUSB_RH_DESCRIPTORS));
 
+    //-----------------------------------------------------------------------------------
+    // intialize device descriptor
     RHDeviceDescriptor = &m_RHDescriptors.DeviceDescriptor;
 
     RHDeviceDescriptor->bLength            = sizeof(USB_DEVICE_DESCRIPTOR);
@@ -267,6 +259,21 @@ CHubController::Initialize(
     RHDeviceDescriptor->bNumConfigurations = 0x01;
 
     RHDeviceDescriptor->bcdUSB = 0x200; //FIXME
+
+    //-----------------------------------------------------------------------------------
+    // intialize configuration descriptor
+    RHConfigurationDescriptor = &m_RHDescriptors.ConfigDescriptor;
+
+    RHConfigurationDescriptor->bLength             = sizeof(USB_CONFIGURATION_DESCRIPTOR);
+    RHConfigurationDescriptor->bDescriptorType     = USB_CONFIGURATION_DESCRIPTOR_TYPE;
+    RHConfigurationDescriptor->wTotalLength        = sizeof(USB_CONFIGURATION_DESCRIPTOR) + 
+                                                     sizeof(USB_INTERFACE_DESCRIPTOR) + 
+                                                     sizeof(USB_ENDPOINT_DESCRIPTOR);
+    RHConfigurationDescriptor->bNumInterfaces      = 0x01;
+    RHConfigurationDescriptor->bConfigurationValue = 0x01;
+    RHConfigurationDescriptor->iConfiguration      = 0x00;
+    RHConfigurationDescriptor->bmAttributes        = 0x40; /* self powered */
+    RHConfigurationDescriptor->MaxPower            = 0x00;
 
     //
     // Set the SCE Callback that the Hardware Device will call on port status change
@@ -1072,7 +1079,7 @@ CHubController::HandleSelectConfiguration(
         //
         // set device handle
         //
-        Urb->UrbSelectConfiguration.ConfigurationHandle = (PVOID)&ROOTHUB2_CONFIGURATION_DESCRIPTOR;
+        Urb->UrbSelectConfiguration.ConfigurationHandle = (PVOID)&m_RHDescriptors.ConfigDescriptor;
 
         //
         // copy interface info
@@ -1602,7 +1609,7 @@ CHubController::HandleGetDescriptor(
                 //
                 Length = BufferLength > sizeof(USB_CONFIGURATION_DESCRIPTOR) ?
                     sizeof(USB_CONFIGURATION_DESCRIPTOR) : BufferLength;
-                RtlCopyMemory(Buffer, &ROOTHUB2_CONFIGURATION_DESCRIPTOR, Length);
+                RtlCopyMemory(Buffer, &m_RHDescriptors.ConfigDescriptor, Length);
 
                 //
                 // Check if we still have some space left
