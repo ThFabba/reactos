@@ -40,6 +40,7 @@ public:
     virtual NTSTATUS Allocate(IN ULONG Size, OUT PVOID *OutVirtualBase, OUT PPHYSICAL_ADDRESS OutPhysicalAddress);
     virtual NTSTATUS Release(IN PVOID VirtualBase, IN ULONG Size);
     virtual PLIBUSB_COMMON_BUFFER_HEADER AllocateCommonBuffer(IN PDMA_ADAPTER DmaAdapter, IN SIZE_T BufferLength);
+    virtual VOID FreeCommonBuffer(IN PDMA_ADAPTER DmaAdapter, IN PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer);
 
     // constructor / destructor
     CDMAMemoryManager(IUnknown *OuterUnknown){}
@@ -387,6 +388,22 @@ CDMAMemoryManager::AllocateCommonBuffer(
 
 Exit:
   return HeaderBuffer;
+}
+
+VOID
+CDMAMemoryManager::FreeCommonBuffer(
+    IN PDMA_ADAPTER DmaAdapter,
+    IN PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer)
+{
+  DPRINT("FreeCommonBuffer: HeaderBuffer - %p\n",HeaderBuffer);
+
+  DmaAdapter->DmaOperations->
+                 FreeCommonBuffer(
+                     DmaAdapter,
+                     HeaderBuffer->Length,
+                     HeaderBuffer->LogicalAddress,
+                     (PVOID)HeaderBuffer->VirtualAddress,
+                     TRUE);
 }
 
 NTSTATUS

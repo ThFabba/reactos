@@ -322,6 +322,16 @@ DECLARE_INTERFACE_(IDMAMemoryManager, IUnknown)
                              IN PDMA_ADAPTER DmaAdapter,
                              IN SIZE_T BufferLength) = 0;
 
+//-----------------------------------------------------------------------------------------
+//
+// FreeCommonBuffer
+//
+// Description: free contiguous memory block for DMA device
+
+    virtual VOID FreeCommonBuffer(
+                     IN PDMA_ADAPTER DmaAdapter,
+                     IN PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer) = 0;
+
 };
 
 typedef IDMAMemoryManager *PDMAMEMORYMANAGER;
