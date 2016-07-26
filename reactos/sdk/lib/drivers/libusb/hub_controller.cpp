@@ -102,6 +102,7 @@ protected:
     PRH_INIT_CALLBACK m_HubCallbackRoutine;
 
     USB_DEVICE_DESCRIPTOR m_DeviceDescriptor;
+    LIBUSB_RH_DESCRIPTORS m_RHDescriptors;
 
     KSPIN_LOCK m_Lock;
     RTL_BITMAP m_DeviceAddressBitmap;
@@ -120,27 +121,6 @@ typedef struct
     LIST_ENTRY Entry;
     PUSBDEVICE Device;
 }USBDEVICE_ENTRY, *PUSBDEVICE_ENTRY;
-
-/* Lifted from Linux with slight changes */
-const UCHAR ROOTHUB2_DEVICE_DESCRIPTOR [] =
-{
-    0x12,       /*  bLength; */
-    USB_DEVICE_DESCRIPTOR_TYPE,       /*  bDescriptorType; Device */
-    0x00, 0x20, /*  bcdUSB; v1.1 */
-    USB_DEVICE_CLASS_HUB,       /*  bDeviceClass; HUB_CLASSCODE */
-    0x01,       /*  bDeviceSubClass; */
-    0x00,       /*  bDeviceProtocol; [ low/full speeds only ] */
-    0x08,       /*  bMaxPacketSize0; 8 Bytes */
-    /* Fill Vendor and Product in when init root hub */
-    0x00, 0x00, /*  idVendor; */
-    0x00, 0x00, /*  idProduct; */
-    0x00, 0x00, /*  bcdDevice */
-    0x00,       /*  iManufacturer; */
-    0x00,       /*  iProduct; */
-    0x00,       /*  iSerialNumber; */
-    0x01        /*  bNumConfigurations; */
-
-};
 
 const USB_CONFIGURATION_DESCRIPTOR ROOTHUB2_CONFIGURATION_DESCRIPTOR =
 {
@@ -199,7 +179,8 @@ CHubController::Initialize(
     NTSTATUS Status;
     PCOMMON_DEVICE_EXTENSION DeviceExtension;
     USHORT VendorID, DeviceID;
-
+    UCHAR RevisionID;
+    PUSB_DEVICE_DESCRIPTOR RHDeviceDescriptor;
     //
     // initialize members
     //
@@ -254,21 +235,38 @@ CHubController::Initialize(
     DeviceExtension->IsHub = TRUE; //FIXME
     DeviceExtension->Dispatcher = PDISPATCHIRP(this);
 
-    //
     // intialize device descriptor
-    //
-    C_ASSERT(sizeof(USB_DEVICE_DESCRIPTOR) == sizeof(ROOTHUB2_DEVICE_DESCRIPTOR));
-    RtlMoveMemory(&m_DeviceDescriptor, ROOTHUB2_DEVICE_DESCRIPTOR, sizeof(USB_DEVICE_DESCRIPTOR));
+    RtlZeroMemory(&m_RHDescriptors, sizeof(LIBUSB_RH_DESCRIPTORS));
 
-    if (NT_SUCCESS(m_Controller->GetControllerDetails(&VendorID, &DeviceID, NULL, NULL, NULL, NULL)))
+    RHDeviceDescriptor = &m_RHDescriptors.DeviceDescriptor;
+
+    RHDeviceDescriptor->bLength            = sizeof(USB_DEVICE_DESCRIPTOR);
+    RHDeviceDescriptor->bDescriptorType    = USB_DEVICE_DESCRIPTOR_TYPE;
+    RHDeviceDescriptor->bcdUSB             = 0x100;
+    RHDeviceDescriptor->bDeviceClass       = USB_DEVICE_CLASS_HUB;
+    RHDeviceDescriptor->bDeviceSubClass    = 0x01;
+    RHDeviceDescriptor->bDeviceProtocol    = 0x00;
+    RHDeviceDescriptor->bMaxPacketSize0    = 0x08;
+
+    if (NT_SUCCESS(m_Controller->GetControllerDetails(&VendorID, &DeviceID, &RevisionID, NULL, NULL, NULL)))
     {
-        //
-        // update device descriptor
-        //
-        m_DeviceDescriptor.idVendor = VendorID;
-        m_DeviceDescriptor.idProduct = DeviceID;
-        m_DeviceDescriptor.bcdUSB = 0x200; //FIXME
+    RHDeviceDescriptor->idVendor           = VendorID;
+    RHDeviceDescriptor->idProduct          = DeviceID;
+    RHDeviceDescriptor->bcdDevice          = RevisionID;
     }
+    else
+    {
+    RHDeviceDescriptor->idVendor           = 0x00;
+    RHDeviceDescriptor->idProduct          = 0x00;
+    RHDeviceDescriptor->bcdDevice          = 0x00;
+    }
+
+    RHDeviceDescriptor->iManufacturer      = 0x00;
+    RHDeviceDescriptor->iProduct           = 0x00;
+    RHDeviceDescriptor->iSerialNumber      = 0x00;
+    RHDeviceDescriptor->bNumConfigurations = 0x01;
+
+    RHDeviceDescriptor->bcdUSB = 0x200; //FIXME
 
     //
     // Set the SCE Callback that the Hardware Device will call on port status change
@@ -359,7 +357,7 @@ CHubController::GetHubControllerDeviceObject(PDEVICE_OBJECT * HubDeviceObject)
 NTSTATUS
 CHubController::GetRHDeviceDescriptor(PUSB_DEVICE_DESCRIPTOR * RHDeviceDescriptor)
 {
-  *RHDeviceDescriptor = &m_DeviceDescriptor;
+  *RHDeviceDescriptor = &m_RHDescriptors.DeviceDescriptor;
   return STATUS_SUCCESS;
 }
 
@@ -3087,6 +3085,7 @@ USBHI_QueryDeviceInformation(
     PUSB_DEVICE_INFORMATION_0 DeviceInfo;
     PUSBDEVICE UsbDevice;
     CHubController * Controller;
+    PUSB_DEVICE_DESCRIPTOR USBDeviceDescriptor;
 
     DPRINT("USBHI_QueryDeviceInformation %p\n", BusContext);
 
@@ -3180,7 +3179,8 @@ USBHI_QueryDeviceInformation(
     //
     // get device descriptor
     //
-    RtlMoveMemory(&DeviceInfo->DeviceDescriptor, ROOTHUB2_DEVICE_DESCRIPTOR, sizeof(USB_DEVICE_DESCRIPTOR));
+    Controller->GetRHDeviceDescriptor(&USBDeviceDescriptor);
+    RtlMoveMemory(&DeviceInfo->DeviceDescriptor, USBDeviceDescriptor, sizeof(USB_DEVICE_DESCRIPTOR));
 
     //
     // FIXME return pipe information
