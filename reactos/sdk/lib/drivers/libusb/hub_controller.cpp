@@ -101,7 +101,6 @@ protected:
     PVOID m_HubCallbackContext;
     PRH_INIT_CALLBACK m_HubCallbackRoutine;
 
-    USB_DEVICE_DESCRIPTOR m_DeviceDescriptor;
     LIBUSB_RH_DESCRIPTORS m_RHDescriptors;
 
     KSPIN_LOCK m_Lock;
@@ -1558,7 +1557,10 @@ CHubController::HandleGetDescriptor(
                 //
                 // copy root hub device descriptor
                 //
-                RtlCopyMemory((PUCHAR)Urb->UrbControlDescriptorRequest.TransferBuffer, &m_DeviceDescriptor, sizeof(USB_DEVICE_DESCRIPTOR));
+                RtlCopyMemory((PUCHAR)Urb->UrbControlDescriptorRequest.TransferBuffer,
+                              &m_RHDescriptors.DeviceDescriptor,
+                              sizeof(USB_DEVICE_DESCRIPTOR));
+
                 Irp->IoStatus.Information = sizeof(USB_DEVICE_DESCRIPTOR);
                 Urb->UrbControlDescriptorRequest.Hdr.Status = USBD_STATUS_SUCCESS;
                 Status = STATUS_SUCCESS;
@@ -1593,7 +1595,7 @@ CHubController::HandleGetDescriptor(
             }
             break;
         }
-       case USB_CONFIGURATION_DESCRIPTOR_TYPE:
+        case USB_CONFIGURATION_DESCRIPTOR_TYPE:
         {
             //
             // sanity checks
