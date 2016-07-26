@@ -36,6 +36,18 @@ typedef struct _LIBUSB_RESOURCES {
 
 } LIBUSB_RESOURCES, *PLIBUSB_RESOURCES;
 
+//-----------------------------------------------------------------------------
+typedef struct _LIBUSB_COMMON_BUFFER_HEADER {
+
+  ULONG                         Length;                       //
+  ULONG_PTR                     BaseVA;                       //
+  PHYSICAL_ADDRESS              LogicalAddress;               //
+  SIZE_T                        BufferLength;                 // + LengthPadded
+  ULONG_PTR                     VirtualAddress;               //
+  ULONG_PTR                     PhysicalAddress;              //
+
+} LIBUSB_COMMON_BUFFER_HEADER, *PLIBUSB_COMMON_BUFFER_HEADER;
+
 //---------------------------------------------------------------------------
 //
 //          Object Hierarchy
