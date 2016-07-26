@@ -201,6 +201,8 @@ typedef struct
     UCHAR      Reserved[120];
 }OHCIHCCA, *POHCIHCCA;
 
+C_ASSERT(sizeof(OHCIHCCA) == 256);
+
 #define OHCI_DONE_INTERRUPTS        1
 #define OHCI_HCCA_SIZE              256
 #define OHCI_HCCA_ALIGN             256

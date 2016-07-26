@@ -64,7 +64,7 @@ typedef IEHCIHardwareDevice *PEHCIHARDWAREDEVICE;
 // 
 
 struct _QUEUE_HEAD;
-struct _USB_ENDPOINT;
+struct _LIBUSB_PIPE_HANDLE;
 
 #define DEFINE_ABSTRACT_USBEHCIREQUEST()                                    \
     STDMETHOD_(VOID, CompletionCallback)( THIS_                             \

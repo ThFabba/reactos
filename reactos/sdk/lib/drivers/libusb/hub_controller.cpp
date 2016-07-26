@@ -857,7 +857,7 @@ CHubController::HandleBulkOrInterruptTransfer(
     PURB Urb)
 {
     PUSBDEVICE UsbDevice;
-    PUSB_ENDPOINT EndPointDesc = NULL;
+    PLIBUSB_PIPE_HANDLE PipeHandle = NULL;
     //
     // First check if the request is for the Status Change Endpoint
     //
@@ -888,13 +888,14 @@ CHubController::HandleBulkOrInterruptTransfer(
     //
     // Check PipeHandle to determine if this is a Bulk or Interrupt Transfer Request
     //
-    EndPointDesc = (PUSB_ENDPOINT)Urb->UrbBulkOrInterruptTransfer.PipeHandle;
+    PipeHandle = (PLIBUSB_PIPE_HANDLE)Urb->UrbBulkOrInterruptTransfer.PipeHandle;
 
     //
     // sanity checks
     //
-    ASSERT(EndPointDesc);
-    ASSERT((EndPointDesc->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_BULK || (EndPointDesc->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_INTERRUPT);
+    ASSERT(PipeHandle);
+    ASSERT((PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_BULK ||
+           (PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_INTERRUPT);
 
     //
     // check if this is a valid usb device handle
@@ -1940,7 +1941,7 @@ CHubController::HandleSyncResetAndClearStall(
     IN OUT PURB Urb)
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PUSB_ENDPOINT EndpointDescriptor;
+    PLIBUSB_PIPE_HANDLE PipeHandle;
     ULONG Type;
 
     //
@@ -1979,12 +1980,12 @@ CHubController::HandleSyncResetAndClearStall(
     //
     // get endpoint descriptor
     //
-    EndpointDescriptor = (PUSB_ENDPOINT)Urb->UrbPipeRequest.PipeHandle;
+    PipeHandle = (PLIBUSB_PIPE_HANDLE)Urb->UrbPipeRequest.PipeHandle;
 
     //
     // get type
     //
-    Type = (EndpointDescriptor->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK);
+    Type = (PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK);
     if (Type != USB_ENDPOINT_TYPE_ISOCHRONOUS)
     {
         //
@@ -1998,7 +1999,7 @@ CHubController::HandleSyncResetAndClearStall(
     // reset data toggle
     //
     if (NT_SUCCESS(Status))
-        EndpointDescriptor->DataToggle = 0x0;
+        PipeHandle->DataToggle = 0x0;
 
     //
     // done

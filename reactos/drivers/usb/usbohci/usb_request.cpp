@@ -115,7 +115,7 @@ protected:
     //
     // store endpoint descriptor
     //
-    PUSB_ENDPOINT m_EndpointDescriptor;
+    PLIBUSB_PIPE_HANDLE m_PipeHandle;
 
     //
     // allocated setup packet from the DMA pool
@@ -162,7 +162,7 @@ CUSBRequest::InitializeWithSetupPacket(
     IN PDMAMEMORYMANAGER DmaManager,
     IN PUSB_DEFAULT_PIPE_SETUP_PACKET SetupPacket,
     IN PUSBDEVICE Device,
-    IN OPTIONAL struct _USB_ENDPOINT* EndpointDescriptor,
+    IN OPTIONAL struct _LIBUSB_PIPE_HANDLE * PipeHandle,
     IN OUT ULONG TransferBufferLength,
     IN OUT PMDL TransferBuffer)
 {
@@ -180,7 +180,7 @@ CUSBRequest::InitializeWithSetupPacket(
     m_TransferBufferLength = TransferBufferLength;
     m_TransferBufferMDL = TransferBuffer;
     m_DeviceAddress = Device->GetDeviceAddress();
-    m_EndpointDescriptor = EndpointDescriptor;
+    m_PipeHandle = PipeHandle;
     m_TotalBytesTransferred = 0;
     m_DeviceSpeed = Device->GetSpeed();
 
@@ -330,7 +330,7 @@ CUSBRequest::InitializeWithIrp(
             //
             // get endpoint descriptor
             //
-            m_EndpointDescriptor = (PUSB_ENDPOINT)m_Urb->UrbIsochronousTransfer.PipeHandle;
+            m_PipeHandle = (PLIBUSB_PIPE_HANDLE)m_Urb->UrbIsochronousTransfer.PipeHandle;
 
             //
             // completed initialization
@@ -405,7 +405,7 @@ CUSBRequest::InitializeWithIrp(
                 //
                 // get endpoint descriptor
                 //
-                m_EndpointDescriptor = (PUSB_ENDPOINT)m_Urb->UrbBulkOrInterruptTransfer.PipeHandle;
+                m_PipeHandle = (PLIBUSB_PIPE_HANDLE)m_Urb->UrbBulkOrInterruptTransfer.PipeHandle;
 
             }
             break;
@@ -458,7 +458,7 @@ CUSBRequest::GetTransferType()
 USHORT
 CUSBRequest::GetMaxPacketSize()
 {
-    if (!m_EndpointDescriptor)
+    if (!m_PipeHandle)
     {
         if (m_DeviceSpeed == UsbLowSpeed)
         {
@@ -478,31 +478,31 @@ CUSBRequest::GetMaxPacketSize()
     }
 
     ASSERT(m_Irp);
-    ASSERT(m_EndpointDescriptor);
+    ASSERT(m_PipeHandle);
 
     //
     // return max packet size
     //
-    return m_EndpointDescriptor->EndPointDescriptor.wMaxPacketSize;
+    return m_PipeHandle->EndPointDescriptor.wMaxPacketSize;
 }
 
 UCHAR
 STDMETHODCALLTYPE
 CUSBRequest::GetInterval()
 {
-    ASSERT(m_EndpointDescriptor);
-    ASSERT((m_EndpointDescriptor->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_INTERRUPT);
+    ASSERT(m_PipeHandle);
+    ASSERT((m_PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_INTERRUPT);
 
     //
     // return interrupt interval
     //
-    return m_EndpointDescriptor->EndPointDescriptor.bInterval;
+    return m_PipeHandle->EndPointDescriptor.bInterval;
 }
 
 UCHAR
 CUSBRequest::GetEndpointAddress()
 {
-    if (!m_EndpointDescriptor)
+    if (!m_PipeHandle)
     {
         //
         // control request
@@ -511,12 +511,12 @@ CUSBRequest::GetEndpointAddress()
     }
 
     ASSERT(m_Irp);
-    ASSERT(m_EndpointDescriptor);
+    ASSERT(m_PipeHandle);
 
     //
     // endpoint number is between 1-15
     //
-    return (m_EndpointDescriptor->EndPointDescriptor.bEndpointAddress & 0xF);
+    return (m_PipeHandle->EndPointDescriptor.bEndpointAddress & 0xF);
 }
 
 //----------------------------------------------------------------------------------------
@@ -530,12 +530,12 @@ CUSBRequest::InternalGetTransferType()
     //
     if (m_Irp)
     {
-        ASSERT(m_EndpointDescriptor);
+        ASSERT(m_PipeHandle);
 
         //
         // end point is defined in the low byte of bmAttributes
         //
-        TransferType = (m_EndpointDescriptor->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK);
+        TransferType = (m_PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK);
     }
     else
     {
@@ -554,12 +554,12 @@ CUSBRequest::InternalGetTransferType()
 UCHAR
 CUSBRequest::InternalGetPidDirection()
 {
-    if (m_EndpointDescriptor)
+    if (m_PipeHandle)
     {
         //
         // end point direction is highest bit in bEndpointAddress
         //
-        return (m_EndpointDescriptor->EndPointDescriptor.bEndpointAddress & USB_ENDPOINT_DIRECTION_MASK) >> 7;
+        return (m_PipeHandle->EndPointDescriptor.bEndpointAddress & USB_ENDPOINT_DIRECTION_MASK) >> 7;
     }
     else
     {
@@ -985,12 +985,12 @@ CUSBRequest::AllocateEndpointDescriptor(
     //
     // is there an endpoint descriptor
     //
-    if (m_EndpointDescriptor)
+    if (m_PipeHandle)
     {
         //
         // check direction
         //
-        if (USB_ENDPOINT_DIRECTION_OUT(m_EndpointDescriptor->EndPointDescriptor.bEndpointAddress))
+        if (USB_ENDPOINT_DIRECTION_OUT(m_PipeHandle->EndPointDescriptor.bEndpointAddress))
         {
             //
             // direction out
@@ -1238,7 +1238,7 @@ CUSBRequest::BuildBulkInterruptEndpoint(
     //
     // sanity check
     //
-    ASSERT(m_EndpointDescriptor);
+    ASSERT(m_PipeHandle);
 
     //
     // allocate endpoint descriptor
@@ -1270,14 +1270,14 @@ CUSBRequest::BuildBulkInterruptEndpoint(
     //
     // sanity checks
     //
-    ASSERT(m_EndpointDescriptor);
+    ASSERT(m_PipeHandle);
     ASSERT(Base);
 
     //
     // use 2 * PAGE_SIZE at max for each new request
     //
     ULONG MaxTransferLength = min(1 * PAGE_SIZE, m_TransferBufferLength - m_TransferBufferLengthCompleted);
-    DPRINT("m_TransferBufferLength %lu m_TransferBufferLengthCompleted %lu DataToggle %x\n", m_TransferBufferLength, m_TransferBufferLengthCompleted, m_EndpointDescriptor->DataToggle);
+    DPRINT("m_TransferBufferLength %lu m_TransferBufferLengthCompleted %lu DataToggle %x\n", m_TransferBufferLength, m_TransferBufferLengthCompleted, m_PipeHandle->DataToggle);
 
     //
     // build bulk transfer descriptor chain
@@ -1310,7 +1310,7 @@ CUSBRequest::BuildBulkInterruptEndpoint(
     //
     // apply data toggle
     //
-    FirstDescriptor->Flags |= (m_EndpointDescriptor->DataToggle ? OHCI_TD_TOGGLE_1 : OHCI_TD_TOGGLE_0);
+    FirstDescriptor->Flags |= (m_PipeHandle->DataToggle ? OHCI_TD_TOGGLE_1 : OHCI_TD_TOGGLE_0);
 
     //
     // clear interrupt mask for last transfer descriptor
@@ -1800,12 +1800,12 @@ CUSBRequest::CheckError(
         //
         TransferDescriptor = (POHCI_GENERAL_TD)OutDescriptor->HeadLogicalDescriptor;
 
-        if (m_EndpointDescriptor != NULL)
+        if (m_PipeHandle != NULL)
         {
             //
             // update data toggle
             //
-            m_EndpointDescriptor->DataToggle = (OutDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_TOGGLE_CARRY);
+            m_PipeHandle->DataToggle = (OutDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_TOGGLE_CARRY);
         }
 
         while(TransferDescriptor)

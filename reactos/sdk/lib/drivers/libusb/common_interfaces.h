@@ -2,19 +2,19 @@
 #ifndef COMMON_INTERFACES_HPP
 #define COMMON_INTERFACES_HPP
 
-typedef struct _USB_ENDPOINT
+typedef struct _LIBUSB_PIPE_HANDLE
 {
     USB_ENDPOINT_DESCRIPTOR EndPointDescriptor;
     UCHAR HubAddress;
     UCHAR HubPort;
     UCHAR DataToggle;
-} USB_ENDPOINT, *PUSB_ENDPOINT;
+} LIBUSB_PIPE_HANDLE, *PLIBUSB_PIPE_HANDLE;
 
 typedef struct _USB_INTERFACE
 {
     LIST_ENTRY ListEntry;
     PUSB_INTERFACE_DESCRIPTOR InterfaceDescriptor;
-    USB_ENDPOINT EndPoints[1];
+    LIBUSB_PIPE_HANDLE PipeHandle[1];
 } USB_INTERFACE, *PUSB_INTERFACE;
 
 typedef struct
@@ -377,7 +377,7 @@ struct IUSBDevice;
         IN PDMAMEMORYMANAGER DmaManager,                                    \
         IN PUSB_DEFAULT_PIPE_SETUP_PACKET SetupPacket,                      \
         IN struct IUSBDevice *Device,                                       \
-        IN OPTIONAL struct _USB_ENDPOINT *EndpointDescriptor,               \
+        IN OPTIONAL struct _LIBUSB_PIPE_HANDLE * PipeHandle,                \
         IN OUT ULONG TransferBufferLength,                                  \
         IN OUT PMDL TransferBuffer) PURE;                                   \
                                                                             \
@@ -399,7 +399,7 @@ struct IUSBDevice;
         IN PDMAMEMORYMANAGER DmaManager,                                    \
         IN PUSB_DEFAULT_PIPE_SETUP_PACKET SetupPacket,                      \
         IN struct IUSBDevice *Device,                                       \
-        IN OPTIONAL struct _USB_ENDPOINT *EndpointDescriptor,               \
+        IN OPTIONAL struct _LIBUSB_PIPE_HANDLE * PipeHandle,                \
         IN OUT ULONG TransferBufferLength,                                  \
         IN OUT PMDL TransferBuffer);                                        \
                                                                             \

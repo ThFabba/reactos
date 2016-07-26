@@ -238,10 +238,10 @@ CUSBQueue::AbortDevicePipe(
     PUHCI_TRANSFER_DESCRIPTOR Descriptor;
     PUHCI_QUEUE_HEAD QueueHead, PreviousQueueHead = NULL;
     UCHAR EndpointAddress, EndpointDeviceAddress;
-    PUSB_ENDPOINT EndpointDescriptor;
+    PLIBUSB_PIPE_HANDLE PipeHandle;
 
     // get descriptor
-    EndpointDescriptor = (PUSB_ENDPOINT)EndDescriptor;
+    PipeHandle = (PLIBUSB_PIPE_HANDLE)EndDescriptor;
 
     // acquire lock
     KeAcquireSpinLock(&m_Lock, &OldLevel);
@@ -263,7 +263,7 @@ CUSBQueue::AbortDevicePipe(
             EndpointDeviceAddress = (Descriptor->Token >> TD_TOKEN_DEVADDR_SHIFT) & 0x7F;
 
             // check if they match
-            if (EndpointAddress == (EndpointDescriptor->EndPointDescriptor.bEndpointAddress & 0x0F) &&
+            if (EndpointAddress == (PipeHandle->EndPointDescriptor.bEndpointAddress & 0x0F) &&
                 DeviceAddress == EndpointDeviceAddress)
             {
                 // cleanup queue head
