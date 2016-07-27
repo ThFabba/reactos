@@ -904,6 +904,62 @@ ValidateTransferParameters(PURB Urb)
 
 //-----------------------------------------------------------------------------------------
 NTSTATUS
+AllocateTransfer(PIRP Irp, PURB Urb)
+{
+  SIZE_T               TransferLength;
+  PLIBUSB_PIPE_HANDLE  PipeHandle;
+  PMDL                 Mdl;
+  ULONG_PTR            VirtualAddr;
+  ULONG                PagesNeed = 0;
+  SIZE_T               HcdTransferLength;
+  PLIBUSB_TRANSFER     Transfer;
+  NTSTATUS             Status;
+
+  DPRINT("AllocateTransfer: ... \n");
+
+  TransferLength = Urb->UrbControlTransfer.TransferBufferLength;
+  PipeHandle     = (PLIBUSB_PIPE_HANDLE)Urb->UrbControlTransfer.PipeHandle;
+
+  if ( TransferLength )
+  {
+    Mdl = Urb->UrbControlTransfer.TransferBufferMDL;
+    VirtualAddr = (ULONG_PTR)MmGetMdlVirtualAddress(Mdl);
+    PagesNeed = ADDRESS_AND_SIZE_TO_SPAN_PAGES(VirtualAddr, TransferLength);
+  }
+  
+  HcdTransferLength = sizeof(LIBUSB_TRANSFER) + 
+                      PagesNeed * sizeof(LIBUSB_SG_ELEMENT);
+
+  Transfer = (PLIBUSB_TRANSFER)ExAllocatePoolWithTag(
+                                 NonPagedPool,
+                                 HcdTransferLength,
+                                 TAG_USBLIB);
+
+  if ( Transfer )
+  {
+    RtlZeroMemory(Transfer, HcdTransferLength);
+
+    Transfer->Irp                = Irp;
+    Transfer->Urb                = Urb;
+    Transfer->PipeHandle         = PipeHandle;
+    Transfer->HcdTransferLength = HcdTransferLength;
+
+    Urb->UrbControlTransfer.hca.Reserved8[0] = Transfer;
+    Urb->UrbHeader.UsbdFlags |= USBD_FLAG_ALLOCATED_TRANSFER;
+
+    Status = STATUS_SUCCESS;
+  }
+  else
+  {
+    Status = STATUS_INSUFFICIENT_RESOURCES;
+  }
+
+  DPRINT("AllocateTransfer: return Status - %x\n", Status);
+  return Status;
+}
+
+//-----------------------------------------------------------------------------------------
+NTSTATUS
 CHubController::HandleBulkOrInterruptTransfer(
     IN OUT PIRP Irp,
     PURB Urb)
@@ -976,6 +1032,9 @@ CHubController::HandleBulkOrInterruptTransfer(
         return STATUS_DEVICE_NOT_CONNECTED;
     }
 
+    Status = AllocateTransfer(Irp, Urb);
+
+DPRINT("AllocateTransfer return - %x\n", Status);
 ASSERT(FALSE);
 
     return UsbDevice->SubmitIrp(Irp);
