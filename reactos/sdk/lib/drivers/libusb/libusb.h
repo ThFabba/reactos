@@ -40,6 +40,12 @@ extern "C"
 #define C_PORT_OVER_CURRENT 19
 #define C_PORT_RESET        20
 
+//
+// flags for Urb->UrbHeader.UsbdFlags
+//
+#define USBD_FLAG_ALLOCATED_MDL         0x00000001
+#define USBD_FLAG_ALLOCATED_TRANSFER    0x00000002
+
 typedef struct
 {
     BOOLEAN IsFDO;                                               // is device a FDO or PDO
