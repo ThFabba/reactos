@@ -15,12 +15,6 @@
 
 typedef VOID __stdcall HD_INIT_CALLBACK(IN PVOID CallBackContext);
 
-BOOLEAN
-NTAPI
-InterruptServiceRoutine(
-    IN PKINTERRUPT  Interrupt,
-    IN PVOID  ServiceContext);
-
 VOID
 NTAPI
 EhciDefferedRoutine(
@@ -66,7 +60,6 @@ public:
     NTSTATUS ResetController();
 
     // friend function
-    friend BOOLEAN NTAPI InterruptServiceRoutine(IN PKINTERRUPT  Interrupt, IN PVOID  ServiceContext);
     friend VOID NTAPI EhciDefferedRoutine(IN PKDPC Dpc, IN PVOID DeferredContext, IN PVOID SystemArgument1, IN PVOID SystemArgument2);
     friend VOID NTAPI StatusChangeWorkItemRoutine(PVOID Context);
     // constructor / destructor
@@ -1125,8 +1118,8 @@ CUSBHardwareDevice::SetStatusChangeEndpointCallBack(
 }
 
 BOOLEAN
-NTAPI
-InterruptServiceRoutine(
+STDMETHODCALLTYPE
+CUSBHardwareDevice::InterruptServiceRoutine(
     IN PKINTERRUPT  Interrupt,
     IN PVOID  ServiceContext)
 {

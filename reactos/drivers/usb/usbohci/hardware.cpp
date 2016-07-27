@@ -15,12 +15,6 @@
 
 typedef VOID __stdcall HD_INIT_CALLBACK(IN PVOID CallBackContext);
 
-BOOLEAN
-NTAPI
-InterruptServiceRoutine(
-    IN PKINTERRUPT  Interrupt,
-    IN PVOID  ServiceContext);
-
 VOID
 NTAPI
 OhciDefferedRoutine(
@@ -67,7 +61,6 @@ public:
     NTSTATUS AllocateEndpointDescriptor(OUT POHCI_ENDPOINT_DESCRIPTOR *OutDescriptor);
 
     // friend function
-    friend BOOLEAN NTAPI InterruptServiceRoutine(IN PKINTERRUPT  Interrupt, IN PVOID  ServiceContext);
     friend VOID NTAPI OhciDefferedRoutine(IN PKDPC Dpc, IN PVOID DeferredContext, IN PVOID SystemArgument1, IN PVOID SystemArgument2);
     friend VOID NTAPI StatusChangeWorkItemRoutine(PVOID Context);
     // constructor / destructor
@@ -1130,10 +1123,10 @@ CUSBHardwareDevice::GetCurrentFrameNumber(
 
 
 BOOLEAN
-NTAPI
-InterruptServiceRoutine(
-    IN PKINTERRUPT  Interrupt,
-    IN PVOID  ServiceContext)
+STDMETHODCALLTYPE
+CUSBHardwareDevice::InterruptServiceRoutine(
+    IN PKINTERRUPT Interrupt,
+    IN PVOID ServiceContext)
 {
     CUSBHardwareDevice *This;
     ULONG DoneHead, Status, Acknowledge = 0;

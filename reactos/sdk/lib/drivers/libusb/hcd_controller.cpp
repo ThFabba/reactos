@@ -424,17 +424,20 @@ CHCDController::HandleDeviceControl(
     return Status;
 }
 
-
 BOOLEAN NTAPI
 InterruptService(
     IN PKINTERRUPT Interrupt,
     IN PVOID ServiceContext)
 {
-  BOOLEAN Result = 0;
-  DPRINT1("InterruptService: ...\n");
-ASSERT(FALSE);
-  DPRINT1("InterruptService: return - %x\n", Result);
+  PUSBHARDWAREDEVICE Hardware;
+  BOOLEAN Result = FALSE;
 
+  //DPRINT("InterruptService: ...\n");
+
+  Hardware = PUSBHARDWAREDEVICE(ServiceContext);
+  Result = Hardware->InterruptServiceRoutine(Interrupt, ServiceContext);
+
+  //DPRINT("InterruptService: return - %x\n", Result);
   return Result;
 }
 
@@ -598,7 +601,7 @@ CHCDController::HandlePnp(
                 Status = IoConnectInterrupt(
                                  &m_Interrupt,
                                  InterruptService,
-                                 (PVOID)m_FunctionalDeviceObject,
+                                 (PVOID)m_Hardware,
                                  NULL,
                                  m_Resources.InterruptVector,
                                  m_Resources.InterruptLevel,

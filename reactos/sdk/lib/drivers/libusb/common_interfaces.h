@@ -226,6 +226,10 @@ struct IUSBQueue;
      STDMETHOD_(NTSTATUS, GetHwResoursesSize)( THIS_                        \
         OUT PULONG HwResoursesSize) PURE;                                   \
                                                                             \
+     STDMETHOD_(BOOLEAN, InterruptServiceRoutine)( THIS_                    \
+        IN PKINTERRUPT Interrupt,                                           \
+        IN PVOID ServiceContext) PURE;                                      \
+                                                                            \
      STDMETHOD_(LPCSTR, GetUSBType)(THIS) PURE;
 
 
@@ -276,6 +280,10 @@ struct IUSBQueue;
                                                                             \
      STDMETHODIMP_(NTSTATUS) GetHwResoursesSize(                            \
         OUT PULONG HwResoursesSize);                                        \
+                                                                            \
+     STDMETHOD_(BOOLEAN, InterruptServiceRoutine)(                          \
+        IN PKINTERRUPT Interrupt,                                           \
+        IN PVOID ServiceContext);                                           \
                                                                             \
      STDMETHODIMP_(LPCSTR) GetUSBType();
 
