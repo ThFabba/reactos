@@ -55,6 +55,7 @@ typedef struct _WORK_ITEM_DATA
     PRH_INIT_CALLBACK CallbackRoutine;                          // callback routine
 } INIT_ROOT_HUB_CONTEXT, *PINIT_ROOT_HUB_CONTEXT;
 
+//-----------------------------------------------------------------------------
 typedef struct _LIBUSB_RH_DESCRIPTORS {
 
   USB_DEVICE_DESCRIPTOR           DeviceDescriptor;             // 18
@@ -64,6 +65,17 @@ typedef struct _LIBUSB_RH_DESCRIPTORS {
   USB_HUB_DESCRIPTOR              Descriptor;                   // 7 + 2[1..32] (7 + 2..64)
 
 } LIBUSB_RH_DESCRIPTORS, *PLIBUSB_RH_DESCRIPTORS;
+
+//-----------------------------------------------------------------------------
+typedef struct _LIBUSB_TRANSFER {
+
+  PIRP                            Irp;                          // 
+  PURB                            Urb;                          // 
+  SIZE_T                          HcdTransferLength;            // 
+  PLIBUSB_PIPE_HANDLE             PipeHandle;                   // 
+
+
+} LIBUSB_TRANSFER, *PLIBUSB_TRANSFER;
 
 //
 // tag for allocations
