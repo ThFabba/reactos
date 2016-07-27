@@ -73,6 +73,14 @@ typedef struct _LIBUSB_RH_DESCRIPTORS {
 } LIBUSB_RH_DESCRIPTORS, *PLIBUSB_RH_DESCRIPTORS;
 
 //-----------------------------------------------------------------------------
+typedef struct _LIBUSB_SG_ELEMENT {
+
+  PHYSICAL_ADDRESS                SgPhysicalAddress;            //
+  ULONG                           SgTransferLength;             //
+
+} LIBUSB_SG_ELEMENT, *PLIBUSB_SG_ELEMENT;
+
+//-----------------------------------------------------------------------------
 typedef struct _LIBUSB_TRANSFER {
 
   PIRP                            Irp;                          // 
