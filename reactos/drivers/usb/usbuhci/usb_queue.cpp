@@ -80,7 +80,6 @@ CUSBQueue::QueryInterface(
 NTSTATUS
 CUSBQueue::Initialize(
     IN PUSBHARDWAREDEVICE Hardware,
-    IN PDMA_ADAPTER AdapterObject,
     IN PDMAMEMORYMANAGER MemManager,
     IN OPTIONAL PKSPIN_LOCK Lock)
 {

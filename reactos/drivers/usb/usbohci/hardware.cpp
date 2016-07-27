@@ -221,7 +221,7 @@ CUSBHardwareDevice::PnpStart(
     //
     // Initialize the UsbQueue now that we have an AdapterObject.
     //
-    Status = m_UsbQueue->Initialize(this, m_Adapter, m_MemoryManager, NULL);
+    Status = m_UsbQueue->Initialize(this, m_MemoryManager, NULL);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("Failed to Initialize the UsbQueue\n");

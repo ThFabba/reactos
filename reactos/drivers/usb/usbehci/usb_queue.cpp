@@ -48,7 +48,6 @@ public:
 protected:
     LONG m_Ref;                                                                         // reference count
     PKSPIN_LOCK m_Lock;                                                                  // list lock
-    PDMA_ADAPTER m_Adapter;                                                             // dma adapter
     PEHCIHARDWAREDEVICE m_Hardware;                                                     // stores hardware object
     PQUEUE_HEAD AsyncListQueueHead;                                                     // async queue head
     LIST_ENTRY m_CompletedRequestAsyncList;                                             // completed async request list
@@ -119,7 +118,6 @@ NTSTATUS
 STDMETHODCALLTYPE
 CUSBQueue::Initialize(
     IN PUSBHARDWAREDEVICE Hardware,
-    IN PDMA_ADAPTER AdapterObject,
     IN PDMAMEMORYMANAGER MemManager,
     IN OPTIONAL PKSPIN_LOCK Lock)
 {

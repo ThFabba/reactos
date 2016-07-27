@@ -443,7 +443,6 @@ typedef IUSBRequest *PUSBREQUEST;
 #define DEFINE_ABSTRACT_USBQUEUE()                                          \
     STDMETHOD_(NTSTATUS, Initialize)( THIS_                                 \
         IN PUSBHARDWAREDEVICE Hardware,                                     \
-        IN PDMA_ADAPTER AdapterObject,                                      \
         IN PDMAMEMORYMANAGER MemManager,                                    \
         IN OPTIONAL PKSPIN_LOCK Lock) PURE;                                 \
                                                                             \
@@ -460,7 +459,6 @@ typedef IUSBRequest *PUSBREQUEST;
 #define IMP_IUSBQUEUE                                                       \
     STDMETHODIMP_(NTSTATUS) Initialize(                                     \
         IN PUSBHARDWAREDEVICE Hardware,                                     \
-        IN PDMA_ADAPTER AdapterObject,                                      \
         IN PDMAMEMORYMANAGER MemManager,                                    \
         IN OPTIONAL PKSPIN_LOCK Lock);                                      \
                                                                             \
