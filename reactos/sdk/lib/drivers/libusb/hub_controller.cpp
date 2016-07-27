@@ -903,6 +903,48 @@ ValidateTransferParameters(PURB Urb)
 }
 
 //-----------------------------------------------------------------------------------------
+#if 0
+VOID
+CompleteTransfer(PURB Urb, USBD_STATUS TransferStatus)
+{
+  PLIBUSB_TRANSFER  Transfer;
+  PIRP              Irp;
+  KIRQL             OldIrql;
+
+  DPRINT("CompleteTransfer: ... \n");
+
+  Transfer = (PLIBUSB_TRANSFER)UrbTransfer->hca.Reserved8[0];
+
+
+  if ( Urb->UrbHeader.UsbdFlags & USBD_FLAG_ALLOCATED_MDL  )
+  {
+    IoFreeMdl(Transfer->TransferBufferMDL);
+    Urb->UrbHeader.UsbdFlags |= ~USBD_FLAG_ALLOCATED_MDL;
+  }
+
+  Urb->UrbControlTransfer.hca.Reserved8[0] = NULL;
+  Urb->UrbHeader.UsbdFlags |= ~USBD_FLAG_ALLOCATED_TRANSFER;
+
+  Irp = Transfer->Irp;
+
+  if ( Irp )
+  {
+    Irp->IoStatus.Status = Status;
+    Irp->IoStatus.Information = 0;
+
+    KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    KeLowerIrql(OldIrql);
+  }
+
+
+  ExFreePool(Transfer);
+
+  DPRINT("CompleteTransfer: exit\n");
+}
+#endif
+
+//-----------------------------------------------------------------------------------------
 NTSTATUS
 AllocateTransfer(PIRP Irp, PURB Urb)
 {
@@ -1029,12 +1071,16 @@ CHubController::HandleBulkOrInterruptTransfer(
     if ( !NT_SUCCESS(Status) )
     {
         DPRINT1("[%s] HandleBulkOrInterruptTransfer: invalid transfer parameters - %p\n", Status);
-        return STATUS_DEVICE_NOT_CONNECTED;
+        return Status;
     }
 
     Status = AllocateTransfer(Irp, Urb);
+    if ( !NT_SUCCESS(Status) )
+    {
+        DPRINT1("[%s] HandleBulkOrInterruptTransfer: failed to allocate transfer block - %p\n", Status);
+        return Status;
+    }
 
-DPRINT("AllocateTransfer return - %x\n", Status);
 ASSERT(FALSE);
 
     return UsbDevice->SubmitIrp(Irp);
