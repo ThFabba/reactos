@@ -13,8 +13,7 @@
 //#define NDEBUG
 #include <debug.h>
 
-VOID NTAPI StatusChangeEndpointCallBack(
-    PVOID Context);
+VOID NTAPI StatusChangeEndpointCallBack(PVOID Context);
 
 class CHubController : public IHubController,
                        public IDispatchIrp
@@ -852,12 +851,67 @@ CHubController::HandleIsochronousTransfer(
 
 //-----------------------------------------------------------------------------------------
 NTSTATUS
+ValidateTransferParameters(PURB Urb)
+{
+  struct _URB_CONTROL_TRANSFER *  UrbTransfer;
+  PMDL                            Mdl;
+
+  //DPRINT("ValidateTransferParameters: Urb - %p\n", Urb);
+
+  UrbTransfer = &Urb->UrbControlTransfer;
+
+  if ( UrbTransfer->TransferBuffer == NULL     &&
+       UrbTransfer->TransferBufferMDL == NULL  &&
+       UrbTransfer->TransferBufferLength > 0 )
+  {
+    return STATUS_INVALID_PARAMETER;
+  }
+
+  if ( (UrbTransfer->TransferBuffer > 0 || UrbTransfer->TransferBufferMDL > 0) &&
+       UrbTransfer->TransferBufferLength == 0 )
+  {
+    return STATUS_INVALID_PARAMETER;
+  }
+
+  if ( UrbTransfer->TransferBuffer != NULL       &&
+       UrbTransfer->TransferBufferMDL == NULL    &&
+       UrbTransfer->TransferBufferLength != 0 )
+  {
+#if 0
+    DPRINT("ValidateTransferParameters: TransferBuffer       - %p\n", UrbTransfer->TransferBuffer);
+    DPRINT("ValidateTransferParameters: TransferBufferMDL    - %p\n", UrbTransfer->TransferBufferMDL);
+    DPRINT("ValidateTransferParameters: TransferBufferLength - %p\n", UrbTransfer->TransferBufferLength);
+#endif
+
+    Mdl = IoAllocateMdl(
+              UrbTransfer->TransferBuffer,
+              UrbTransfer->TransferBufferLength,
+              FALSE,
+              FALSE,
+              NULL);
+
+    if ( !Mdl )
+      return STATUS_INSUFFICIENT_RESOURCES;
+
+    MmBuildMdlForNonPagedPool(Mdl);
+
+    UrbTransfer->TransferBufferMDL = Mdl;
+    Urb->UrbHeader.UsbdFlags |= USBD_FLAG_ALLOCATED_MDL;
+  }
+
+  return STATUS_SUCCESS;
+}
+
+//-----------------------------------------------------------------------------------------
+NTSTATUS
 CHubController::HandleBulkOrInterruptTransfer(
     IN OUT PIRP Irp,
     PURB Urb)
 {
     PUSBDEVICE UsbDevice;
     PLIBUSB_PIPE_HANDLE PipeHandle = NULL;
+    NTSTATUS Status;
+
     //
     // First check if the request is for the Status Change Endpoint
     //
@@ -914,6 +968,16 @@ CHubController::HandleBulkOrInterruptTransfer(
     // get device
     //
     UsbDevice = PUSBDEVICE(Urb->UrbHeader.UsbdDeviceHandle);
+
+    Status = ValidateTransferParameters(Urb);
+    if ( !NT_SUCCESS(Status) )
+    {
+        DPRINT1("[%s] HandleBulkOrInterruptTransfer: invalid transfer parameters - %p\n", Status);
+        return STATUS_DEVICE_NOT_CONNECTED;
+    }
+
+ASSERT(FALSE);
+
     return UsbDevice->SubmitIrp(Irp);
 }
 
