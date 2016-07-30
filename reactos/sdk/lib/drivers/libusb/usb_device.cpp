@@ -983,6 +983,14 @@ CUSBDevice::BuildInterfaceDescriptor(
             EndpointDescriptor = (PUSB_ENDPOINT_DESCRIPTOR)((ULONG_PTR)EndpointDescriptor + EndpointDescriptor->bLength);
         }
 
+        if (PipeInfo->PipeFlags & USBD_PF_CHANGE_MAX_PACKET)
+        {
+            //
+            // See structure _URB_SELECT_CONFIGURATION declaration and its "Interface" member.
+            //
+            EndpointDescriptor->wMaxPacketSize = PipeInfo->MaximumPacketSize;
+        }
+
         // store in interface info
         RtlCopyMemory(&PipeHandle->EndPointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
 
