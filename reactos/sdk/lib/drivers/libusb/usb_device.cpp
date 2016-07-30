@@ -931,6 +931,8 @@ CUSBDevice::BuildInterfaceDescriptor(
     PLIBUSB_INTERFACE_HANDLE InterfaceHandle;
     PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor;
     ULONG PipeIndex;
+    PUSBD_PIPE_INFORMATION PipeInfo;
+    PLIBUSB_PIPE_HANDLE PipeHandle;
 
     // allocate interface handle
     InterfaceHandle = (PLIBUSB_INTERFACE_HANDLE)ExAllocatePool(NonPagedPool, sizeof(LIBUSB_INTERFACE_HANDLE) + (InterfaceDescriptor->bNumEndpoints - 1) * sizeof(LIBUSB_PIPE_HANDLE));
@@ -961,6 +963,9 @@ CUSBDevice::BuildInterfaceDescriptor(
     // now copy all endpoint information
     for(PipeIndex = 0; PipeIndex < InterfaceDescriptor->bNumEndpoints; PipeIndex++)
     {
+        PipeInfo = &InterfaceInfo->Pipes[PipeIndex];
+        PipeHandle = &InterfaceHandle->PipeHandle[PipeIndex];
+
         while(EndpointDescriptor->bDescriptorType != USB_ENDPOINT_DESCRIPTOR_TYPE)
         {
             // skip intermediate descriptors
@@ -979,19 +984,19 @@ CUSBDevice::BuildInterfaceDescriptor(
         }
 
         // store in interface info
-        RtlCopyMemory(&InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
+        RtlCopyMemory(&PipeHandle->EndPointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
 
         DPRINT("Configuration Descriptor %p Length %lu\n", m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor, m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor->wTotalLength);
         DPRINT("EndpointDescriptor %p DescriptorType %x bLength %x\n", EndpointDescriptor, EndpointDescriptor->bDescriptorType, EndpointDescriptor->bLength);
-        DPRINT("EndpointDescriptorHandle %p bAddress %x bmAttributes %x\n",&InterfaceHandle->PipeHandle[PipeIndex], InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress,
-            InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bmAttributes);
+        DPRINT("EndpointDescriptorHandle %p bAddress %x bmAttributes %x\n",&InterfaceHandle->PipeHandle[PipeIndex], PipeHandle->EndPointDescriptor.bEndpointAddress,
+            PipeHandle->EndPointDescriptor.bmAttributes);
 
         // copy pipe info
-        InterfaceInfo->Pipes[PipeIndex].MaximumPacketSize = InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.wMaxPacketSize;
-        InterfaceInfo->Pipes[PipeIndex].EndpointAddress = InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress;
-        InterfaceInfo->Pipes[PipeIndex].Interval = InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bInterval;
-        InterfaceInfo->Pipes[PipeIndex].PipeType = (USBD_PIPE_TYPE)InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bmAttributes;
-        InterfaceInfo->Pipes[PipeIndex].PipeHandle = (PVOID)&InterfaceHandle->PipeHandle[PipeIndex];
+        PipeInfo->MaximumPacketSize = PipeHandle->EndPointDescriptor.wMaxPacketSize;
+        PipeInfo->EndpointAddress   = PipeHandle->EndPointDescriptor.bEndpointAddress;
+        PipeInfo->Interval          = PipeHandle->EndPointDescriptor.bInterval;
+        PipeInfo->PipeType          = (USBD_PIPE_TYPE)PipeHandle->EndPointDescriptor.bmAttributes;
+        PipeInfo->PipeHandle        = (USBD_PIPE_HANDLE)PipeHandle;
 
         // move to next descriptor
         EndpointDescriptor = (PUSB_ENDPOINT_DESCRIPTOR)((ULONG_PTR)EndpointDescriptor + EndpointDescriptor->bLength);
