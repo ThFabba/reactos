@@ -132,6 +132,7 @@ CUSBDevice::Initialize(
     // no device address has been set yet
     //
     m_DeviceAddress = 0;
+    m_ConfigurationIndex = 0;
 
     //
     // get usb request queue
