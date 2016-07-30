@@ -13,6 +13,7 @@ typedef struct _LIBUSB_PIPE_HANDLE
     UCHAR DataToggle;
     UCHAR Padded[2];
     ULONG Flags;
+    ULONG MaxTransferSize;
 } LIBUSB_PIPE_HANDLE, *PLIBUSB_PIPE_HANDLE;
 
 //-----------------------------------------------------------------------------
