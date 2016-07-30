@@ -10,7 +10,7 @@
 
 #include "libusb.h"
 
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 
 class CUSBDevice : public IUSBDevice
@@ -133,7 +133,6 @@ CUSBDevice::Initialize(
     //
     m_DeviceAddress = 0;
     m_ConfigurationIndex = 0;
-
     //
     // get usb request queue
     //
@@ -1246,7 +1245,7 @@ CUSBDevice::SelectInterface(
         // copy pipe handle
         DPRINT1("PipeIndex %lu\n", PipeIndex);
         DPRINT1("EndpointAddress %x\n", InterfaceInfo->Pipes[PipeIndex].EndpointAddress);
-        DPRINT1("Interval %c\n", InterfaceInfo->Pipes[PipeIndex].Interval);
+        DPRINT1("Interval %lu\n", InterfaceInfo->Pipes[PipeIndex].Interval);
         DPRINT1("MaximumPacketSize %hu\n", InterfaceInfo->Pipes[PipeIndex].MaximumPacketSize);
         DPRINT1("MaximumTransferSize %lu\n", InterfaceInfo->Pipes[PipeIndex].MaximumTransferSize);
         DPRINT1("PipeFlags %lu\n", InterfaceInfo->Pipes[PipeIndex].PipeFlags);
