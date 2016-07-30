@@ -89,6 +89,7 @@ protected:
     PUSBQUEUE m_Queue;
     PDMAMEMORYMANAGER m_DmaManager;
     LPCSTR m_USBType;
+    PDMA_ADAPTER m_DmaAdapter;
 
     PLIBUSB_CONFIGURATION_HANDLE m_ConfigHandle;
 };
@@ -928,14 +929,32 @@ CUSBDevice::OpenPipe(IN PLIBUSB_PIPE_HANDLE PipeHandle)
 {
     ULONG MaxTransferSize;
     ULONG RequiredBufferLength;
+    PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer;
 
     m_Device->QueryEndpointRequirements(
          PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK,
          &MaxTransferSize,
-         &RequiredBufferLength); 
+         &RequiredBufferLength,
+         &m_DmaAdapter); 
 
     DPRINT("OpenPipe: MaxTransferSize      - %x\n", MaxTransferSize);
     DPRINT("OpenPipe: RequiredBufferLength - %x\n", RequiredBufferLength);
+
+    if (RequiredBufferLength)
+      HeaderBuffer = m_DmaManager->AllocateCommonBuffer(m_DmaAdapter, RequiredBufferLength);
+    else
+      HeaderBuffer = NULL;
+
+    DPRINT("OpenPipe: BufferLength - %x\n", HeaderBuffer->BufferLength);
+
+    if (HeaderBuffer)
+    {
+        PipeHandle->HeaderDmaBuffer = HeaderBuffer;
+    }
+    else
+    {
+        PipeHandle->HeaderDmaBuffer = NULL;
+    }
 
 ASSERT(FALSE);
     return 0;
