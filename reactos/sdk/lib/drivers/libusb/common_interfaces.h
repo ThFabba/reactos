@@ -234,6 +234,11 @@ struct IUSBQueue;
      STDMETHOD_(NTSTATUS, GetHwResoursesSize)( THIS_                        \
         OUT PULONG HwResoursesSize) PURE;                                   \
                                                                             \
+     STDMETHOD_(NTSTATUS, QueryEndpointRequirements)( THIS_                 \
+        IN ULONG TransferType,                                              \
+        OUT PULONG OutMaxTransferSize,                                      \
+        OUT PULONG OutRequiredBufferLength) PURE;                           \
+                                                                            \
      STDMETHOD_(BOOLEAN, InterruptServiceRoutine)( THIS_                    \
         IN PKINTERRUPT Interrupt,                                           \
         IN PVOID ServiceContext) PURE;                                      \
@@ -288,6 +293,11 @@ struct IUSBQueue;
                                                                             \
      STDMETHODIMP_(NTSTATUS) GetHwResoursesSize(                            \
         OUT PULONG HwResoursesSize);                                        \
+                                                                            \
+     STDMETHODIMP_(NTSTATUS) QueryEndpointRequirements(                     \
+        IN ULONG TransferType,                                              \
+        OUT PULONG OutMaxTransferSize,                                      \
+        OUT PULONG OutRequiredBufferLength);                                \
                                                                             \
      STDMETHODIMP_(BOOLEAN) InterruptServiceRoutine(                        \
         IN PKINTERRUPT Interrupt,                                           \

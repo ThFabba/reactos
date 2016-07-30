@@ -141,7 +141,6 @@ CUSBHardwareDevice::GetUSBType()
     return "USBUHCI";
 }
 
-
 NTSTATUS
 CUSBHardwareDevice::Initialize(
     IN PDRIVER_OBJECT DriverObject,
@@ -1052,6 +1051,18 @@ CUSBHardwareDevice::SetStatusChangeEndpointCallBack(
 {
     m_SCECallBack = (HD_INIT_CALLBACK*)CallBack;
     m_SCEContext = Context;
+}
+
+NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::QueryEndpointRequirements(
+    IN ULONG TransferType,
+    OUT PULONG OutMaxTransferSize,
+    OUT PULONG OutRequiredBufferLength)
+{
+
+ASSERT(FALSE);
+    return 0;
 }
 
 BOOLEAN

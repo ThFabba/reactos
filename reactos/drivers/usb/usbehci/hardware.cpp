@@ -1117,6 +1117,19 @@ CUSBHardwareDevice::SetStatusChangeEndpointCallBack(
     m_SCEContext = Context;
 }
 
+NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::QueryEndpointRequirements(
+    IN ULONG TransferType,
+    OUT PULONG OutMaxTransferSize,
+    OUT PULONG OutRequiredBufferLength)
+{
+
+ASSERT(FALSE);
+    return 0;
+}
+
+
 BOOLEAN
 STDMETHODCALLTYPE
 CUSBHardwareDevice::InterruptServiceRoutine(
