@@ -67,6 +67,7 @@ public:
     virtual VOID DumpConfigurationDescriptor(PUSB_CONFIGURATION_DESCRIPTOR ConfigurationDescriptor);
     virtual NTSTATUS GetConfigurationDescriptor(UCHAR ConfigurationIndex, USHORT BufferSize, PVOID Buffer);
     virtual NTSTATUS BuildInterfaceDescriptor(IN ULONG ConfigurationIndex, IN PUSB_INTERFACE_DESCRIPTOR InterfaceDescriptor, OUT PUSBD_INTERFACE_INFORMATION InterfaceInfo, OUT PLIBUSB_INTERFACE_HANDLE *OutInterfaceHandle);
+    virtual NTSTATUS OpenPipe(IN PLIBUSB_PIPE_HANDLE PipeHandle);
 
 
     // constructor / destructor
@@ -920,6 +921,26 @@ CUSBDevice::SubmitSetupPacket(
     //
     return Status;
 }
+
+//----------------------------------------------------------------------------------------
+NTSTATUS
+CUSBDevice::OpenPipe(IN PLIBUSB_PIPE_HANDLE PipeHandle)
+{
+    ULONG MaxTransferSize;
+    ULONG RequiredBufferLength;
+
+    m_Device->QueryEndpointRequirements(
+         PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK,
+         &MaxTransferSize,
+         &RequiredBufferLength); 
+
+    DPRINT("OpenPipe: MaxTransferSize      - %x\n", MaxTransferSize);
+    DPRINT("OpenPipe: RequiredBufferLength - %x\n", RequiredBufferLength);
+
+ASSERT(FALSE);
+    return 0;
+}
+
 //----------------------------------------------------------------------------------------
 NTSTATUS
 CUSBDevice::BuildInterfaceDescriptor(
