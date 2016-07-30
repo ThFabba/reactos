@@ -89,7 +89,7 @@ protected:
     PDMAMEMORYMANAGER m_DmaManager;
     LPCSTR m_USBType;
 
-    PUSB_CONFIGURATION m_ConfigurationDescriptors;
+    PLIBUSB_CONFIGURATION_HANDLE m_ConfigHandle;
 };
 
 //----------------------------------------------------------------------------------------
@@ -373,10 +373,10 @@ CUSBDevice::SetDeviceAddress(
     PC_ASSERT(m_DeviceDescriptor.bNumConfigurations);
 
     // allocate configuration descriptor
-    m_ConfigurationDescriptors = (PUSB_CONFIGURATION) ExAllocatePoolWithTag(NonPagedPool, sizeof(USB_CONFIGURATION) * m_DeviceDescriptor.bNumConfigurations, TAG_USBLIB);
+    m_ConfigHandle = (PLIBUSB_CONFIGURATION_HANDLE) ExAllocatePoolWithTag(NonPagedPool, sizeof(LIBUSB_CONFIGURATION_HANDLE) * m_DeviceDescriptor.bNumConfigurations, TAG_USBLIB);
 
     // zero configuration descriptor
-    RtlZeroMemory(m_ConfigurationDescriptors, sizeof(USB_CONFIGURATION) * m_DeviceDescriptor.bNumConfigurations);
+    RtlZeroMemory(m_ConfigHandle, sizeof(LIBUSB_CONFIGURATION_HANDLE) * m_DeviceDescriptor.bNumConfigurations);
 
     // retrieve the configuration descriptors
     for (Index = 0; Index < m_DeviceDescriptor.bNumConfigurations; Index++)
@@ -735,7 +735,7 @@ CUSBDevice::CreateConfigurationDescriptor(
     //
     // sanity checks
     //
-    PC_ASSERT(m_ConfigurationDescriptors);
+    PC_ASSERT(m_ConfigHandle);
 
     //
     // first allocate a buffer which should be enough to store all different interfaces and endpoints
@@ -792,8 +792,8 @@ CUSBDevice::CreateConfigurationDescriptor(
     //
     // request is complete, initialize configuration descriptor
     //
-    m_ConfigurationDescriptors[Index].ConfigurationDescriptor = ConfigurationDescriptor;
-    InitializeListHead(&m_ConfigurationDescriptors[Index].InterfaceList);
+    m_ConfigHandle[Index].ConfigurationDescriptor = ConfigurationDescriptor;
+    InitializeListHead(&m_ConfigHandle[Index].InterfaceList);
 
     //
     // done
@@ -821,8 +821,8 @@ CUSBDevice::GetConfigurationDescriptors(
     PC_ASSERT(m_DeviceDescriptor.bNumConfigurations == 1);
 
     // copy configuration descriptor
-    Length = min(m_ConfigurationDescriptors[0].ConfigurationDescriptor->wTotalLength, BufferLength);
-    RtlCopyMemory(ConfigDescriptorBuffer, m_ConfigurationDescriptors[0].ConfigurationDescriptor, Length);
+    Length = min(m_ConfigHandle[0].ConfigurationDescriptor->wTotalLength, BufferLength);
+    RtlCopyMemory(ConfigDescriptorBuffer, m_ConfigHandle[0].ConfigurationDescriptor, Length);
     *OutBufferLength = Length;
 }
 
@@ -835,7 +835,7 @@ CUSBDevice::GetConfigurationDescriptorsLength()
     //
     PC_ASSERT(m_DeviceDescriptor.bNumConfigurations == 1);
 
-    return m_ConfigurationDescriptors[0].ConfigurationDescriptor->wTotalLength;
+    return m_ConfigHandle[0].ConfigurationDescriptor->wTotalLength;
 }
 //----------------------------------------------------------------------------------------
 VOID
@@ -953,7 +953,7 @@ CUSBDevice::BuildInterfaceDescriptor(
 
     // init interface handle
     UsbInterface->InterfaceDescriptor = InterfaceDescriptor;
-    InsertTailList(&m_ConfigurationDescriptors[ConfigurationIndex].InterfaceList, &UsbInterface->ListEntry);
+    InsertTailList(&m_ConfigHandle[ConfigurationIndex].InterfaceList, &UsbInterface->ListEntry);
 
     // grab first endpoint descriptor
     EndpointDescriptor = (PUSB_ENDPOINT_DESCRIPTOR) (InterfaceDescriptor + 1);
@@ -981,7 +981,7 @@ CUSBDevice::BuildInterfaceDescriptor(
         // store in interface info
         RtlCopyMemory(&UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
 
-        DPRINT("Configuration Descriptor %p Length %lu\n", m_ConfigurationDescriptors[ConfigurationIndex].ConfigurationDescriptor, m_ConfigurationDescriptors[ConfigurationIndex].ConfigurationDescriptor->wTotalLength);
+        DPRINT("Configuration Descriptor %p Length %lu\n", m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor, m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor->wTotalLength);
         DPRINT("EndpointDescriptor %p DescriptorType %x bLength %x\n", EndpointDescriptor, EndpointDescriptor->bDescriptorType, EndpointDescriptor->bLength);
         DPRINT("EndpointDescriptorHandle %p bAddress %x bmAttributes %x\n",&UsbInterface->PipeHandle[PipeIndex], UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress,
             UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bmAttributes);
@@ -1029,7 +1029,7 @@ CUSBDevice::SelectConfiguration(
         // find configuration index
         for (Index = 0; Index < m_DeviceDescriptor.bNumConfigurations; Index++)
         {
-            if (m_ConfigurationDescriptors[Index].ConfigurationDescriptor->bConfigurationValue  == ConfigurationDescriptor->bConfigurationValue)
+            if (m_ConfigHandle[Index].ConfigurationDescriptor->bConfigurationValue  == ConfigurationDescriptor->bConfigurationValue)
             {
                 // found configuration index
                 ConfigurationIndex = Index;
@@ -1044,7 +1044,7 @@ CUSBDevice::SelectConfiguration(
         }
 
         // sanity check
-        ASSERT(ConfigurationDescriptor->bNumInterfaces <= m_ConfigurationDescriptors[ConfigurationIndex].ConfigurationDescriptor->bNumInterfaces);
+        ASSERT(ConfigurationDescriptor->bNumInterfaces <= m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor->bNumInterfaces);
 
         // get configuration value
         bConfigurationValue = ConfigurationDescriptor->bConfigurationValue;
@@ -1077,10 +1077,10 @@ CUSBDevice::SelectConfiguration(
     }
 
     // destroy old interface info
-    while (!IsListEmpty(&m_ConfigurationDescriptors[m_ConfigurationIndex].InterfaceList))
+    while (!IsListEmpty(&m_ConfigHandle[m_ConfigurationIndex].InterfaceList))
     {
         // remove entry
-        Entry = RemoveHeadList(&m_ConfigurationDescriptors[m_ConfigurationIndex].InterfaceList);
+        Entry = RemoveHeadList(&m_ConfigHandle[m_ConfigurationIndex].InterfaceList);
 
         // get interface info
         UsbInterface = (PUSB_INTERFACE)CONTAINING_RECORD(Entry, USB_INTERFACE, ListEntry);
@@ -1090,13 +1090,13 @@ CUSBDevice::SelectConfiguration(
     }
 
     // sanity check
-    ASSERT(IsListEmpty(&m_ConfigurationDescriptors[ConfigurationIndex].InterfaceList));
+    ASSERT(IsListEmpty(&m_ConfigHandle[ConfigurationIndex].InterfaceList));
 
     // store new configuration device index
     m_ConfigurationIndex = ConfigurationIndex;
 
     // store configuration handle
-    *ConfigurationHandle = &m_ConfigurationDescriptors[ConfigurationIndex];
+    *ConfigurationHandle = &m_ConfigHandle[ConfigurationIndex];
 
     // copy interface info and pipe info
     for(InterfaceIndex = 0; InterfaceIndex < ConfigurationDescriptor->bNumInterfaces; InterfaceIndex++)
@@ -1109,7 +1109,7 @@ CUSBDevice::SelectConfiguration(
 #endif
 
         // find interface descriptor
-        InterfaceDescriptor = USBD_ParseConfigurationDescriptor(m_ConfigurationDescriptors[ConfigurationIndex].ConfigurationDescriptor, InterfaceInfo->InterfaceNumber, InterfaceInfo->AlternateSetting);
+        InterfaceDescriptor = USBD_ParseConfigurationDescriptor(m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor, InterfaceInfo->InterfaceNumber, InterfaceInfo->AlternateSetting);
 
         // sanity checks
         ASSERT(InterfaceDescriptor != NULL);
@@ -1153,7 +1153,7 @@ CUSBDevice::SelectInterface(
     // check if handle is valid
     for(Index = 0; Index < m_DeviceDescriptor.bNumConfigurations; Index++)
     {
-        if (&m_ConfigurationDescriptors[Index] == ConfigurationHandle)
+        if (&m_ConfigHandle[Index] == ConfigurationHandle)
         {
             // found configuration index
             ConfigurationIndex = Index;
@@ -1192,8 +1192,8 @@ CUSBDevice::SelectInterface(
 
     // find interface
     Found = FALSE;
-    Entry = m_ConfigurationDescriptors[ConfigurationIndex].InterfaceList.Flink;
-    while (Entry != &m_ConfigurationDescriptors[ConfigurationIndex].InterfaceList)
+    Entry = m_ConfigHandle[ConfigurationIndex].InterfaceList.Flink;
+    while (Entry != &m_ConfigHandle[ConfigurationIndex].InterfaceList)
     {
         // grab interface descriptor
         UsbInterface = (PUSB_INTERFACE)CONTAINING_RECORD(Entry, USB_INTERFACE, ListEntry);
@@ -1212,7 +1212,7 @@ CUSBDevice::SelectInterface(
     if (!Found)
     {
         // find interface descriptor
-        InterfaceDescriptor = USBD_ParseConfigurationDescriptor(m_ConfigurationDescriptors[ConfigurationIndex].ConfigurationDescriptor, InterfaceInfo->InterfaceNumber, InterfaceInfo->AlternateSetting);
+        InterfaceDescriptor = USBD_ParseConfigurationDescriptor(m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor, InterfaceInfo->InterfaceNumber, InterfaceInfo->AlternateSetting);
         if (!InterfaceDescriptor)
         {
             DPRINT1("[%s] No such interface Alternate %x InterfaceNumber %x\n", m_USBType, InterfaceInfo->AlternateSetting, InterfaceInfo->InterfaceNumber);
