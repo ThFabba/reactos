@@ -27,6 +27,7 @@ typedef struct _LIBUSB_PIPE_HANDLE
     UCHAR Padded[2];
     ULONG Flags;
     ULONG MaxTransferSize;
+    PLIBUSB_COMMON_BUFFER_HEADER HeaderDmaBuffer;
 } LIBUSB_PIPE_HANDLE, *PLIBUSB_PIPE_HANDLE;
 
 //-----------------------------------------------------------------------------
