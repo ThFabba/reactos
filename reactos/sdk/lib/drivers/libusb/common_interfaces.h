@@ -281,7 +281,7 @@ struct IUSBQueue;
      STDMETHODIMP_(NTSTATUS) GetHwResoursesSize(                            \
         OUT PULONG HwResoursesSize);                                        \
                                                                             \
-     STDMETHOD_(BOOLEAN, InterruptServiceRoutine)(                          \
+     STDMETHODIMP_(BOOLEAN) InterruptServiceRoutine(                        \
         IN PKINTERRUPT Interrupt,                                           \
         IN PVOID ServiceContext);                                           \
                                                                             \
