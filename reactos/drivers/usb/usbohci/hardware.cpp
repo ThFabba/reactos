@@ -122,7 +122,6 @@ CUSBHardwareDevice::GetUSBType()
     return "USBOHCI";
 }
 
-
 NTSTATUS
 STDMETHODCALLTYPE
 CUSBHardwareDevice::Initialize(
@@ -1121,6 +1120,52 @@ CUSBHardwareDevice::GetCurrentFrameNumber(
 
 }
 
+NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::QueryEndpointRequirements(
+    IN ULONG TransferType,
+    OUT PULONG OutMaxTransferSize,
+    OUT PULONG OutRequiredBufferLength)
+{
+    ULONG MaxTransferSize;
+    ULONG RequiredBufferLength;
+
+    switch ( TransferType )
+    {
+      case USB_ENDPOINT_TYPE_CONTROL:
+        DPRINT("QueryEndpointRequirements: USB_ENDPOINT_TYPE_CONTROL\n");
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_ISOCHRONOUS:
+        DPRINT("QueryEndpointRequirements: USB_ENDPOINT_TYPE_ISOCHRONOUS\n");
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_BULK:
+        DPRINT("QueryEndpointRequirements: USB_ENDPOINT_TYPE_BULK\n");
+        MaxTransferSize = 0x40000;
+        RequiredBufferLength = 0x0F00;
+        break;
+
+      case USB_ENDPOINT_TYPE_INTERRUPT:
+        DPRINT("QueryEndpointRequirements: USB_ENDPOINT_TYPE_INTERRUPT\n");
+        ASSERT(FALSE);
+        break;
+
+      default:
+        ASSERT(FALSE);
+        break;
+    }
+
+    if (OutMaxTransferSize)
+      *OutMaxTransferSize = MaxTransferSize;
+      
+    if (OutRequiredBufferLength)
+      *OutRequiredBufferLength = RequiredBufferLength;
+
+    return 0;
+}
 
 BOOLEAN
 STDMETHODCALLTYPE
