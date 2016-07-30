@@ -240,7 +240,8 @@ struct IUSBQueue;
      STDMETHOD_(NTSTATUS, QueryEndpointRequirements)( THIS_                 \
         IN ULONG TransferType,                                              \
         OUT PULONG OutMaxTransferSize,                                      \
-        OUT PULONG OutRequiredBufferLength) PURE;                           \
+        OUT PULONG OutRequiredBufferLength,                                 \
+        OUT PDMA_ADAPTER * OutDmaAdapter) PURE;                             \
                                                                             \
      STDMETHOD_(BOOLEAN, InterruptServiceRoutine)( THIS_                    \
         IN PKINTERRUPT Interrupt,                                           \
@@ -300,7 +301,8 @@ struct IUSBQueue;
      STDMETHODIMP_(NTSTATUS) QueryEndpointRequirements(                     \
         IN ULONG TransferType,                                              \
         OUT PULONG OutMaxTransferSize,                                      \
-        OUT PULONG OutRequiredBufferLength);                                \
+        OUT PULONG OutRequiredBufferLength,                                 \
+        OUT PDMA_ADAPTER * OutDmaAdapter);                                  \
                                                                             \
      STDMETHODIMP_(BOOLEAN) InterruptServiceRoutine(                        \
         IN PKINTERRUPT Interrupt,                                           \
