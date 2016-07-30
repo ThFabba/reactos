@@ -8,6 +8,7 @@ typedef struct _LIBUSB_PIPE_HANDLE
     UCHAR HubAddress;
     UCHAR HubPort;
     UCHAR DataToggle;
+    UCHAR Padded[2];
 } LIBUSB_PIPE_HANDLE, *PLIBUSB_PIPE_HANDLE;
 
 typedef struct _USB_INTERFACE
