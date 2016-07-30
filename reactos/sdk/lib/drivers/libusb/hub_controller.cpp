@@ -1237,7 +1237,39 @@ CHubController::HandleSelectConfiguration(
 {
     PUSBDEVICE UsbDevice;
     PUSBD_INTERFACE_INFORMATION InterfaceInfo;
+    ULONG ix;
     NTSTATUS Status;
+
+    //
+    // check if this is a valid InterfaceInfo
+    //
+    InterfaceInfo = &Urb->UrbSelectConfiguration.Interface;
+
+    if (!InterfaceInfo)
+    {
+      return STATUS_INVALID_PARAMETER;
+    }
+
+    ix = 0;
+
+    //
+    // scaning InterfaceInfo
+    //
+    do
+    {
+      ++ix;
+      InterfaceInfo = (PUSBD_INTERFACE_INFORMATION)((ULONG_PTR)InterfaceInfo + InterfaceInfo->Length);
+    }
+    while ( (ULONG_PTR)InterfaceInfo < (ULONG_PTR)Urb + Urb->UrbHeader.Length );
+
+    //
+    // if this is a not valid InterfaceInfo then exit
+    //
+    if ( ix == 0 ||
+         ix != Urb->UrbSelectConfiguration.ConfigurationDescriptor->bNumInterfaces )
+    {
+      return STATUS_INVALID_PARAMETER;
+    }
 
     //
     // is the request for the Root Hub
