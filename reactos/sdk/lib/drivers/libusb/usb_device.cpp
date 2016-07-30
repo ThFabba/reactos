@@ -66,7 +66,7 @@ public:
     virtual VOID DumpDeviceDescriptor(PUSB_DEVICE_DESCRIPTOR DeviceDescriptor);
     virtual VOID DumpConfigurationDescriptor(PUSB_CONFIGURATION_DESCRIPTOR ConfigurationDescriptor);
     virtual NTSTATUS GetConfigurationDescriptor(UCHAR ConfigurationIndex, USHORT BufferSize, PVOID Buffer);
-    virtual NTSTATUS BuildInterfaceDescriptor(IN ULONG ConfigurationIndex, IN PUSB_INTERFACE_DESCRIPTOR InterfaceDescriptor, OUT PUSBD_INTERFACE_INFORMATION InterfaceInfo, OUT PUSB_INTERFACE *OutUsbInterface);
+    virtual NTSTATUS BuildInterfaceDescriptor(IN ULONG ConfigurationIndex, IN PUSB_INTERFACE_DESCRIPTOR InterfaceDescriptor, OUT PUSBD_INTERFACE_INFORMATION InterfaceInfo, OUT PLIBUSB_INTERFACE_HANDLE *OutInterfaceHandle);
 
 
     // constructor / destructor
@@ -926,25 +926,25 @@ CUSBDevice::BuildInterfaceDescriptor(
     IN ULONG ConfigurationIndex,
     IN PUSB_INTERFACE_DESCRIPTOR InterfaceDescriptor,
     OUT PUSBD_INTERFACE_INFORMATION InterfaceInfo,
-    OUT PUSB_INTERFACE *OutUsbInterface)
+    OUT PLIBUSB_INTERFACE_HANDLE *OutInterfaceHandle)
 {
-    PUSB_INTERFACE UsbInterface;
+    PLIBUSB_INTERFACE_HANDLE InterfaceHandle;
     PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor;
     ULONG PipeIndex;
 
     // allocate interface handle
-    UsbInterface = (PUSB_INTERFACE)ExAllocatePool(NonPagedPool, sizeof(USB_INTERFACE) + (InterfaceDescriptor->bNumEndpoints - 1) * sizeof(LIBUSB_PIPE_HANDLE));
-    if (!UsbInterface)
+    InterfaceHandle = (PLIBUSB_INTERFACE_HANDLE)ExAllocatePool(NonPagedPool, sizeof(LIBUSB_INTERFACE_HANDLE) + (InterfaceDescriptor->bNumEndpoints - 1) * sizeof(LIBUSB_PIPE_HANDLE));
+    if (!InterfaceHandle)
     {
         // failed to allocate memory
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
     // zero descriptor
-    RtlZeroMemory(UsbInterface, sizeof(USB_INTERFACE) + (InterfaceDescriptor->bNumEndpoints - 1) * sizeof(LIBUSB_PIPE_HANDLE));
+    RtlZeroMemory(InterfaceHandle, sizeof(LIBUSB_INTERFACE_HANDLE) + (InterfaceDescriptor->bNumEndpoints - 1) * sizeof(LIBUSB_PIPE_HANDLE));
 
     // store handle
-    InterfaceInfo->InterfaceHandle = (USBD_INTERFACE_HANDLE)UsbInterface;
+    InterfaceInfo->InterfaceHandle = (USBD_INTERFACE_HANDLE)InterfaceHandle;
     InterfaceInfo->Class = InterfaceDescriptor->bInterfaceClass;
     InterfaceInfo->SubClass = InterfaceDescriptor->bInterfaceSubClass;
     InterfaceInfo->Protocol = InterfaceDescriptor->bInterfaceProtocol;
@@ -952,8 +952,8 @@ CUSBDevice::BuildInterfaceDescriptor(
 
 
     // init interface handle
-    UsbInterface->InterfaceDescriptor = InterfaceDescriptor;
-    InsertTailList(&m_ConfigHandle[ConfigurationIndex].InterfaceList, &UsbInterface->ListEntry);
+    InterfaceHandle->InterfaceDescriptor = InterfaceDescriptor;
+    InsertTailList(&m_ConfigHandle[ConfigurationIndex].InterfaceList, &InterfaceHandle->ListEntry);
 
     // grab first endpoint descriptor
     EndpointDescriptor = (PUSB_ENDPOINT_DESCRIPTOR) (InterfaceDescriptor + 1);
@@ -979,28 +979,28 @@ CUSBDevice::BuildInterfaceDescriptor(
         }
 
         // store in interface info
-        RtlCopyMemory(&UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
+        RtlCopyMemory(&InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
 
         DPRINT("Configuration Descriptor %p Length %lu\n", m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor, m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor->wTotalLength);
         DPRINT("EndpointDescriptor %p DescriptorType %x bLength %x\n", EndpointDescriptor, EndpointDescriptor->bDescriptorType, EndpointDescriptor->bLength);
-        DPRINT("EndpointDescriptorHandle %p bAddress %x bmAttributes %x\n",&UsbInterface->PipeHandle[PipeIndex], UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress,
-            UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bmAttributes);
+        DPRINT("EndpointDescriptorHandle %p bAddress %x bmAttributes %x\n",&InterfaceHandle->PipeHandle[PipeIndex], InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress,
+            InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bmAttributes);
 
         // copy pipe info
-        InterfaceInfo->Pipes[PipeIndex].MaximumPacketSize = UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.wMaxPacketSize;
-        InterfaceInfo->Pipes[PipeIndex].EndpointAddress = UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress;
-        InterfaceInfo->Pipes[PipeIndex].Interval = UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bInterval;
-        InterfaceInfo->Pipes[PipeIndex].PipeType = (USBD_PIPE_TYPE)UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bmAttributes;
-        InterfaceInfo->Pipes[PipeIndex].PipeHandle = (PVOID)&UsbInterface->PipeHandle[PipeIndex];
+        InterfaceInfo->Pipes[PipeIndex].MaximumPacketSize = InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.wMaxPacketSize;
+        InterfaceInfo->Pipes[PipeIndex].EndpointAddress = InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress;
+        InterfaceInfo->Pipes[PipeIndex].Interval = InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bInterval;
+        InterfaceInfo->Pipes[PipeIndex].PipeType = (USBD_PIPE_TYPE)InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bmAttributes;
+        InterfaceInfo->Pipes[PipeIndex].PipeHandle = (PVOID)&InterfaceHandle->PipeHandle[PipeIndex];
 
         // move to next descriptor
         EndpointDescriptor = (PUSB_ENDPOINT_DESCRIPTOR)((ULONG_PTR)EndpointDescriptor + EndpointDescriptor->bLength);
     }
 
-    if (OutUsbInterface)
+    if (OutInterfaceHandle)
     {
        // output result
-       *OutUsbInterface = UsbInterface;
+       *OutInterfaceHandle = InterfaceHandle;
     }
     return STATUS_SUCCESS;
 
@@ -1021,7 +1021,7 @@ CUSBDevice::SelectConfiguration(
     ULONG ConfigurationIndex = 0, Index;
     UCHAR Found = FALSE;
     PUSB_INTERFACE_DESCRIPTOR InterfaceDescriptor;
-    PUSB_INTERFACE UsbInterface;
+    PLIBUSB_INTERFACE_HANDLE InterfaceHandle;
     PLIST_ENTRY Entry;
 
     if (ConfigurationDescriptor)
@@ -1084,10 +1084,10 @@ CUSBDevice::SelectConfiguration(
         Entry = RemoveHeadList(&m_ConfigHandle[m_ConfigurationIndex].InterfaceList);
 
         // get interface info
-        UsbInterface = (PUSB_INTERFACE)CONTAINING_RECORD(Entry, USB_INTERFACE, ListEntry);
+        InterfaceHandle = (PLIBUSB_INTERFACE_HANDLE)CONTAINING_RECORD(Entry, LIBUSB_INTERFACE_HANDLE, ListEntry);
 
         // free interface info
-        ExFreePool(UsbInterface);
+        ExFreePool(InterfaceHandle);
     }
 
     // sanity check
@@ -1147,7 +1147,7 @@ CUSBDevice::SelectInterface(
     USB_DEFAULT_PIPE_SETUP_PACKET CtrlSetup;
     NTSTATUS Status;
     ULONG Index, ConfigurationIndex = 0, Found = FALSE;
-    PUSB_INTERFACE UsbInterface;
+    PLIBUSB_INTERFACE_HANDLE InterfaceHandle;
     PLIST_ENTRY Entry;
     PUSB_INTERFACE_DESCRIPTOR InterfaceDescriptor;
 
@@ -1197,9 +1197,9 @@ CUSBDevice::SelectInterface(
     while (Entry != &m_ConfigHandle[ConfigurationIndex].InterfaceList)
     {
         // grab interface descriptor
-        UsbInterface = (PUSB_INTERFACE)CONTAINING_RECORD(Entry, USB_INTERFACE, ListEntry);
-        if (UsbInterface->InterfaceDescriptor->bAlternateSetting == InterfaceInfo->AlternateSetting &&
-            UsbInterface->InterfaceDescriptor->bInterfaceNumber == InterfaceInfo->InterfaceNumber)
+        InterfaceHandle = (PLIBUSB_INTERFACE_HANDLE)CONTAINING_RECORD(Entry, LIBUSB_INTERFACE_HANDLE, ListEntry);
+        if (InterfaceHandle->InterfaceDescriptor->bAlternateSetting == InterfaceInfo->AlternateSetting &&
+            InterfaceHandle->InterfaceDescriptor->bInterfaceNumber == InterfaceInfo->InterfaceNumber)
         {
             // found interface
             Found = TRUE;
@@ -1221,7 +1221,7 @@ CUSBDevice::SelectInterface(
         }
 
         // build interface descriptor
-        Status = BuildInterfaceDescriptor(ConfigurationIndex, InterfaceDescriptor, InterfaceInfo, &UsbInterface);
+        Status = BuildInterfaceDescriptor(ConfigurationIndex, InterfaceDescriptor, InterfaceInfo, &InterfaceHandle);
         if (!NT_SUCCESS(Status))
         {
             // failed
@@ -1231,16 +1231,16 @@ CUSBDevice::SelectInterface(
     }
 
     // assert on pipe length mismatch
-    DPRINT1("NumberOfPipes %lu Endpoints %lu Length %lu\n", InterfaceInfo->NumberOfPipes, UsbInterface->InterfaceDescriptor->bNumEndpoints, InterfaceInfo->Length);
+    DPRINT1("NumberOfPipes %lu Endpoints %lu Length %lu\n", InterfaceInfo->NumberOfPipes, InterfaceHandle->InterfaceDescriptor->bNumEndpoints, InterfaceInfo->Length);
 
     // sanity check
-    ASSERT(GET_USBD_INTERFACE_SIZE(UsbInterface->InterfaceDescriptor->bNumEndpoints) == InterfaceInfo->Length);
+    ASSERT(GET_USBD_INTERFACE_SIZE(InterfaceHandle->InterfaceDescriptor->bNumEndpoints) == InterfaceInfo->Length);
 
     // store number of pipes
-    InterfaceInfo->NumberOfPipes = UsbInterface->InterfaceDescriptor->bNumEndpoints;
+    InterfaceInfo->NumberOfPipes = InterfaceHandle->InterfaceDescriptor->bNumEndpoints;
 
     // copy pipe handles
-    for (PipeIndex = 0; PipeIndex < UsbInterface->InterfaceDescriptor->bNumEndpoints; PipeIndex++)
+    for (PipeIndex = 0; PipeIndex < InterfaceHandle->InterfaceDescriptor->bNumEndpoints; PipeIndex++)
     {
         // copy pipe handle
         DPRINT1("PipeIndex %lu\n", PipeIndex);
@@ -1253,14 +1253,14 @@ CUSBDevice::SelectInterface(
         DPRINT1("UsbEndPoint %x\n", InterfaceInfo->Pipes[PipeIndex].EndpointAddress);
 
         // sanity checks
-        ASSERT(InterfaceInfo->Pipes[PipeIndex].EndpointAddress == UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress);
-        ASSERT(InterfaceInfo->Pipes[PipeIndex].Interval == UsbInterface->PipeHandle[PipeIndex].EndPointDescriptor.bInterval);
+        ASSERT(InterfaceInfo->Pipes[PipeIndex].EndpointAddress == InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bEndpointAddress);
+        ASSERT(InterfaceInfo->Pipes[PipeIndex].Interval == InterfaceHandle->PipeHandle[PipeIndex].EndPointDescriptor.bInterval);
 
         // store pipe handle
-        InterfaceInfo->Pipes[PipeIndex].PipeHandle = &UsbInterface->PipeHandle[PipeIndex];
+        InterfaceInfo->Pipes[PipeIndex].PipeHandle = &InterfaceHandle->PipeHandle[PipeIndex];
 
         // data toggle is reset on select interface requests
-        UsbInterface->PipeHandle[PipeIndex].DataToggle = FALSE;
+        InterfaceHandle->PipeHandle[PipeIndex].DataToggle = FALSE;
     }
 
     //
