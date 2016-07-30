@@ -1063,6 +1063,7 @@ CUSBDevice::SelectConfiguration(
         // unconfigure request
         DPRINT1("[%s] SelectConfiguration Unconfigure Request Status %lx\n", m_USBType, Status);
         m_ConfigurationIndex = 0;
+        *ConfigurationHandle = NULL;
         return Status;
     }
 
