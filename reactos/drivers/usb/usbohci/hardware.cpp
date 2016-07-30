@@ -1125,7 +1125,8 @@ STDMETHODCALLTYPE
 CUSBHardwareDevice::QueryEndpointRequirements(
     IN ULONG TransferType,
     OUT PULONG OutMaxTransferSize,
-    OUT PULONG OutRequiredBufferLength)
+    OUT PULONG OutRequiredBufferLength,
+    OUT PDMA_ADAPTER * OutDmaAdapter)
 {
     ULONG MaxTransferSize;
     ULONG RequiredBufferLength;
@@ -1163,6 +1164,9 @@ CUSBHardwareDevice::QueryEndpointRequirements(
       
     if (OutRequiredBufferLength)
       *OutRequiredBufferLength = RequiredBufferLength;
+
+    if (OutDmaAdapter)
+      *OutDmaAdapter = m_Adapter;
 
     return 0;
 }
