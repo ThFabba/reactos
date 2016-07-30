@@ -2,9 +2,22 @@
 #ifndef COMMON_INTERFACES_HPP
 #define COMMON_INTERFACES_HPP
 
-#define PIPE_HANDLE_FLAG_CLOSED  0x00000001
+//-----------------------------------------------------------------------------
+typedef struct _LIBUSB_COMMON_BUFFER_HEADER {
+
+  ULONG                         Length;                       //
+  ULONG_PTR                     BaseVA;                       //
+  PHYSICAL_ADDRESS              LogicalAddress;               //
+  SIZE_T                        BufferLength;                 // + LengthPadded
+  ULONG_PTR                     VirtualAddress;               //
+  ULONG_PTR                     PhysicalAddress;              //
+
+} LIBUSB_COMMON_BUFFER_HEADER, *PLIBUSB_COMMON_BUFFER_HEADER;
 
 //-----------------------------------------------------------------------------
+// Flags field
+#define PIPE_HANDLE_FLAG_CLOSED  0x00000001
+
 typedef struct _LIBUSB_PIPE_HANDLE
 {
     USB_ENDPOINT_DESCRIPTOR EndPointDescriptor;
@@ -44,17 +57,6 @@ typedef struct _LIBUSB_RESOURCES {
 
 } LIBUSB_RESOURCES, *PLIBUSB_RESOURCES;
 
-//-----------------------------------------------------------------------------
-typedef struct _LIBUSB_COMMON_BUFFER_HEADER {
-
-  ULONG                         Length;                       //
-  ULONG_PTR                     BaseVA;                       //
-  PHYSICAL_ADDRESS              LogicalAddress;               //
-  SIZE_T                        BufferLength;                 // + LengthPadded
-  ULONG_PTR                     VirtualAddress;               //
-  ULONG_PTR                     PhysicalAddress;              //
-
-} LIBUSB_COMMON_BUFFER_HEADER, *PLIBUSB_COMMON_BUFFER_HEADER;
 
 //---------------------------------------------------------------------------
 //
