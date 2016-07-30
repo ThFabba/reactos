@@ -933,6 +933,7 @@ CUSBDevice::BuildInterfaceDescriptor(
     ULONG PipeIndex;
     PUSBD_PIPE_INFORMATION PipeInfo;
     PLIBUSB_PIPE_HANDLE PipeHandle;
+    NTSTATUS Status;
 
     // allocate interface handle
     InterfaceHandle = (PLIBUSB_INTERFACE_HANDLE)ExAllocatePool(NonPagedPool, sizeof(LIBUSB_INTERFACE_HANDLE) + (InterfaceDescriptor->bNumEndpoints - 1) * sizeof(LIBUSB_PIPE_HANDLE));
@@ -993,6 +994,16 @@ CUSBDevice::BuildInterfaceDescriptor(
 
         // store in interface info
         RtlCopyMemory(&PipeHandle->EndPointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
+
+        PipeHandle->Flags = PIPE_HANDLE_FLAG_CLOSED;
+
+        Status = OpenPipe(PipeHandle);
+
+        if (!NT_SUCCESS(Status))
+        {
+            // failed to open pipe
+           ASSERT(FALSE);
+        }
 
         DPRINT("Configuration Descriptor %p Length %lu\n", m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor, m_ConfigHandle[ConfigurationIndex].ConfigurationDescriptor->wTotalLength);
         DPRINT("EndpointDescriptor %p DescriptorType %x bLength %x\n", EndpointDescriptor, EndpointDescriptor->bDescriptorType, EndpointDescriptor->bLength);

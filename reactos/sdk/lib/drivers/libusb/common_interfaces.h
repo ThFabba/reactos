@@ -2,6 +2,9 @@
 #ifndef COMMON_INTERFACES_HPP
 #define COMMON_INTERFACES_HPP
 
+#define PIPE_HANDLE_FLAG_CLOSED  0x00000001
+
+//-----------------------------------------------------------------------------
 typedef struct _LIBUSB_PIPE_HANDLE
 {
     USB_ENDPOINT_DESCRIPTOR EndPointDescriptor;
@@ -9,8 +12,10 @@ typedef struct _LIBUSB_PIPE_HANDLE
     UCHAR HubPort;
     UCHAR DataToggle;
     UCHAR Padded[2];
+    ULONG Flags;
 } LIBUSB_PIPE_HANDLE, *PLIBUSB_PIPE_HANDLE;
 
+//-----------------------------------------------------------------------------
 typedef struct _USB_INTERFACE
 {
     LIST_ENTRY ListEntry;
@@ -18,6 +23,7 @@ typedef struct _USB_INTERFACE
     LIBUSB_PIPE_HANDLE PipeHandle[1];
 } LIBUSB_INTERFACE_HANDLE, *PLIBUSB_INTERFACE_HANDLE;
 
+//-----------------------------------------------------------------------------
 typedef struct
 {
     PUSB_CONFIGURATION_DESCRIPTOR ConfigurationDescriptor;
