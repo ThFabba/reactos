@@ -59,6 +59,7 @@ public:
     BOOLEAN InterruptService();
     NTSTATUS InitializeController();
     NTSTATUS AllocateEndpointDescriptor(OUT POHCI_ENDPOINT_DESCRIPTOR *OutDescriptor);
+    NTSTATUS OpenBulkEndpoint(IN PLIBUSB_PIPE_HANDLE PipeHandle);
 
     // friend function
     friend VOID NTAPI OhciDefferedRoutine(IN PKDPC Dpc, IN PVOID DeferredContext, IN PVOID SystemArgument1, IN PVOID SystemArgument2);
@@ -1172,6 +1173,14 @@ CUSBHardwareDevice::QueryEndpointRequirements(
 }
 
 NTSTATUS
+CUSBHardwareDevice::OpenBulkEndpoint(
+    IN PLIBUSB_PIPE_HANDLE PipeHandle)
+{
+ASSERT(FALSE);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
 STDMETHODCALLTYPE
 CUSBHardwareDevice::OpenEndpoint(
     IN PLIBUSB_PIPE_HANDLE PipeHandle)
@@ -1195,8 +1204,7 @@ CUSBHardwareDevice::OpenEndpoint(
 
       case USB_ENDPOINT_TYPE_BULK:
         DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_BULK\n");
-ASSERT(FALSE);
-        return 0;//OpenBulkEndpoint(PipeHandle);
+        return OpenBulkEndpoint(PipeHandle);
         break;
 
       case USB_ENDPOINT_TYPE_INTERRUPT:
