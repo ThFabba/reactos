@@ -380,3 +380,13 @@ C_ASSERT(sizeof(OHCI_ISO_TD) == 48);
 #define OHCI_ITD_SET_FRAME_COUNT(x)             (((x) - 1) << 24)
 #define OHCI_ITD_GET_CONDITION_CODE(x)          ((x) >> 28)
 #define OHCI_ITD_NO_CONDITION_CODE              0xf0000000
+
+//---------------------------------------------------------------------
+typedef struct _OHCI_HC_RESOURCES {
+
+  OHCIHCCA                      HcHCCA;                    // +0x000  (256 byte align)
+  OHCI_HC_ENDPOINT_DESCRIPTOR   InterrruptHeadED[63];      // +0x100  (16 byte align)
+  OHCI_HC_ENDPOINT_DESCRIPTOR   ControlHeadED;             // +0x4F0  (16 byte align)
+  OHCI_HC_ENDPOINT_DESCRIPTOR   BulkHeadED;                // +0x500  (16 byte align)
+
+} OHCI_HC_RESOURCES, *POHCI_HC_RESOURCES;
