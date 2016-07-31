@@ -244,10 +244,13 @@ C_ASSERT(sizeof(OHCI_HC_ENDPOINT_DESCRIPTOR) == 16);
 typedef struct _OHCI_ENDPOINT_DESCRIPTOR
 {
     // Hardware part
-    ULONG  Flags;
-    ULONG  TailPhysicalDescriptor;
-    ULONG  HeadPhysicalDescriptor;
-    ULONG  NextPhysicalEndpoint;
+    //ULONG  Flags;
+    //ULONG  TailPhysicalDescriptor;
+    //ULONG  HeadPhysicalDescriptor;
+    //ULONG  NextPhysicalEndpoint;
+
+    // Hardware part
+    OHCI_HC_ENDPOINT_DESCRIPTOR HwED;
 
     // Software part
     PHYSICAL_ADDRESS  PhysicalAddress;

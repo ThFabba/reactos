@@ -859,13 +859,13 @@ CUSBRequest::BuildIsochronousEndpoint(
     //
     // set isochronous type
     //
-    EndpointDescriptor->Flags |= OHCI_ENDPOINT_ISOCHRONOUS_FORMAT;
+    EndpointDescriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_ISOCHRONOUS_FORMAT;
 
     //
     // now link descriptor to endpoint
     //
-    EndpointDescriptor->HeadPhysicalDescriptor = FirstDescriptor->PhysicalAddress.LowPart;
-    EndpointDescriptor->TailPhysicalDescriptor = CurrentDescriptor->PhysicalAddress.LowPart;
+    EndpointDescriptor->HwED.HeadPointer = FirstDescriptor->PhysicalAddress.LowPart;
+    EndpointDescriptor->HwED.TailPointer = CurrentDescriptor->PhysicalAddress.LowPart;
     EndpointDescriptor->HeadLogicalDescriptor = FirstDescriptor;
 
     //
@@ -971,16 +971,16 @@ CUSBRequest::AllocateEndpointDescriptor(
     //
     // intialize descriptor
     //
-    Descriptor->Flags = OHCI_ENDPOINT_SKIP;
+    Descriptor->HwED.EndpointControl.AsULONG = OHCI_ENDPOINT_SKIP;
 
     //
     // append device address and endpoint number
     //
-    Descriptor->Flags |= OHCI_ENDPOINT_SET_DEVICE_ADDRESS(GetDeviceAddress());
-    Descriptor->Flags |= OHCI_ENDPOINT_SET_ENDPOINT_NUMBER(GetEndpointAddress());
-    Descriptor->Flags |= OHCI_ENDPOINT_SET_MAX_PACKET_SIZE(GetMaxPacketSize());
+    Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_SET_DEVICE_ADDRESS(GetDeviceAddress());
+    Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_SET_ENDPOINT_NUMBER(GetEndpointAddress());
+    Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_SET_MAX_PACKET_SIZE(GetMaxPacketSize());
 
-    DPRINT("Flags %x DeviceAddress %x EndpointAddress %x PacketSize %lu\n", Descriptor->Flags, GetDeviceAddress(), GetEndpointAddress(), GetMaxPacketSize());
+    DPRINT("Flags %x DeviceAddress %x EndpointAddress %x PacketSize %lu\n", Descriptor->HwED.EndpointControl.AsULONG, GetDeviceAddress(), GetEndpointAddress(), GetMaxPacketSize());
 
     //
     // is there an endpoint descriptor
@@ -995,14 +995,14 @@ CUSBRequest::AllocateEndpointDescriptor(
             //
             // direction out
             //
-            Descriptor->Flags |= OHCI_ENDPOINT_DIRECTION_OUT;
+            Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_DIRECTION_OUT;
         }
         else
         {
             //
             // direction in
             //
-            Descriptor->Flags |= OHCI_ENDPOINT_DIRECTION_IN;
+            Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_DIRECTION_IN;
         }
     }
     else
@@ -1010,7 +1010,7 @@ CUSBRequest::AllocateEndpointDescriptor(
         //
         // get it from transfer descriptor
         //
-        Descriptor->Flags |= OHCI_ENDPOINT_DIRECTION_DESCRIPTOR;
+        Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_DIRECTION_DESCRIPTOR;
     }
 
     //
@@ -1021,14 +1021,14 @@ CUSBRequest::AllocateEndpointDescriptor(
         //
         // device is full speed
         //
-        Descriptor->Flags |= OHCI_ENDPOINT_FULL_SPEED;
+        Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_FULL_SPEED;
     }
     else if (m_DeviceSpeed == UsbLowSpeed)
     {
         //
         // device is full speed
         //
-        Descriptor->Flags |= OHCI_ENDPOINT_LOW_SPEED;
+        Descriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_LOW_SPEED;
     }
     else
     {
@@ -1038,9 +1038,9 @@ CUSBRequest::AllocateEndpointDescriptor(
         ASSERT(FALSE);
     }
 
-    Descriptor->HeadPhysicalDescriptor = 0;
-    Descriptor->NextPhysicalEndpoint = 0;
-    Descriptor->TailPhysicalDescriptor = 0;
+    Descriptor->HwED.HeadPointer = 0;
+    Descriptor->HwED.NextED = 0;
+    Descriptor->HwED.TailPointer = 0;
     Descriptor->PhysicalAddress.QuadPart = DescriptorAddress.QuadPart;
 
     //
@@ -1326,8 +1326,8 @@ CUSBRequest::BuildBulkInterruptEndpoint(
     //
     // now link descriptor to endpoint
     //
-    EndpointDescriptor->HeadPhysicalDescriptor = FirstDescriptor->PhysicalAddress.LowPart;
-    EndpointDescriptor->TailPhysicalDescriptor = (FirstDescriptor == LastDescriptor ? 0 : LastDescriptor->PhysicalAddress.LowPart);
+    EndpointDescriptor->HwED.HeadPointer = FirstDescriptor->PhysicalAddress.LowPart;
+    EndpointDescriptor->HwED.TailPointer = (FirstDescriptor == LastDescriptor ? 0 : LastDescriptor->PhysicalAddress.LowPart);
     EndpointDescriptor->HeadLogicalDescriptor = FirstDescriptor;
 
     //
@@ -1354,11 +1354,11 @@ CUSBRequest::DumpEndpointDescriptor(
     POHCI_GENERAL_TD GeneralDescriptor;
 
     DPRINT1("EndpointDescriptor %p Addr %x\n", Descriptor, Descriptor->PhysicalAddress.LowPart);
-    DPRINT1("EndpointDescriptor HeadPhysicalDescriptor %x HeadLogicalDescriptor %p\n", Descriptor->HeadPhysicalDescriptor, Descriptor->HeadLogicalDescriptor);
-    DPRINT1("EndpointDescriptor TailPhysicalDescriptor %x\n", Descriptor->TailPhysicalDescriptor);
+    DPRINT1("EndpointDescriptor HwED.HeadPointer %x HeadLogicalDescriptor %p\n", Descriptor->HwED.HeadPointer, Descriptor->HeadLogicalDescriptor);
+    DPRINT1("EndpointDescriptor HwED.TailPointer %x\n", Descriptor->HwED.TailPointer);
     DPRINT1("EndpointDescriptor NextDescriptor %p\n", Descriptor->NextDescriptor);
-    DPRINT1("EndpointDescriptor NextPhysicalEndpoint %x\n", Descriptor->NextPhysicalEndpoint);
-    DPRINT1("EndpointDescriptor Flags %x\n", Descriptor->Flags);
+    DPRINT1("EndpointDescriptor HwED.NextED %x\n", Descriptor->HwED.NextED);
+    DPRINT1("EndpointDescriptor Flags %x\n", Descriptor->HwED.EndpointControl.AsULONG);
 
 
     GeneralDescriptor = (POHCI_GENERAL_TD)Descriptor->HeadLogicalDescriptor;
@@ -1552,8 +1552,8 @@ CUSBRequest::BuildControlTransferDescriptor(
     //
     // now link descriptor to endpoint
     //
-    EndpointDescriptor->HeadPhysicalDescriptor = SetupDescriptor->PhysicalAddress.LowPart;
-    EndpointDescriptor->TailPhysicalDescriptor = LastDescriptor->PhysicalAddress.LowPart;
+    EndpointDescriptor->HwED.HeadPointer = SetupDescriptor->PhysicalAddress.LowPart;
+    EndpointDescriptor->HwED.TailPointer = LastDescriptor->PhysicalAddress.LowPart;
     EndpointDescriptor->HeadLogicalDescriptor = SetupDescriptor;
 
     //
@@ -1681,7 +1681,7 @@ CUSBRequest::FreeEndpointDescriptor(
     CheckError(OutDescriptor);
 
 
-    if (OutDescriptor->Flags & OHCI_ENDPOINT_ISOCHRONOUS_FORMAT)
+    if (OutDescriptor->HwED.EndpointControl.AsULONG & OHCI_ENDPOINT_ISOCHRONOUS_FORMAT)
     {
         //
         // get first iso transfer descriptor
@@ -1786,7 +1786,7 @@ CUSBRequest::CheckError(
     m_UrbStatusCode = USBD_STATUS_SUCCESS;
 
 
-    if (OutDescriptor->Flags & OHCI_ENDPOINT_ISOCHRONOUS_FORMAT)
+    if (OutDescriptor->HwED.EndpointControl.AsULONG & OHCI_ENDPOINT_ISOCHRONOUS_FORMAT)
     {
         //
         // FIXME: handle isochronous support
@@ -1805,7 +1805,7 @@ CUSBRequest::CheckError(
             //
             // update data toggle
             //
-            m_PipeHandle->DataToggle = (OutDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_TOGGLE_CARRY);
+            m_PipeHandle->DataToggle = (OutDescriptor->HwED.HeadPointer & OHCI_ENDPOINT_TOGGLE_CARRY);
         }
 
         while(TransferDescriptor)

@@ -624,10 +624,10 @@ CUSBHardwareDevice::AllocateEndpointDescriptor(
     //
     // intialize descriptor
     //
-    Descriptor->Flags = OHCI_ENDPOINT_SKIP;
-    Descriptor->HeadPhysicalDescriptor = 0;
-    Descriptor->NextPhysicalEndpoint = 0;
-    Descriptor->TailPhysicalDescriptor = 0;
+    Descriptor->HwED.EndpointControl.AsULONG = OHCI_ENDPOINT_SKIP;
+    Descriptor->HwED.HeadPointer = 0;
+    Descriptor->HwED.NextED = 0;
+    Descriptor->HwED.TailPointer = 0;
     Descriptor->PhysicalAddress.QuadPart = DescriptorAddress.QuadPart;
 
     //
@@ -806,18 +806,18 @@ CUSBHardwareDevice::InitializeController()
         //
         // link descriptor
         //
-        m_InterruptEndpoints[Index]->NextPhysicalEndpoint = m_InterruptEndpoints[0]->PhysicalAddress.LowPart;
+        m_InterruptEndpoints[Index]->HwED.NextED = m_InterruptEndpoints[0]->PhysicalAddress.LowPart;
     }
 
     //
     // Now link the first endpoint to the isochronous endpoint
     //
-    m_InterruptEndpoints[0]->NextPhysicalEndpoint = m_IsoEndpointDescriptor->PhysicalAddress.LowPart;
+    m_InterruptEndpoints[0]->HwED.NextED = m_IsoEndpointDescriptor->PhysicalAddress.LowPart;
 
     //
     // set iso endpoint type
     //
-    m_IsoEndpointDescriptor->Flags |= OHCI_ENDPOINT_ISOCHRONOUS_FORMAT;
+    m_IsoEndpointDescriptor->HwED.EndpointControl.AsULONG |= OHCI_ENDPOINT_ISOCHRONOUS_FORMAT;
 
     //
     // done

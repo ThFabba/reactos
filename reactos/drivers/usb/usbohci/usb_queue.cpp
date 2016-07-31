@@ -161,7 +161,7 @@ CUSBQueue::LinkEndpoint(
     //
     // link endpoints
     //
-    CurrentEndpointDescriptor->NextPhysicalEndpoint = EndpointDescriptor->PhysicalAddress.LowPart;
+    CurrentEndpointDescriptor->HwED.NextED = EndpointDescriptor->PhysicalAddress.LowPart;
     CurrentEndpointDescriptor->NextDescriptor = EndpointDescriptor;
 
 }
@@ -263,7 +263,7 @@ CUSBQueue::AddEndpointDescriptor(
         m_Hardware->GetCurrentFrameNumber(&FrameNumber);
 
         DPRINT("Hardware 1ms %p Iso %p\n",m_InterruptEndpoints[0], m_IsoHeadEndpointDescriptor);
-        ASSERT(m_InterruptEndpoints[0]->NextPhysicalEndpoint == m_IsoHeadEndpointDescriptor->PhysicalAddress.LowPart);
+        ASSERT(m_InterruptEndpoints[0]->HwED.NextED == m_IsoHeadEndpointDescriptor->PhysicalAddress.LowPart);
 
         PrintEndpointList(m_IsoHeadEndpointDescriptor);
     }
@@ -279,7 +279,7 @@ CUSBQueue::AddEndpointDescriptor(
     //
     // set descriptor active
     //
-    Descriptor->Flags &= ~OHCI_ENDPOINT_SKIP;
+    Descriptor->HwED.EndpointControl.AsULONG &= ~OHCI_ENDPOINT_SKIP;
 
     //
     // insert endpoint at end
@@ -385,7 +385,7 @@ CUSBQueue::FindTransferDescriptorInEndpoint(
         //
         // check if the transfer descriptor is inside the list
         //
-        if ((EndpointDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_HEAD_MASK) == EndpointDescriptor->TailPhysicalDescriptor || (EndpointDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_HALTED))
+        if ((EndpointDescriptor->HwED.HeadPointer & OHCI_ENDPOINT_HEAD_MASK) == EndpointDescriptor->HwED.TailPointer || (EndpointDescriptor->HwED.HeadPointer & OHCI_ENDPOINT_HALTED))
         {
             //
             // found endpoint
@@ -591,7 +591,7 @@ CUSBQueue::CleanupEndpointDescriptor(
     // FIXME: verify unlinking process
     //
     PreviousEndpointDescriptor->NextDescriptor = EndpointDescriptor->NextDescriptor;
-    PreviousEndpointDescriptor->NextPhysicalEndpoint = EndpointDescriptor->NextPhysicalEndpoint;
+    PreviousEndpointDescriptor->HwED.NextED = EndpointDescriptor->HwED.NextED;
 
     //
     // get corresponding request
@@ -602,7 +602,7 @@ CUSBQueue::CleanupEndpointDescriptor(
     //
     // check for errors
     //
-    if (EndpointDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_HALTED)
+    if (EndpointDescriptor->HwED.HeadPointer & OHCI_ENDPOINT_HALTED)
     {
         //
         // the real error will processed by IUSBRequest
@@ -934,7 +934,7 @@ CUSBQueue::AbortDevicePipe(
 
     while(CurrentDescriptor)
     {
-        if ((CurrentDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_HEAD_MASK) == CurrentDescriptor->TailPhysicalDescriptor || (CurrentDescriptor->HeadPhysicalDescriptor & OHCI_ENDPOINT_HALTED))
+        if ((CurrentDescriptor->HwED.HeadPointer & OHCI_ENDPOINT_HEAD_MASK) == CurrentDescriptor->HwED.TailPointer || (CurrentDescriptor->HwED.HeadPointer & OHCI_ENDPOINT_HALTED))
         {
             //
             // cleanup endpoint
@@ -951,7 +951,7 @@ CUSBQueue::AbortDevicePipe(
         if (!CurrentDescriptor)
             break;
 
-        if (CurrentDescriptor->HeadPhysicalDescriptor)
+        if (CurrentDescriptor->HwED.HeadPointer)
         {
             TransferDescriptor = (POHCI_GENERAL_TD)CurrentDescriptor->HeadLogicalDescriptor;
             ASSERT(TransferDescriptor);
