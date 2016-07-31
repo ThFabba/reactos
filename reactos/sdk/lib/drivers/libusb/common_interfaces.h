@@ -28,6 +28,7 @@ typedef struct _LIBUSB_PIPE_HANDLE
     ULONG Flags;
     ULONG MaxTransferSize;
     PLIBUSB_COMMON_BUFFER_HEADER HeaderDmaBuffer;
+    PVOID HcEndpoint;
 } LIBUSB_PIPE_HANDLE, *PLIBUSB_PIPE_HANDLE;
 
 //-----------------------------------------------------------------------------
