@@ -1171,6 +1171,47 @@ CUSBHardwareDevice::QueryEndpointRequirements(
     return 0;
 }
 
+NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::OpenEndpoint(
+    IN PLIBUSB_PIPE_HANDLE PipeHandle)
+{
+    ULONG TransferType;
+
+    TransferType = PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK;
+
+    switch ( TransferType )
+    {
+      case USB_ENDPOINT_TYPE_CONTROL:
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_CONTROL\n");
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_ISOCHRONOUS:
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_ISOCHRONOUS\n");
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_BULK:
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_BULK\n");
+ASSERT(FALSE);
+        return 0;//OpenBulkEndpoint(PipeHandle);
+        break;
+
+      case USB_ENDPOINT_TYPE_INTERRUPT:
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_INTERRUPT\n");
+        ASSERT(FALSE);
+        break;
+
+      default:
+        ASSERT(FALSE);
+        STATUS_UNSUCCESSFUL;
+        break;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 BOOLEAN
 STDMETHODCALLTYPE
 CUSBHardwareDevice::InterruptServiceRoutine(

@@ -1130,6 +1130,15 @@ ASSERT(FALSE);
     return 0;
 }
 
+NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::OpenEndpoint(
+    IN PLIBUSB_PIPE_HANDLE PipeHandle)
+{
+
+ASSERT(FALSE);
+    return 0;
+}
 
 BOOLEAN
 STDMETHODCALLTYPE
