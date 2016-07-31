@@ -243,6 +243,9 @@ struct IUSBQueue;
         OUT PULONG OutRequiredBufferLength,                                 \
         OUT PDMA_ADAPTER * OutDmaAdapter) PURE;                             \
                                                                             \
+     STDMETHOD_(NTSTATUS, OpenEndpoint)( THIS_                              \
+        IN PLIBUSB_PIPE_HANDLE PipeHandle) PURE;                            \
+                                                                            \
      STDMETHOD_(BOOLEAN, InterruptServiceRoutine)( THIS_                    \
         IN PKINTERRUPT Interrupt,                                           \
         IN PVOID ServiceContext) PURE;                                      \
@@ -303,6 +306,9 @@ struct IUSBQueue;
         OUT PULONG OutMaxTransferSize,                                      \
         OUT PULONG OutRequiredBufferLength,                                 \
         OUT PDMA_ADAPTER * OutDmaAdapter);                                  \
+                                                                            \
+     STDMETHODIMP_(NTSTATUS) OpenEndpoint(                                  \
+        IN PLIBUSB_PIPE_HANDLE PipeHandle);                                 \
                                                                             \
      STDMETHODIMP_(BOOLEAN) InterruptServiceRoutine(                        \
         IN PKINTERRUPT Interrupt,                                           \
