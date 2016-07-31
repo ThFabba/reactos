@@ -1177,6 +1177,7 @@ CUSBHardwareDevice::OpenEndpoint(
     IN PLIBUSB_PIPE_HANDLE PipeHandle)
 {
     ULONG TransferType;
+    NTSTATUS Status = STATUS_SUCCESS;
 
     TransferType = PipeHandle->EndPointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK;
 
@@ -1205,11 +1206,11 @@ ASSERT(FALSE);
 
       default:
         ASSERT(FALSE);
-        STATUS_UNSUCCESSFUL;
+        Status = STATUS_UNSUCCESSFUL;
         break;
     }
 
-    return STATUS_SUCCESS;
+    return Status;
 }
 
 BOOLEAN
