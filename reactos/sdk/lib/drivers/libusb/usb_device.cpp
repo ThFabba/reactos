@@ -954,9 +954,16 @@ CUSBDevice::OpenPipe(IN PLIBUSB_PIPE_HANDLE PipeHandle)
     else
     {
         PipeHandle->HeaderDmaBuffer = NULL;
+        return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    m_Device->OpenEndpoint(PipeHandle);
+
+
 ASSERT(FALSE);
+
+    PipeHandle->Flags &= ~PIPE_HANDLE_FLAG_CLOSED;
+
     return 0;
 }
 
