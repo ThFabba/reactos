@@ -40,6 +40,8 @@ public:
     virtual NTSTATUS OpenPipe();
     virtual VOID SetHcEndpoint(IN PVOID HcEndpoint);
     virtual VOID GetHeaderBuffer(OUT PLIBUSB_COMMON_BUFFER_HEADER * HeaderBuffer);
+    virtual VOID GetEndpointDescriptor(OUT PUSB_ENDPOINT_DESCRIPTOR * EndpointDescriptor);
+    virtual ULONG GetDeviceSpeed();
 
     // constructor / destructor
     CUSBPipe(IUnknown *OuterUnknown){}
@@ -194,6 +196,22 @@ CUSBPipe::GetHeaderBuffer(
 {
     *HeaderBuffer = m_HeaderDmaBuffer;
 }
+
+//-----------------------------------------------------------------------------
+VOID
+CUSBPipe::GetEndpointDescriptor(
+    OUT PUSB_ENDPOINT_DESCRIPTOR * EndpointDescriptor)
+{
+    *EndpointDescriptor = &m_EndpointDescriptor;
+}
+
+//-----------------------------------------------------------------------------
+ULONG
+CUSBPipe::GetDeviceSpeed()
+{
+    return m_DeviceHandle->GetSpeed();
+}
+
 
 //-----------------------------------------------------------------------------
 NTSTATUS

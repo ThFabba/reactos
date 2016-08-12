@@ -770,6 +770,8 @@ DECLARE_INTERFACE_(IUSBPipe, IUnknown)
     virtual NTSTATUS OpenPipe() = 0;
     virtual VOID SetHcEndpoint(IN PVOID HcEndpoint) = 0;
     virtual VOID GetHeaderBuffer(OUT PLIBUSB_COMMON_BUFFER_HEADER * HeaderBuffer) = 0;
+    virtual VOID GetEndpointDescriptor(OUT PUSB_ENDPOINT_DESCRIPTOR * EndpointDescriptor) = 0;
+    virtual ULONG GetDeviceSpeed() = 0;
 
 };
 
