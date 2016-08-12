@@ -99,6 +99,7 @@ CUSBPipe::OpenPipe()
     ULONG                         MaxTransferSize;
     ULONG                         RequiredBufferLength;
     PLIBUSB_COMMON_BUFFER_HEADER  HeaderBuffer;
+    NTSTATUS                      Status;
 
     DPRINT("OpenPipe: PipeHandle - %p\n", this);
 
@@ -163,7 +164,14 @@ CUSBPipe::OpenPipe()
 
     m_HeaderDmaBuffer = HeaderBuffer;
 
-ASSERT(FALSE); //Error handle
+    Status = m_Hardware->OpenEndpoint(this, m_TransferType);
+    if (!NT_SUCCESS(Status))
+    {
+ASSERT(FALSE); // FIXME
+        return STATUS_SUCCESS;
+    }
+
+ASSERT(FALSE);
 
     return STATUS_SUCCESS;
 }
