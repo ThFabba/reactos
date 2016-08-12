@@ -1706,16 +1706,59 @@ CUSBHardwareDevice::InitializeED(
     IN POHCI_HCD_TRANSFER_DESCRIPTOR FirstTD,
     IN ULONG_PTR EdPA)
 {
-    OHCI_HC_ENDPOINT_CONTROL  EndpointControl;
-    ULONG                     TransferType;
+    OHCI_HC_ENDPOINT_CONTROL  EndpointControl = ED->HwED.EndpointControl;
+    ULONG                     TransferType = OhciEndpoint->TransferType;
+    PUSBPIPE                  Pipe = OhciEndpoint->Pipe;
+    PUSB_ENDPOINT_DESCRIPTOR  EndpointDescriptor;
+    UCHAR                     Direction;
 
     DPRINT("InitializeED: ... \n");
 
     RtlZeroMemory(ED, sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
 
-    TransferType = OhciEndpoint->TransferType;
+    Pipe->GetEndpointDescriptor(&EndpointDescriptor);
 
+    ED->PhysicalAddress = EdPA;
 
+    //EndpointControl.AsULONG = 0;
+    EndpointControl.FunctionAddress = Pipe->GetDeviceAddress();
+    EndpointControl.EndpointNumber  = EndpointDescriptor->bEndpointAddress;
+
+    Direction = ~EndpointDescriptor->bEndpointAddress;
+    Direction >>= 7;
+
+    if ( TransferType == USB_ENDPOINT_TYPE_CONTROL )
+    {
+        EndpointControl.Direction = 0; // Get direction From TD
+    }
+    else if ( Direction )
+    {
+        EndpointControl.Direction = 1; // OUT
+    }
+    else
+    {
+        EndpointControl.Direction = 2; // IN
+    }
+
+    if ( Pipe->GetDeviceSpeed() == UsbLowSpeed )
+      EndpointControl.Speed = 1; // full-speed (S = 0) or low-speed (S = 1.)
+
+    if ( TransferType == USB_ENDPOINT_TYPE_ISOCHRONOUS )
+    {
+        EndpointControl.Format = 1;
+    }
+    else
+    {
+        EndpointControl.sKip = 1;
+    }
+
+    EndpointControl.MaximumPacketSize = EndpointDescriptor->wMaxPacketSize & 0x7FF;
+
+    ED->HwED.EndpointControl = EndpointControl;
+    ED->HwED.TailPointer = (ULONG_PTR)FirstTD->PhysicalAddress;
+    ED->HwED.HeadPointer = (ULONG_PTR)FirstTD->PhysicalAddress;
+
+    FirstTD->Flags |= OHCI_HCD_TD_FLAG_ALLOCATED;
 
 #if 1
 {
@@ -1735,6 +1778,7 @@ CUSBHardwareDevice::InitializeED(
 
     OhciEndpoint->HcdTailP = FirstTD;
     OhciEndpoint->HcdHeadP = FirstTD;
+
 ASSERT(FALSE);
 
     return STATUS_SUCCESS;
