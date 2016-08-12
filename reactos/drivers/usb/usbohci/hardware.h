@@ -475,3 +475,15 @@ typedef struct _OHCI_HC_RESOURCES {
   OHCI_HC_ENDPOINT_DESCRIPTOR   BulkHeadED;                // +0x500  (16 byte align)
 
 } OHCI_HC_RESOURCES, *POHCI_HC_RESOURCES;
+
+//---------------------------------------------------------------------
+typedef struct _OHCI_ENDPOINT {
+
+  ULONG                             TransferType;            // 
+  PUSBPIPE                          Pipe;                    // 
+  ULONG                             MaxTransferDescriptors;  // TdCount
+  POHCI_STATIC_ENDPOINT_DESCRIPTOR  HeadED;                  // 
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     ED;                      // 
+  POHCI_HCD_TRANSFER_DESCRIPTOR     FirstTD;                 // 
+
+} OHCI_ENDPOINT, *POHCI_ENDPOINT;
