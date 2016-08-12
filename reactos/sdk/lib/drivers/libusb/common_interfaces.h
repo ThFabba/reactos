@@ -768,6 +768,8 @@ DECLARE_INTERFACE_(IUSBPipe, IUnknown)
                                 IN PDMAMEMORYMANAGER DmaManager) = 0;
 
     virtual NTSTATUS OpenPipe() = 0;
+    virtual VOID SetHcEndpoint(IN PVOID HcEndpoint) = 0;
+    virtual VOID GetHeaderBuffer(OUT PLIBUSB_COMMON_BUFFER_HEADER * HeaderBuffer) = 0;
 
 };
 

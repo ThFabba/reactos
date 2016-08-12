@@ -38,6 +38,8 @@ public:
     // IUSBPipe interface functions
     virtual NTSTATUS Initialize(IN PUSBHARDWAREDEVICE Hardware, IN PUSBDEVICE DeviceHandle, IN PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor, IN PDMAMEMORYMANAGER DmaManager);
     virtual NTSTATUS OpenPipe();
+    virtual VOID SetHcEndpoint(IN PVOID HcEndpoint);
+    virtual VOID GetHeaderBuffer(OUT PLIBUSB_COMMON_BUFFER_HEADER * HeaderBuffer);
 
     // constructor / destructor
     CUSBPipe(IUnknown *OuterUnknown){}
@@ -48,6 +50,7 @@ protected:
     PUSBHARDWAREDEVICE            m_Hardware;                  // 
     PUSBDEVICE                    m_DeviceHandle;              // 
     USB_ENDPOINT_DESCRIPTOR       m_EndpointDescriptor;        // 
+    PVOID                         m_HcEndpoint;                // 
 
     // DMA memory buffer
     PDMAMEMORYMANAGER             m_DmaManager;                // 
@@ -174,6 +177,22 @@ ASSERT(FALSE); // FIXME
 ASSERT(FALSE);
 
     return STATUS_SUCCESS;
+}
+
+//-----------------------------------------------------------------------------
+VOID
+CUSBPipe::SetHcEndpoint(
+    IN PVOID HcEndpoint)
+{
+    m_HcEndpoint = HcEndpoint;
+}
+
+//-----------------------------------------------------------------------------
+VOID
+CUSBPipe::GetHeaderBuffer(
+    OUT PLIBUSB_COMMON_BUFFER_HEADER * HeaderBuffer)
+{
+    *HeaderBuffer = m_HeaderDmaBuffer;
 }
 
 //-----------------------------------------------------------------------------
