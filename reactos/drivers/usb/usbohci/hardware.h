@@ -411,6 +411,33 @@ typedef struct _OHCI_HC_TRANSFER_DESCRIPTOR { // 16-byte boundary
 C_ASSERT(sizeof(OHCI_HC_TRANSFER_DESCRIPTOR) == 16);
 
 //---------------------------------------------------------------------
+typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
+
+  // Hardware part
+  OHCI_HC_TRANSFER_DESCRIPTOR             HwTD;                      // dword 0
+
+  union {
+    // Hardware part for IsochronousTD
+    USHORT                                Offset[OHCI_ITD_NOFFSET];  // Buffer offsets
+
+    // Software part for GeneralTD
+    struct {
+      USB_DEFAULT_PIPE_SETUP_PACKET       SetupPacket;               // 
+      ULONG                               Padded[2];                 // 
+    };        
+  };
+
+  // Software part
+  struct _OHCI_HCD_TRANSFER_DESCRIPTOR *  PhysicalAddress;           // TdPA (+32)
+  struct _OHCI_HCD_TRANSFER_DESCRIPTOR *  HcdNextTD;                 // 
+  ULONG                                   TransferLen;               // 
+  ULONG                                   Pad[5];
+
+} OHCI_HCD_TRANSFER_DESCRIPTOR, *POHCI_HCD_TRANSFER_DESCRIPTOR;
+
+C_ASSERT(sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) == 0x40);
+
+//---------------------------------------------------------------------
 typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {
 
   // Software only
