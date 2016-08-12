@@ -4,6 +4,19 @@
 
 struct IUSBPipe;
 
+//-----------------------------------------------------------------------------
+typedef struct _LIBUSB_COMMON_BUFFER_HEADER {
+
+  ULONG                         Length;                       //
+  ULONG_PTR                     BaseVA;                       //
+  PHYSICAL_ADDRESS              LogicalAddress;               //
+  SIZE_T                        BufferLength;                 // + LengthPadded
+  ULONG_PTR                     VirtualAddress;               //
+  ULONG_PTR                     PhysicalAddress;              //
+
+} LIBUSB_COMMON_BUFFER_HEADER, *PLIBUSB_COMMON_BUFFER_HEADER;
+
+//-----------------------------------------------------------------------------
 typedef struct _USB_ENDPOINT
 {
     USB_ENDPOINT_DESCRIPTOR EndPointDescriptor;
@@ -288,6 +301,26 @@ DECLARE_INTERFACE_(IDMAMemoryManager, IUnknown)
 
     virtual NTSTATUS Release(IN PVOID VirtualBase,
                              IN ULONG Size) = 0;
+
+//-----------------------------------------------------------------------------------------
+//
+// AllocateCommonBuffer
+//
+// Description: allocate contiguous memory block for DMA device
+
+    virtual PLIBUSB_COMMON_BUFFER_HEADER AllocateCommonBuffer(
+                             IN PDMA_ADAPTER DmaAdapter,
+                             IN SIZE_T BufferLength) = 0;
+
+//-----------------------------------------------------------------------------------------
+//
+// FreeCommonBuffer
+//
+// Description: free contiguous memory block for DMA device
+
+    virtual VOID FreeCommonBuffer(
+                     IN PDMA_ADAPTER DmaAdapter,
+                     IN PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer) = 0;
 
 };
 
