@@ -438,6 +438,20 @@ typedef struct _OHCI_HCD_TRANSFER_DESCRIPTOR {
 C_ASSERT(sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) == 0x40);
 
 //---------------------------------------------------------------------
+typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
+
+  // Hardware part
+  OHCI_HC_ENDPOINT_DESCRIPTOR             HwED;                      // dword 0
+
+  // Software part
+  ULONG_PTR                               PhysicalAddress;           // EdPA
+  ULONG                                   Pad[11];
+
+} OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
+
+C_ASSERT(sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR) == 0x40);
+
+//---------------------------------------------------------------------
 typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {
 
   // Software only
