@@ -109,26 +109,6 @@ CUSBQueue::Initialize(
     ASSERT(m_Hardware);
 
     //
-    // get bulk endpoint descriptor
-    //
-    m_Hardware->GetBulkHeadEndpointDescriptor(&m_BulkHeadEndpointDescriptor);
-
-    //
-    // get control endpoint descriptor
-    //
-    m_Hardware->GetControlHeadEndpointDescriptor(&m_ControlHeadEndpointDescriptor);
-
-    //
-    // get isochronous endpoint
-    //
-    m_Hardware->GetIsochronousHeadEndpointDescriptor(&m_IsoHeadEndpointDescriptor);
-
-    //
-    // get interrupt endpoints
-    //
-    m_Hardware->GetInterruptEndpointDescriptors(&m_InterruptEndpoints);
-
-    //
     // initialize spinlock
     //
     KeInitializeSpinLock(&m_Lock);

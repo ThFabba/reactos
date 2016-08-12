@@ -14,18 +14,6 @@ struct IUSBQueue;
 
 
 #define DEFINE_ABSTRACT_USBOHCIHARDWARE()                                   \
-    STDMETHOD_(VOID, GetBulkHeadEndpointDescriptor)( THIS_                  \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor) PURE;         \
-                                                                            \
-    STDMETHOD_(VOID, GetControlHeadEndpointDescriptor)( THIS_               \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor) PURE;         \
-                                                                            \
-    STDMETHOD_(VOID, GetIsochronousHeadEndpointDescriptor)( THIS_           \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor) PURE;         \
-                                                                            \
-    STDMETHOD_(VOID, GetInterruptEndpointDescriptors)( THIS_                \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR *** OutDescriptor) PURE;        \
-                                                                            \
     STDMETHOD_(VOID, HeadEndpointDescriptorModified)( THIS_                 \
         IN ULONG Type) PURE;                                                \
                                                                             \
@@ -33,18 +21,6 @@ struct IUSBQueue;
         IN PULONG FrameNumber) PURE;
 
 #define IMP_IUSBOHCIHARDWAREDEVICE                                          \
-    STDMETHODIMP_(VOID) GetBulkHeadEndpointDescriptor(                      \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor);              \
-                                                                            \
-    STDMETHODIMP_(VOID) GetControlHeadEndpointDescriptor(                   \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor);              \
-                                                                            \
-    STDMETHODIMP_(VOID) GetIsochronousHeadEndpointDescriptor(               \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor);              \
-                                                                            \
-    STDMETHODIMP_(VOID) GetInterruptEndpointDescriptors(                    \
-        IN struct _OHCI_ENDPOINT_DESCRIPTOR *** OutDescriptor);             \
-                                                                            \
     STDMETHODIMP_(VOID) HeadEndpointDescriptorModified(                     \
         IN ULONG Type);                                                     \
                                                                             \

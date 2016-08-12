@@ -821,30 +821,6 @@ CUSBHardwareDevice::AllocateEndpointDescriptor(
 
 VOID
 STDMETHODCALLTYPE
-CUSBHardwareDevice::GetBulkHeadEndpointDescriptor(
-    struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor)
-{
-    *OutDescriptor = m_BulkEndpointDescriptor;
-}
-
-VOID
-STDMETHODCALLTYPE
-CUSBHardwareDevice::GetInterruptEndpointDescriptors(
-    struct _OHCI_ENDPOINT_DESCRIPTOR *** OutDescriptor)
-{
-    *OutDescriptor = m_InterruptEndpoints;
-}
-
-VOID
-STDMETHODCALLTYPE
-CUSBHardwareDevice::GetIsochronousHeadEndpointDescriptor(
-    struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor)
-{
-    *OutDescriptor = m_IsoEndpointDescriptor;
-}
-
-VOID
-STDMETHODCALLTYPE
 CUSBHardwareDevice::HeadEndpointDescriptorModified(
     ULONG Type)
 {
@@ -862,14 +838,6 @@ CUSBHardwareDevice::HeadEndpointDescriptorModified(
         //
         WRITE_REGISTER_ULONG((PULONG)((PUCHAR)m_Base + OHCI_COMMAND_STATUS_OFFSET), OHCI_BULK_LIST_FILLED);
     }
-}
-
-VOID
-STDMETHODCALLTYPE
-CUSBHardwareDevice::GetControlHeadEndpointDescriptor(
-    struct _OHCI_ENDPOINT_DESCRIPTOR ** OutDescriptor)
-{
-    *OutDescriptor = m_ControlEndpointDescriptor;
 }
 
 NTSTATUS
