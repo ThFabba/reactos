@@ -93,10 +93,10 @@ protected:
     POHCIQUEUE m_UsbQueue;                                                              // usb request queue
     POHCIHCCA m_HCCA;                                                                  // hcca virtual base
     PHYSICAL_ADDRESS m_HCCAPhysicalAddress;                                            // hcca physical address
-    POHCI_ENDPOINT_DESCRIPTOR m_ControlEndpointDescriptor;                             // dummy control endpoint descriptor
-    POHCI_ENDPOINT_DESCRIPTOR m_BulkEndpointDescriptor;                                // dummy control endpoint descriptor
+    OHCI_STATIC_ENDPOINT_DESCRIPTOR m_ControlEndpointDescriptor;                       // dummy control endpoint descriptor
+    OHCI_STATIC_ENDPOINT_DESCRIPTOR m_BulkEndpointDescriptor;                          // dummy control endpoint descriptor
+    OHCI_STATIC_ENDPOINT_DESCRIPTOR m_InterruptEndpoints[63];                          // endpoints for interrupt / iso transfers
     POHCI_ENDPOINT_DESCRIPTOR m_IsoEndpointDescriptor;                                 // iso endpoint descriptor
-    POHCI_ENDPOINT_DESCRIPTOR m_InterruptEndpoints[OHCI_STATIC_ENDPOINT_COUNT];        // endpoints for interrupt / iso transfers
     ULONG m_NumberOfPorts;                                                             // number of ports
     PDMAMEMORYMANAGER m_MemoryManager;                                                 // memory manager
     HD_INIT_CALLBACK* m_SCECallBack;                                                   // status change callback routine
@@ -659,12 +659,14 @@ retry:
     //
     // lets write physical address of dummy control endpoint descriptor
     //
-    WRITE_REGISTER_ULONG((PULONG)((PUCHAR)m_Base + OHCI_CONTROL_HEAD_ED_OFFSET), m_ControlEndpointDescriptor->PhysicalAddress.LowPart);
+    WRITE_REGISTER_ULONG((PULONG)((PUCHAR)m_Base + OHCI_CONTROL_HEAD_ED_OFFSET), m_ControlEndpointDescriptor.PhysicalAddress);
+    DPRINT("m_ControlEndpointDescriptor.PhysicalAddress %x\n", m_ControlEndpointDescriptor.PhysicalAddress);
 
     //
     // lets write physical address of dummy bulk endpoint descriptor
     //
-    WRITE_REGISTER_ULONG((PULONG)((PUCHAR)m_Base + OHCI_BULK_HEAD_ED_OFFSET), m_BulkEndpointDescriptor->PhysicalAddress.LowPart);
+    WRITE_REGISTER_ULONG((PULONG)((PUCHAR)m_Base + OHCI_BULK_HEAD_ED_OFFSET), m_BulkEndpointDescriptor.PhysicalAddress);
+    DPRINT("m_BulkEndpointDescriptor.PhysicalAddress %x\n", m_BulkEndpointDescriptor.PhysicalAddress);
 
     //
     // read descriptor A
@@ -843,6 +845,106 @@ CUSBHardwareDevice::HeadEndpointDescriptorModified(
 NTSTATUS
 CUSBHardwareDevice::InitializeController()
 {
+    NTSTATUS Status;
+    POHCI_HC_ENDPOINT_DESCRIPTOR ScheduleEdVA;
+    ULONG_PTR ScheduleEdPA;
+    ULONG ix, jx;
+    UCHAR HeadIndex;
+
+    //
+    // first allocate the hcca area
+    //
+    Status = m_MemoryManager->Allocate(sizeof(OHCI_HC_RESOURCES), (PVOID *)&m_HCCA, &m_HCCAPhysicalAddress);
+    if (!NT_SUCCESS(Status))
+    {
+        //
+        // no memory
+        //
+        return Status;
+    }
+
+    DPRINT("InitializeController: m_HCCA                - %p\n", m_HCCA);
+    DPRINT("InitializeController: m_HCCAPhysicalAddress - %p\n", m_HCCAPhysicalAddress);
+
+    ScheduleEdVA = (POHCI_HC_ENDPOINT_DESCRIPTOR)((ULONG_PTR)m_HCCA + sizeof(OHCIHCCA));
+    ScheduleEdPA = m_HCCAPhysicalAddress.LowPart + sizeof(OHCIHCCA);
+
+    ix = 0;
+
+    //
+    // fill array Interrupt EDs for Interrupt Endpoint Schedule
+    //
+    for ( ix = 0; ix < 63; ix++ )  // FIXME 63 == 32+16+8+4+2+1 (Endpoint Poll Interval (ms))
+    {
+
+        if ( ix == 0 )
+        {
+          HeadIndex = OHCI_ED_EOF;
+          ScheduleEdVA->NextED = NULL;
+        }
+        else
+        {
+          HeadIndex = ((ix - 1) >> 1);
+          ASSERT(HeadIndex >= 0 && HeadIndex < 31);
+          ScheduleEdVA->NextED = m_InterruptEndpoints[HeadIndex].PhysicalAddress;
+        }
+
+        DPRINT("InitializeController: [%02d] ScheduleEdVA - %p, ScheduleEdPA - %p, [%02d] NextED - %p\n", ix, ScheduleEdVA, ScheduleEdPA, HeadIndex, ScheduleEdVA->NextED);
+
+        ScheduleEdVA->EndpointControl.sKip = 1;
+
+        ScheduleEdVA->TailPointer = 0;
+        ScheduleEdVA->HeadPointer = 0;
+
+        m_InterruptEndpoints[ix].VirtualAddress  = ScheduleEdVA;
+        m_InterruptEndpoints[ix].PhysicalAddress = ScheduleEdPA;
+        m_InterruptEndpoints[ix].pRegisterHeadED = (POHCI_HC_ENDPOINT_DESCRIPTOR *)&ScheduleEdVA->NextED;
+        m_InterruptEndpoints[ix].HeadIndex       = HeadIndex;
+
+        InitializeListHead(&m_InterruptEndpoints[ix].ListED);
+
+        ScheduleEdVA += 1;
+        ScheduleEdPA += sizeof(POHCI_HC_ENDPOINT_DESCRIPTOR);
+    }
+
+    //
+    // initialize Interrupt Endpoint Schedule
+    //
+
+    for (ix = 0, jx = 31; ix < 32; ix++, jx++)
+    {
+
+        static UCHAR Balance[32] = {
+                       0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30, 
+                       1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
+
+        DPRINT("InitializeController: ix - %02d, jx - %02d, Balance[ix] - %02d\n", ix, jx, Balance[ix]);
+
+        m_HCCA->InterruptTable[Balance[ix]] = m_InterruptEndpoints[jx].PhysicalAddress;
+
+        m_InterruptEndpoints[jx].pRegisterHeadED = (POHCI_HC_ENDPOINT_DESCRIPTOR *)&m_HCCA->InterruptTable[Balance[ix]];
+        m_InterruptEndpoints[jx].HccaIndex = Balance[ix];
+    }
+
+    //
+    // initialize dummy control endpoint descriptor
+    //
+    m_ControlEndpointDescriptor.HeadIndex       = OHCI_ED_EOF;
+    m_ControlEndpointDescriptor.Type            = OHCI_NUMBER_OF_INTERRUPTS + 1; // FIXME
+    m_ControlEndpointDescriptor.pRegisterHeadED = (POHCI_HC_ENDPOINT_DESCRIPTOR *)((ULONG_PTR)m_Base + OHCI_CONTROL_HEAD_ED_OFFSET);
+
+    InitializeListHead(&m_ControlEndpointDescriptor.ListED);
+
+    //
+    // initialize dummy bulk endpoint descriptor
+    //
+    m_BulkEndpointDescriptor.HeadIndex       = OHCI_ED_EOF;
+    m_BulkEndpointDescriptor.Type            = OHCI_NUMBER_OF_INTERRUPTS + 2; // FIXME
+    m_BulkEndpointDescriptor.pRegisterHeadED = (POHCI_HC_ENDPOINT_DESCRIPTOR *)((ULONG_PTR)m_Base + OHCI_BULK_HEAD_ED_OFFSET);
+
+    InitializeListHead(&m_BulkEndpointDescriptor.ListED);
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS

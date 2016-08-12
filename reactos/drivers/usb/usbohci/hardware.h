@@ -275,6 +275,8 @@ typedef struct _OHCI_ENDPOINT_DESCRIPTOR
 #define	OHCI_ENDPOINT_TOGGLE_CARRY              0x00000002
 #define	OHCI_ENDPOINT_DIRECTION_DESCRIPTOR      0x00000000
 
+#define OHCI_ED_EOF                            -1
+
 //
 // Maximum port count set by OHCI
 //
