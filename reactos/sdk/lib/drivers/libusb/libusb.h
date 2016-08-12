@@ -88,6 +88,9 @@ NTSTATUS NTAPI CreateDMAMemoryManager(PDMAMEMORYMANAGER *OutMemoryManager);
 // usb_device.cpp
 NTSTATUS NTAPI CreateUSBDevice(PUSBDEVICE *OutDevice);
 
+// usb_pipe.cpp
+NTSTATUS NTAPI CreateUSBPipe(PUSBPIPE * OutPipe);
+
 // libusb.cpp
 NTSTATUS NTAPI USBLIB_AddDevice(PDRIVER_OBJECT DriverObject, PDEVICE_OBJECT PhysicalDeviceObject);
 NTSTATUS NTAPI USBLIB_Dispatch(PDEVICE_OBJECT DeviceObject, PIRP Irp);

@@ -2,12 +2,13 @@
 #ifndef COMMON_INTERFACES_HPP
 #define COMMON_INTERFACES_HPP
 
+struct IUSBPipe;
+
 typedef struct _USB_ENDPOINT
 {
     USB_ENDPOINT_DESCRIPTOR EndPointDescriptor;
-    UCHAR HubAddress;
-    UCHAR HubPort;
     UCHAR DataToggle;
+    IUSBPipe * Pipe;
 } USB_ENDPOINT, *PUSB_ENDPOINT;
 
 typedef struct _USB_INTERFACE
@@ -687,5 +688,30 @@ DECLARE_INTERFACE_(IUSBDevice, IUnknown)
 };
 
 typedef IUSBDevice *PUSBDEVICE;
+
+//=========================================================================================
+//
+// class IUSBPipe
+//
+// Description: This class is used to abstract details of a usb pipe
+// 
+
+DECLARE_INTERFACE_(IUSBPipe, IUnknown)
+{
+    DEFINE_ABSTRACT_UNKNOWN()
+
+//----------------------------------------------------------------------------------------
+//
+// Initialize
+//
+// Description: Initializes the usb pipe
+
+    virtual NTSTATUS Initialize(IN PUSBDEVICE DeviceHandle,
+                                IN PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor,
+                                IN PDMAMEMORYMANAGER DmaManager) = 0;
+
+};
+
+typedef IUSBPipe * PUSBPIPE;
 
 #endif

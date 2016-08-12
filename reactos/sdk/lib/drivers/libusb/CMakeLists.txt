@@ -12,6 +12,7 @@ list(APPEND SOURCE
     memory_manager.cpp
     misc.cpp
     usb_device.cpp
+    usb_pipe.cpp
     purecall.cpp
     libusb.cpp
     libusb.h)
