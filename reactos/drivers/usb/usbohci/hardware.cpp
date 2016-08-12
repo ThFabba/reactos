@@ -66,6 +66,7 @@ public:
     NTSTATUS InitializeController();
     NTSTATUS AllocateEndpointDescriptor(OUT POHCI_ENDPOINT_DESCRIPTOR *OutDescriptor);
     NTSTATUS OpenControlEndpoint(IN PUSBPIPE PipeHandle, IN ULONG TransferType);
+    NTSTATUS InitializeED(IN POHCI_ENDPOINT OhciEndpoint, IN POHCI_HCD_ENDPOINT_DESCRIPTOR ED, IN POHCI_HCD_TRANSFER_DESCRIPTOR FirstTD, IN ULONG_PTR EdPA);
 
     // friend function
     friend BOOLEAN NTAPI InterruptServiceRoutine(IN PKINTERRUPT  Interrupt, IN PVOID  ServiceContext);
@@ -1693,6 +1694,47 @@ CUSBHardwareDevice::OpenControlEndpoint(
     OhciEndpoint->HeadED = &m_ControlEndpointDescriptor;
 
     AddEndpointInQueue(OhciEndpoint);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+CUSBHardwareDevice::InitializeED(
+    IN POHCI_ENDPOINT OhciEndpoint,
+    IN POHCI_HCD_ENDPOINT_DESCRIPTOR ED,
+    IN POHCI_HCD_TRANSFER_DESCRIPTOR FirstTD,
+    IN ULONG_PTR EdPA)
+{
+    OHCI_HC_ENDPOINT_CONTROL  EndpointControl;
+    ULONG                     TransferType;
+
+    DPRINT("InitializeED: ... \n");
+
+    RtlZeroMemory(ED, sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+    TransferType = OhciEndpoint->TransferType;
+
+
+
+#if 1
+{
+    DPRINT("InitializeED: FunctionAddress   - %x\n", EndpointControl.FunctionAddress);
+    DPRINT("InitializeED: EndpointNumber    - %x\n", EndpointControl.EndpointNumber);
+    DPRINT("InitializeED: MaximumPacketSize - %x\n", EndpointControl.MaximumPacketSize);
+    DPRINT("InitializeED: Direction         - %x\n", EndpointControl.Direction);
+    DPRINT("InitializeED: Speed             - %x\n", EndpointControl.Speed);
+    DPRINT("InitializeED: TransferType      - %x\n", TransferType);
+    DPRINT("InitializeED: ----------------------------------\n");
+    DPRINT("InitializeED: ED->HwED.EndpointControl - %p\n", ED->HwED.EndpointControl);
+    DPRINT("InitializeED: ED->HwED.TailPointer     - %p\n", ED->HwED.TailPointer);
+    DPRINT("InitializeED: ED->HwED.HeadPointer     - %p\n", ED->HwED.HeadPointer);
+    DPRINT("InitializeED: ED->HwED.NextED          - %p\n", ED->HwED.NextED);
+}
+#endif
+
+    OhciEndpoint->HcdTailP = FirstTD;
+    OhciEndpoint->HcdHeadP = FirstTD;
+ASSERT(FALSE);
 
     return STATUS_SUCCESS;
 }

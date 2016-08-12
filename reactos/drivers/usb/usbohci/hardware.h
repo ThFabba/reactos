@@ -485,5 +485,7 @@ typedef struct _OHCI_ENDPOINT {
   POHCI_STATIC_ENDPOINT_DESCRIPTOR  HeadED;                  // 
   POHCI_HCD_ENDPOINT_DESCRIPTOR     ED;                      // 
   POHCI_HCD_TRANSFER_DESCRIPTOR     FirstTD;                 // 
+  POHCI_HCD_TRANSFER_DESCRIPTOR     HcdHeadP;                // 
+  POHCI_HCD_TRANSFER_DESCRIPTOR     HcdTailP;                // 
 
 } OHCI_ENDPOINT, *POHCI_ENDPOINT;
