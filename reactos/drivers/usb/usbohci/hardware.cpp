@@ -67,6 +67,7 @@ public:
     NTSTATUS AllocateEndpointDescriptor(OUT POHCI_ENDPOINT_DESCRIPTOR *OutDescriptor);
     NTSTATUS OpenControlEndpoint(IN PUSBPIPE PipeHandle, IN ULONG TransferType);
     NTSTATUS InitializeED(IN POHCI_ENDPOINT OhciEndpoint, IN POHCI_HCD_ENDPOINT_DESCRIPTOR ED, IN POHCI_HCD_TRANSFER_DESCRIPTOR FirstTD, IN ULONG_PTR EdPA);
+    VOID     AddEndpointInQueue(IN POHCI_ENDPOINT OhciEndpoint);
 
     // friend function
     friend BOOLEAN NTAPI InterruptServiceRoutine(IN PKINTERRUPT  Interrupt, IN PVOID  ServiceContext);
@@ -1737,6 +1738,51 @@ CUSBHardwareDevice::InitializeED(
 ASSERT(FALSE);
 
     return STATUS_SUCCESS;
+}
+
+VOID
+CUSBHardwareDevice::AddEndpointInQueue(
+    POHCI_ENDPOINT OhciEndpoint)
+{
+  POHCI_STATIC_ENDPOINT_DESCRIPTOR  HeadED;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     ED;
+  POHCI_HCD_ENDPOINT_DESCRIPTOR     PrevED;
+  PLIST_ENTRY                       HeadLink;
+
+  DPRINT("AddEndpointInQueue: OhciEndpoint - %p\n", OhciEndpoint);
+
+  ED = OhciEndpoint->ED;
+
+  HeadED = OhciEndpoint->HeadED;
+  HeadLink = &HeadED->ListED;
+
+  if ( IsListEmpty(HeadLink) )
+  {
+     InsertHeadList(HeadLink, &ED->HcdEDLink);
+
+      if ( HeadED->Type & 0x20 ) // ControlTransfer or BulkTransfer
+      {
+        ED->HwED.NextED = READ_REGISTER_ULONG((PULONG)HeadED->pRegisterHeadED);
+        WRITE_REGISTER_ULONG((PULONG)HeadED->pRegisterHeadED, ED->PhysicalAddress);
+      }
+      else
+      {
+        ED->HwED.NextED = (ULONG_PTR)*HeadED->pRegisterHeadED;
+        *HeadED->pRegisterHeadED = (POHCI_HC_ENDPOINT_DESCRIPTOR)ED->PhysicalAddress;
+      }
+  }
+  else
+  {
+      PrevED = CONTAINING_RECORD(
+                 HeadLink->Blink,
+                 OHCI_HCD_ENDPOINT_DESCRIPTOR,
+                 HcdEDLink);
+
+      InsertTailList(HeadLink, &ED->HcdEDLink);
+
+      ED->HwED.NextED = 0;
+      PrevED->HwED.NextED = ED->PhysicalAddress;
+  }
 }
 
 NTSTATUS

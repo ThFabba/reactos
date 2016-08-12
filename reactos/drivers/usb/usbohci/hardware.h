@@ -445,7 +445,8 @@ typedef struct _OHCI_HCD_ENDPOINT_DESCRIPTOR {
 
   // Software part
   ULONG_PTR                               PhysicalAddress;           // EdPA
-  ULONG                                   Pad[11];
+  LIST_ENTRY                              HcdEDLink;
+  ULONG                                   Pad[9];
 
 } OHCI_HCD_ENDPOINT_DESCRIPTOR, *POHCI_HCD_ENDPOINT_DESCRIPTOR;
 
