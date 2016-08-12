@@ -379,6 +379,37 @@ C_ASSERT(sizeof(OHCI_ISO_TD) == 48);
 #define OHCI_ITD_GET_CONDITION_CODE(x)          ((x) >> 28)
 #define OHCI_ITD_NO_CONDITION_CODE              0xf0000000
 
+//=====================================================================
+
+//---------------------------------------------------------------------
+typedef union _OHCI_HC_TRANSFER_CONTROL {
+
+  struct {
+    ULONG  Reserved        : 18;
+    ULONG  BufferRounding  : 1;
+    ULONG  DirectionPID    : 2;
+    ULONG  DelayInterrupt  : 3;
+    ULONG  DataToggle      : 2;
+    ULONG  ErrorCount      : 2;
+    ULONG  ConditionCode   : 4;
+  };
+
+  ULONG  AsULONG;
+
+} OHCI_HC_TRANSFER_CONTROL, *POHCI_HC_TRANSFER_CONTROL;
+
+typedef struct _OHCI_HC_TRANSFER_DESCRIPTOR { // 16-byte boundary
+
+  // Hardware part
+  OHCI_HC_TRANSFER_CONTROL  Control;         // dword 0
+  PVOID                     CurrentBuffer;   // physical pointer of the memory location
+  PULONG                    NextTD;          // physical pointer to the next OHCI_HC_TRANSFER_DESCRIPTOR
+  PVOID                     BufferEnd;       // physical pointer of the last byte in the buffer
+
+} OHCI_HC_TRANSFER_DESCRIPTOR, *POHCI_HC_TRANSFER_DESCRIPTOR;
+
+C_ASSERT(sizeof(OHCI_HC_TRANSFER_DESCRIPTOR) == 16);
+
 //---------------------------------------------------------------------
 typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {
 
