@@ -206,6 +206,10 @@ struct IUSBQueue;
      STDMETHOD_(NTSTATUS, GetDmaAdapter)( THIS_                             \
         OUT PDMA_ADAPTER * OutDmaAdapter) PURE;                             \
                                                                             \
+     STDMETHOD_(NTSTATUS, OpenEndpoint)( THIS_                              \
+        IN IUSBPipe * Pipe,                                                 \
+        IN ULONG TransferType) PURE;                                        \
+                                                                            \
      STDMETHOD_(LPCSTR, GetUSBType)(THIS) PURE;
 
 #define IMP_IUSBHARDWAREDEVICE                                              \
@@ -260,6 +264,10 @@ struct IUSBQueue;
                                                                             \
      STDMETHODIMP_(NTSTATUS) GetDmaAdapter(                                 \
         OUT PDMA_ADAPTER * OutDmaAdapter);                                  \
+                                                                            \
+     STDMETHODIMP_(NTSTATUS) OpenEndpoint(                                  \
+        IN IUSBPipe * Pipe,                                                 \
+        IN ULONG TransferType);                                             \
                                                                             \
      STDMETHODIMP_(LPCSTR) GetUSBType();
 

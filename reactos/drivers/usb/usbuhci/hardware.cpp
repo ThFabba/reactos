@@ -1502,8 +1502,8 @@ CUSBHardwareDevice::GetEndpointRequirements(
     OUT PULONG OutMaxTransferSize,
     OUT PULONG OutRequiredBufferLength)
 {
-    ULONG MaxTransferSize;
-    ULONG RequiredBufferLength;
+    ULONG MaxTransferSize = 0;
+    ULONG RequiredBufferLength = 0;
 
     switch ( TransferType )
     {
@@ -1556,6 +1556,49 @@ CUSBHardwareDevice::GetDmaAdapter(
       *OutDmaAdapter = m_Adapter;
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::OpenEndpoint(
+    IN PUSBPIPE Pipe,
+    IN ULONG TransferType)
+{
+    NTSTATUS Status = STATUS_UNSUCCESSFUL;
+
+    switch ( TransferType )
+    {
+      case USB_ENDPOINT_TYPE_CONTROL: // 0
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_CONTROL\n");
+        //Status = OpenControlEndpoint(Pipe, TransferType);
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_ISOCHRONOUS: // 1
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_ISOCHRONOUS\n");
+        //Status = OpenIsoEndpoint(Pipe, TransferType);
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_BULK: // 2
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_BULK\n");
+        //Status =  OpenBulkEndpoint(Pipe, TransferType);
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_INTERRUPT: // 3
+        DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_INTERRUPT\n");
+        //Status = OpenInterruptEndpoint(Pipe, TransferType);
+        ASSERT(FALSE);
+        break;
+
+      default:
+        ASSERT(FALSE);
+        Status = STATUS_UNSUCCESSFUL;
+        break;
+    }
+
+    return Status;
 }
 
 NTSTATUS
