@@ -198,6 +198,11 @@ struct IUSBQueue;
         IN PVOID CallBack,                                                  \
         IN PVOID Context) PURE;                                             \
                                                                             \
+     STDMETHOD_(NTSTATUS, GetEndpointRequirements)( THIS_                   \
+        IN ULONG TransferType,                                              \
+        OUT PULONG OutMaxTransferSize,                                      \
+        OUT PULONG OutRequiredBufferLength) PURE;                           \
+                                                                            \
      STDMETHOD_(LPCSTR, GetUSBType)(THIS) PURE;
 
 
@@ -245,6 +250,11 @@ struct IUSBQueue;
      STDMETHODIMP_(VOID) SetStatusChangeEndpointCallBack(                   \
         IN PVOID CallBack,                                                  \
         IN PVOID Context);                                                  \
+                                                                            \
+     STDMETHODIMP_(NTSTATUS) GetEndpointRequirements(                       \
+        IN ULONG TransferType,                                              \
+        OUT PULONG OutMaxTransferSize,                                      \
+        OUT PULONG OutRequiredBufferLength);                                \
                                                                             \
      STDMETHODIMP_(LPCSTR) GetUSBType();
 

@@ -1508,6 +1508,56 @@ StatusChangeWorkItemRoutine(
 }
 
 NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::GetEndpointRequirements(
+    IN ULONG TransferType,
+    OUT PULONG OutMaxTransferSize,
+    OUT PULONG OutRequiredBufferLength)
+{
+    ULONG MaxTransferSize;
+    ULONG RequiredBufferLength;
+
+    switch ( TransferType )
+    {
+      case USB_ENDPOINT_TYPE_CONTROL:
+        DPRINT("GetEndpointRequirements: USB_ENDPOINT_TYPE_CONTROL\n");
+        RequiredBufferLength = 0x0F00; //FIXME (? * sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) + sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR)
+        break;
+
+      case USB_ENDPOINT_TYPE_ISOCHRONOUS:
+        DPRINT("GetEndpointRequirements: USB_ENDPOINT_TYPE_ISOCHRONOUS\n");
+        //RequiredBufferLength = ; //FIXME  (? * sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) + sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR)
+        ASSERT(FALSE);
+        break;
+
+      case USB_ENDPOINT_TYPE_BULK:
+        DPRINT("GetEndpointRequirements: USB_ENDPOINT_TYPE_BULK\n");
+        MaxTransferSize = 0x40000;
+        RequiredBufferLength = 0x0F00; //FIXME  (? * sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) + sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR)
+        break;
+
+      case USB_ENDPOINT_TYPE_INTERRUPT:
+        DPRINT("GetEndpointRequirements: USB_ENDPOINT_TYPE_INTERRUPT\n");
+        MaxTransferSize = 0x1000;
+        RequiredBufferLength = 0x0F00; //FIXME  (? * sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR) + sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR)
+        break;
+
+      default:
+        ASSERT(FALSE);
+        break;
+    }
+
+
+    if (OutMaxTransferSize)
+      *OutMaxTransferSize = MaxTransferSize;
+      
+    if (OutRequiredBufferLength)
+      *OutRequiredBufferLength = RequiredBufferLength;
+
+    return 0;
+}
+
+NTSTATUS
 NTAPI
 CreateUSBHardware(
     PUSBHARDWAREDEVICE *OutHardware)
