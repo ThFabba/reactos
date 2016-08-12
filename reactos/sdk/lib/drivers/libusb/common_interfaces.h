@@ -203,8 +203,10 @@ struct IUSBQueue;
         OUT PULONG OutMaxTransferSize,                                      \
         OUT PULONG OutRequiredBufferLength) PURE;                           \
                                                                             \
+     STDMETHOD_(NTSTATUS, GetDmaAdapter)( THIS_                             \
+        OUT PULONG OutDmaAdapter) PURE;                                     \
+                                                                            \
      STDMETHOD_(LPCSTR, GetUSBType)(THIS) PURE;
-
 
 #define IMP_IUSBHARDWAREDEVICE                                              \
     STDMETHODIMP_(NTSTATUS) Initialize(                                     \
@@ -255,6 +257,9 @@ struct IUSBQueue;
         IN ULONG TransferType,                                              \
         OUT PULONG OutMaxTransferSize,                                      \
         OUT PULONG OutRequiredBufferLength);                                \
+                                                                            \
+     STDMETHODIMP_(NTSTATUS) GetDmaAdapter(                                 \
+        OUT PULONG OutDmaAdapter);                                          \
                                                                             \
      STDMETHODIMP_(LPCSTR) GetUSBType();
 

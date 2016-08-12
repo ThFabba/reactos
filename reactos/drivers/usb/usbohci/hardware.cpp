@@ -1558,6 +1558,17 @@ CUSBHardwareDevice::GetEndpointRequirements(
 }
 
 NTSTATUS
+STDMETHODCALLTYPE
+CUSBHardwareDevice::GetDmaAdapter(
+    OUT PDMA_ADAPTER * OutDmaAdapter)
+{
+    if (OutDmaAdapter)
+      *OutDmaAdapter = m_Adapter;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
 NTAPI
 CreateUSBHardware(
     PUSBHARDWAREDEVICE *OutHardware)
