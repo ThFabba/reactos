@@ -42,6 +42,7 @@ public:
     virtual VOID GetHeaderBuffer(OUT PLIBUSB_COMMON_BUFFER_HEADER * HeaderBuffer);
     virtual VOID GetEndpointDescriptor(OUT PUSB_ENDPOINT_DESCRIPTOR * EndpointDescriptor);
     virtual ULONG GetDeviceSpeed();
+    virtual UCHAR GetDeviceAddress();
 
     // constructor / destructor
     CUSBPipe(IUnknown *OuterUnknown){}
@@ -212,6 +213,12 @@ CUSBPipe::GetDeviceSpeed()
     return m_DeviceHandle->GetSpeed();
 }
 
+//-----------------------------------------------------------------------------
+UCHAR
+CUSBPipe::GetDeviceAddress()
+{
+    return m_DeviceHandle->GetDeviceAddress();
+}
 
 //-----------------------------------------------------------------------------
 NTSTATUS

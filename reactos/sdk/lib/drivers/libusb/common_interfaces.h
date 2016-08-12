@@ -772,6 +772,7 @@ DECLARE_INTERFACE_(IUSBPipe, IUnknown)
     virtual VOID GetHeaderBuffer(OUT PLIBUSB_COMMON_BUFFER_HEADER * HeaderBuffer) = 0;
     virtual VOID GetEndpointDescriptor(OUT PUSB_ENDPOINT_DESCRIPTOR * EndpointDescriptor) = 0;
     virtual ULONG GetDeviceSpeed() = 0;
+    virtual UCHAR GetDeviceAddress() = 0;
 
 };
 
