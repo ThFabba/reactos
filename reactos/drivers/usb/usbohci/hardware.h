@@ -392,3 +392,12 @@ typedef struct _OHCI_STATIC_ENDPOINT_DESCRIPTOR {
 
 } OHCI_STATIC_ENDPOINT_DESCRIPTOR, *POHCI_STATIC_ENDPOINT_DESCRIPTOR;
 
+//---------------------------------------------------------------------
+typedef struct _OHCI_HC_RESOURCES {
+
+  OHCIHCCA                      HcHCCA;                    // +0x000  (256 byte align)
+  OHCI_HC_ENDPOINT_DESCRIPTOR   InterrruptHeadED[63];      // +0x100  (16 byte align)
+  OHCI_HC_ENDPOINT_DESCRIPTOR   ControlHeadED;             // +0x4F0  (16 byte align)
+  OHCI_HC_ENDPOINT_DESCRIPTOR   BulkHeadED;                // +0x500  (16 byte align)
+
+} OHCI_HC_RESOURCES, *POHCI_HC_RESOURCES;
