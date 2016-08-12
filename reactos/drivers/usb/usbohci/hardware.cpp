@@ -65,6 +65,7 @@ public:
     BOOLEAN InterruptService();
     NTSTATUS InitializeController();
     NTSTATUS AllocateEndpointDescriptor(OUT POHCI_ENDPOINT_DESCRIPTOR *OutDescriptor);
+    NTSTATUS OpenControlEndpoint(IN PUSBPIPE PipeHandle, IN ULONG TransferType);
 
     // friend function
     friend BOOLEAN NTAPI InterruptServiceRoutine(IN PKINTERRUPT  Interrupt, IN PVOID  ServiceContext);
@@ -1580,7 +1581,7 @@ CUSBHardwareDevice::OpenEndpoint(
     {
       case USB_ENDPOINT_TYPE_CONTROL: // 0
         DPRINT("OpenEndpoint: USB_ENDPOINT_TYPE_CONTROL\n");
-        //Status = OpenControlEndpoint(Pipe, TransferType);
+        Status = OpenControlEndpoint(Pipe, TransferType);
         ASSERT(FALSE);
         break;
 
@@ -1609,6 +1610,91 @@ CUSBHardwareDevice::OpenEndpoint(
     }
 
     return Status;
+}
+
+NTSTATUS
+CUSBHardwareDevice::OpenControlEndpoint(
+    IN PUSBPIPE Pipe,
+    IN ULONG TransferType)
+{
+    POHCI_ENDPOINT OhciEndpoint;
+    ULONG TdCount;
+    PLIBUSB_COMMON_BUFFER_HEADER HeaderBuffer = NULL;
+    POHCI_HCD_TRANSFER_DESCRIPTOR TdVA;
+    POHCI_HCD_TRANSFER_DESCRIPTOR TdPA;
+    POHCI_HCD_TRANSFER_DESCRIPTOR FirstTD;
+    POHCI_HCD_ENDPOINT_DESCRIPTOR ED;
+    NTSTATUS Status;
+
+    DPRINT("OpenControlEndpoint: ... \n");
+
+    OhciEndpoint = (POHCI_ENDPOINT)
+                   ExAllocatePoolWithTag(NonPagedPool, sizeof(OHCI_ENDPOINT), TAG_USBOHCI);
+
+    if (!OhciEndpoint)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    RtlZeroMemory(OhciEndpoint, sizeof(OHCI_ENDPOINT));
+
+    Pipe->SetHcEndpoint((PVOID)OhciEndpoint);
+
+    OhciEndpoint->Pipe = Pipe;
+    OhciEndpoint->TransferType = TransferType;
+
+    Pipe->GetHeaderBuffer(&HeaderBuffer);
+
+    TdCount = (HeaderBuffer->BufferLength - sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR)) /
+              sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR);
+
+    OhciEndpoint->MaxTransferDescriptors = TdCount;
+    DPRINT("OpenControlEndpoint: MaxTransferDescriptors - %d\n", OhciEndpoint->MaxTransferDescriptors);
+
+    FirstTD = (POHCI_HCD_TRANSFER_DESCRIPTOR)
+              (HeaderBuffer->VirtualAddress + sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+    OhciEndpoint->FirstTD = FirstTD;
+
+    // Initialize TDs
+    if ( TdCount > 0 )
+    {
+        TdVA = FirstTD;
+        TdPA = (POHCI_HCD_TRANSFER_DESCRIPTOR)
+               (HeaderBuffer->PhysicalAddress + sizeof(OHCI_HCD_ENDPOINT_DESCRIPTOR));
+
+        do
+        {
+            DPRINT("OpenControlEndpoint: InitTD. TdVA - %p, TdPA - %p\n", TdVA, TdPA);
+
+            RtlZeroMemory(TdVA, sizeof(OHCI_HCD_TRANSFER_DESCRIPTOR));
+
+            TdVA->PhysicalAddress = TdPA;
+            ++TdPA;
+            ++TdVA;
+            --TdCount;
+        }
+        while ( TdCount > 0 );
+    }
+
+    ED = (POHCI_HCD_ENDPOINT_DESCRIPTOR)HeaderBuffer->VirtualAddress;
+
+    Status = InitializeED(OhciEndpoint,
+                          ED,
+                          FirstTD,
+                          HeaderBuffer->PhysicalAddress);
+
+    if (!NT_SUCCESS(Status))
+    {
+       return STATUS_UNSUCCESSFUL;
+    }
+
+    OhciEndpoint->ED = ED;
+    OhciEndpoint->HeadED = &m_ControlEndpointDescriptor;
+
+    AddEndpointInQueue(OhciEndpoint);
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
