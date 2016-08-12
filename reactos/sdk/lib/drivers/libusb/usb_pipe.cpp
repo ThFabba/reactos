@@ -48,6 +48,9 @@ protected:
     PDMAMEMORYMANAGER             m_DmaManager;                // 
     USB_ENDPOINT_DESCRIPTOR       m_EndpointDescriptor;        // 
 
+    // parameters
+    ULONG                         m_TransferType;              // 
+
 };
 
 //-----------------------------------------------------------------------------
@@ -74,6 +77,8 @@ CUSBPipe::Initialize(
     m_DeviceHandle  = DeviceHandle;
 
     RtlCopyMemory(&m_EndpointDescriptor, EndpointDescriptor, sizeof(USB_ENDPOINT_DESCRIPTOR));
+
+    m_TransferType = m_EndpointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK;
 
     return Status;
 }
