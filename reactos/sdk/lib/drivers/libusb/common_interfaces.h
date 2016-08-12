@@ -204,7 +204,7 @@ struct IUSBQueue;
         OUT PULONG OutRequiredBufferLength) PURE;                           \
                                                                             \
      STDMETHOD_(NTSTATUS, GetDmaAdapter)( THIS_                             \
-        OUT PULONG OutDmaAdapter) PURE;                                     \
+        OUT PDMA_ADAPTER * OutDmaAdapter) PURE;                             \
                                                                             \
      STDMETHOD_(LPCSTR, GetUSBType)(THIS) PURE;
 
@@ -259,7 +259,7 @@ struct IUSBQueue;
         OUT PULONG OutRequiredBufferLength);                                \
                                                                             \
      STDMETHODIMP_(NTSTATUS) GetDmaAdapter(                                 \
-        OUT PULONG OutDmaAdapter);                                          \
+        OUT PDMA_ADAPTER * OutDmaAdapter);                                  \
                                                                             \
      STDMETHODIMP_(LPCSTR) GetUSBType();
 
@@ -754,9 +754,12 @@ DECLARE_INTERFACE_(IUSBPipe, IUnknown)
 //
 // Description: Initializes the usb pipe
 
-    virtual NTSTATUS Initialize(IN PUSBDEVICE DeviceHandle,
+    virtual NTSTATUS Initialize(IN PUSBHARDWAREDEVICE Hardware,
+                                IN PUSBDEVICE DeviceHandle,
                                 IN PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor,
                                 IN PDMAMEMORYMANAGER DmaManager) = 0;
+
+    virtual NTSTATUS OpenPipe() = 0;
 
 };
 

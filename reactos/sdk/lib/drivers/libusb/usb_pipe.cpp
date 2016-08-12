@@ -36,7 +36,8 @@ public:
     }
 
     // IUSBPipe interface functions
-    virtual NTSTATUS Initialize(IN PUSBDEVICE DeviceHandle, IN PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor, IN PDMAMEMORYMANAGER DmaManager);
+    virtual NTSTATUS Initialize(IN PUSBHARDWAREDEVICE Hardware, IN PUSBDEVICE DeviceHandle, IN PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor, IN PDMAMEMORYMANAGER DmaManager);
+    virtual NTSTATUS OpenPipe();
 
     // constructor / destructor
     CUSBPipe(IUnknown *OuterUnknown){}
@@ -44,12 +45,18 @@ public:
 
 protected:
     LONG m_Ref;
+    PUSBHARDWAREDEVICE            m_Hardware;                  // 
     PUSBDEVICE                    m_DeviceHandle;              // 
-    PDMAMEMORYMANAGER             m_DmaManager;                // 
     USB_ENDPOINT_DESCRIPTOR       m_EndpointDescriptor;        // 
+
+    // DMA memory buffer
+    PDMAMEMORYMANAGER             m_DmaManager;                // 
+    PDMA_ADAPTER                  m_DmaAdapter;                // 
+    PLIBUSB_COMMON_BUFFER_HEADER  m_HeaderDmaBuffer;           // 
 
     // parameters
     ULONG                         m_TransferType;              // 
+    ULONG                         m_MaxTransferSize;           // 
 
 };
 
@@ -66,6 +73,7 @@ CUSBPipe::QueryInterface(
 //-----------------------------------------------------------------------------
 NTSTATUS
 CUSBPipe::Initialize(
+    IN PUSBHARDWAREDEVICE Hardware,
     IN PUSBDEVICE DeviceHandle,
     IN PUSB_ENDPOINT_DESCRIPTOR EndpointDescriptor,
     IN PDMAMEMORYMANAGER DmaManager)
@@ -73,6 +81,7 @@ CUSBPipe::Initialize(
     NTSTATUS Status=0;
 
     /* initialize members */
+    m_Hardware      = Hardware;
     m_DmaManager    = DmaManager;
     m_DeviceHandle  = DeviceHandle;
 
@@ -81,6 +90,82 @@ CUSBPipe::Initialize(
     m_TransferType = m_EndpointDescriptor.bmAttributes & USB_ENDPOINT_TYPE_MASK;
 
     return Status;
+}
+
+//-----------------------------------------------------------------------------
+NTSTATUS
+CUSBPipe::OpenPipe()
+{
+    ULONG                         MaxTransferSize;
+    ULONG                         RequiredBufferLength;
+    PLIBUSB_COMMON_BUFFER_HEADER  HeaderBuffer;
+
+    DPRINT("OpenPipe: PipeHandle - %p\n", this);
+
+    switch (m_TransferType)
+    {
+      case USB_ENDPOINT_TYPE_CONTROL:
+        if ( m_EndpointDescriptor.bEndpointAddress == 0 )
+          MaxTransferSize = 0x400; // OUT Ep0
+        else
+          MaxTransferSize = 0x10000;
+        break;
+
+      case USB_ENDPOINT_TYPE_ISOCHRONOUS:
+         //MaxTransferSize = ;
+         ASSERT(FALSE);
+       break;
+
+      case USB_ENDPOINT_TYPE_BULK:
+        MaxTransferSize = 0x10000;
+        break;
+
+      case USB_ENDPOINT_TYPE_INTERRUPT:
+        MaxTransferSize = 0x400;
+        break;
+
+      default:
+        ASSERT(FALSE);
+        break;
+    }
+
+    m_MaxTransferSize = MaxTransferSize;
+
+    m_Hardware->GetDmaAdapter(&m_DmaAdapter);
+
+    m_Hardware->GetEndpointRequirements(m_TransferType, &MaxTransferSize, &RequiredBufferLength); 
+
+    DPRINT("OpenPipe: MaxTransferSize      - %x\n", MaxTransferSize);
+    DPRINT("OpenPipe: RequiredBufferLength - %x\n", RequiredBufferLength);
+
+    if ( m_TransferType == USB_ENDPOINT_TYPE_BULK ||
+         m_TransferType == USB_ENDPOINT_TYPE_INTERRUPT )
+    {
+        m_MaxTransferSize = MaxTransferSize;
+    }
+
+    if (RequiredBufferLength)
+    {
+        HeaderBuffer = m_DmaManager->AllocateCommonBuffer(m_DmaAdapter, RequiredBufferLength);
+        DPRINT("OpenPipe: BufferLength - %x\n", HeaderBuffer->BufferLength);
+    }
+    else
+    {
+        HeaderBuffer = NULL;
+    }
+
+    if (!HeaderBuffer)
+    {
+        ASSERT(FALSE); //Error handle
+        m_HeaderDmaBuffer = NULL;
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    m_HeaderDmaBuffer = HeaderBuffer;
+
+ASSERT(FALSE); //Error handle
+
+    return STATUS_SUCCESS;
 }
 
 //-----------------------------------------------------------------------------
