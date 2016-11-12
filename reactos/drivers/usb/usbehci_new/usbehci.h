@@ -34,6 +34,8 @@ typedef struct _EHCI_EXTENSION {
   BOOLEAN IsStarted;
   USHORT Reserved1;
   ULONG PortRoutingControl;
+  USHORT NumberOfPorts; // HCSPARAMS => N_PORTS 
+  USHORT PortPowerControl; // HCSPARAMS => Port Power Control (PPC)
 
 } EHCI_EXTENSION, *PEHCI_EXTENSION;
 
