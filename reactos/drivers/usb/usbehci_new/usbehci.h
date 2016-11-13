@@ -30,7 +30,7 @@ typedef struct _EHCI_HCD_QH {
   //Software
   struct _EHCI_HCD_QH * PhysicalAddress;
   ULONG QhFlags;
-  ULONG Pad[49];
+  ULONG Pad[45];
 } EHCI_HCD_QH, *PEHCI_HCD_QH;
 
 C_ASSERT(sizeof(EHCI_HCD_QH) == 0x100);
@@ -49,7 +49,7 @@ typedef struct _EHCI_STATIC_QH {
   //Software
   struct _EHCI_STATIC_QH * PhysicalAddress;
   ULONG QhFlags;
-  ULONG Pad[25];
+  ULONG Pad[21];
 } EHCI_STATIC_QH, *PEHCI_STATIC_QH;
 
 C_ASSERT(sizeof(EHCI_STATIC_QH) == 0xA0);
