@@ -192,6 +192,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
     if (ExpInTextModeSetup && (IopLoaderBlock != NULL))
     {
         PPNP_HARDWARE_ID IdDatabase;
+        NTSTATUS status;
 
         while (*IdBuffer)
         {
@@ -201,32 +202,41 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
 
             do
             {
-                STRING Id, ChildIdNameA;
+                ANSI_STRING Id, ChildIdNameA;
                 UNICODE_STRING ChildIdNameU;
 
-                RtlInitString(&Id, IdDatabase->Id);
+                RtlInitAnsiString(&Id, IdDatabase->Id);
+                RtlInitUnicodeString(&ChildIdNameU, IdBuffer);
 
-                ChildIdNameU.Buffer = IdBuffer;
-                ChildIdNameU.MaximumLength = ChildIdNameU.Length = (StringLength - 1) * sizeof(WCHAR);
+                status = RtlUnicodeStringToAnsiString(&ChildIdNameA,
+                                                      &ChildIdNameU,
+                                                      TRUE);
 
-                if (RtlUnicodeStringToAnsiString(&ChildIdNameA, &ChildIdNameU, TRUE) < 0)
+                if (!NT_SUCCESS(status))
                 {
-                    DPRINT("IopInstallCriticalDevice: cannot convert UnicodeString - %wZ\n", &ChildIdNameU);
+                    DPRINT("IopInstallCriticalDevice: Failed convert ChildIdNameU - %wZ\n",
+                           &ChildIdNameU);
                     continue;
                 }
 
                 if (RtlEqualString(&Id, &ChildIdNameA, TRUE))
                 {
-                    STRING DriverNameA;
+                    ANSI_STRING DriverNameA;
                     UNICODE_STRING DriverNameU;
 
-                    DPRINT("IopInstallCriticalDevice: Equal Ids from txtsetup.sif and HardwareId (or CompatibleId) from registry\n");
+                    DPRINT("IopInstallCriticalDevice: txtsetup.sif IDs == HID (or CID)\n");
 
                     /* Write it to the ENUM key */
-                    RtlInitString(&DriverNameA, IdDatabase->DriverName);
-                    if (RtlAnsiStringToUnicodeString(&DriverNameU, &DriverNameA, TRUE) < 0)
+                    RtlInitAnsiString(&DriverNameA, IdDatabase->DriverName);
+
+                    status = RtlAnsiStringToUnicodeString(&DriverNameU,
+                                                          &DriverNameA,
+                                                          TRUE);
+
+                    if (!NT_SUCCESS(status))
                     {
-                        DPRINT("IopInstallCriticalDevice: cannot convert string %s\n", &DriverNameA);
+                        DPRINT1("IopInstallCriticalDevice: Failed convert DriverName %s\n",
+                                IdDatabase->DriverName);
                         continue;
                     }
 
@@ -235,26 +245,29 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                                            0,
                                            REG_SZ,
                                            DriverNameU.Buffer,
-                                           DriverNameU.Length + sizeof(WCHAR));
+                                           DriverNameU.Length + sizeof(UNICODE_NULL));
 
-                   if (Status != STATUS_SUCCESS)
-                   {
-                       DPRINT1("IopInstallCriticalDevice: ZwSetValueKey() failed (Status %lx)\n", Status);
-                       continue;
-                   }
+                    if (!NT_SUCCESS(Status))
+                    {
+                        DPRINT1("IopInstallCriticalDevice: ZwSetValueKey() failed (Status %lx)\n",
+                                Status);
+                        continue;
+                    }
 
-                   DPRINT("Installed service '%s' for device '%wZ'\n", &DriverNameA, &ChildIdNameU);
+                    DPRINT("Installed service '%s' for device '%wZ'\n",
+                           DriverNameA.Buffer,
+                           &ChildIdNameU);
 
-                   RtlFreeUnicodeString(&DriverNameU);
-                   ExFreePool(OriginalIdBuffer);
-                   ZwClose(InstanceKey);
+                    RtlFreeUnicodeString(&DriverNameU);
+                    ExFreePool(OriginalIdBuffer);
+                    ZwClose(InstanceKey);
 
-                   /* That's it */
-                   return;
-             }
+                    /* That's it */
+                    return;
+                }
 
-             /* Next Id from IdDatabase->Id (txtsetup.sif)*/
-             IdDatabase = IdDatabase->Next;
+                /* Next Id from IdDatabase->Id (txtsetup.sif)*/
+                IdDatabase = IdDatabase->Next;
 
             } while (IdDatabase->Next);
 
@@ -280,19 +293,19 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
             ZwClose(InstanceKey);
             return;
         }
-   
+
         while (*IdBuffer)
         {
             USHORT StringLength = (USHORT)wcslen(IdBuffer) + 1, Index;
-   
+
             IopFixupDeviceId(IdBuffer);
-   
+
             /* Look through all subkeys for a match */
             for (Index = 0; TRUE; Index++)
             {
                 ULONG NeededLength;
                 PKEY_BASIC_INFORMATION BasicInfo;
-   
+
                 Status = ZwEnumerateKey(CriticalDeviceKey,
                                         Index,
                                         KeyBasicInformation,
@@ -304,7 +317,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                 else if (Status == STATUS_BUFFER_OVERFLOW || Status == STATUS_BUFFER_TOO_SMALL)
                 {
                     UNICODE_STRING ChildIdNameU, RegKeyNameU;
-   
+
                     BasicInfo = ExAllocatePool(PagedPool, NeededLength);
                     if (!BasicInfo)
                     {
@@ -314,7 +327,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                         ZwClose(InstanceKey);
                         return;
                     }
-   
+
                     Status = ZwEnumerateKey(CriticalDeviceKey,
                                             Index,
                                             KeyBasicInformation,
@@ -327,22 +340,22 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                         ExFreePool(BasicInfo);
                         continue;
                     }
-   
+
                     ChildIdNameU.Buffer = IdBuffer;
                     ChildIdNameU.MaximumLength = ChildIdNameU.Length = (StringLength - 1) * sizeof(WCHAR);
                     RegKeyNameU.Buffer = BasicInfo->Name;
                     RegKeyNameU.MaximumLength = RegKeyNameU.Length = (USHORT)BasicInfo->NameLength;
-   
+
                     if (RtlEqualUnicodeString(&ChildIdNameU, &RegKeyNameU, TRUE))
                     {
                         HANDLE ChildKeyHandle;
-   
+
                         InitializeObjectAttributes(&ObjectAttributes,
                                                    &ChildIdNameU,
                                                    OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE,
                                                    CriticalDeviceKey,
                                                    NULL);
-   
+
                         Status = ZwOpenKey(&ChildKeyHandle,
                                            KEY_QUERY_VALUE,
                                            &ObjectAttributes);
@@ -351,7 +364,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                             ExFreePool(BasicInfo);
                             continue;
                         }
-   
+
                         /* Check if there's already a driver installed */
                         Status = ZwQueryValueKey(InstanceKey,
                                                  &ClassGuidU,
@@ -364,7 +377,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                             ExFreePool(BasicInfo);
                             continue;
                         }
-   
+
                         Status = ZwQueryValueKey(ChildKeyHandle,
                                                  &ClassGuidU,
                                                  KeyValuePartialInformation,
@@ -376,7 +389,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                             ExFreePool(BasicInfo);
                             continue;
                         }
-   
+
                         PartialInfo = ExAllocatePool(PagedPool, NeededLength);
                         if (!PartialInfo)
                         {
@@ -387,7 +400,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                             ZwClose(CriticalDeviceKey);
                             return;
                         }
-   
+
                         /* Read ClassGUID entry in the CDDB */
                         Status = ZwQueryValueKey(ChildKeyHandle,
                                                  &ClassGuidU,
@@ -400,7 +413,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                             ExFreePool(BasicInfo);
                             continue;
                         }
-   
+
                         /* Write it to the ENUM key */
                         Status = ZwSetValueKey(InstanceKey,
                                                &ClassGuidU,
@@ -415,7 +428,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                             ZwClose(ChildKeyHandle);
                             continue;
                         }
-   
+
                         Status = ZwQueryValueKey(ChildKeyHandle,
                                                  &ServiceU,
                                                  KeyValuePartialInformation,
@@ -435,7 +448,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                                 ZwClose(CriticalDeviceKey);
                                 return;
                             }
-   
+
                             /* Read the service entry from the CDDB */
                             Status = ZwQueryValueKey(ChildKeyHandle,
                                                      &ServiceU,
@@ -450,7 +463,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                                 ZwClose(ChildKeyHandle);
                                 continue;
                             }
-   
+
                             /* Write it to the ENUM key */
                             Status = ZwSetValueKey(InstanceKey,
                                                    &ServiceU,
@@ -465,25 +478,25 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                                 ZwClose(ChildKeyHandle);
                                 continue;
                             }
-   
+
                             DPRINT("Installed service '%S' for critical device '%wZ'\n", PartialInfo->Data, &ChildIdNameU);
                         }
                         else
                         {
                             DPRINT1("Installed NULL service for critical device '%wZ'\n", &ChildIdNameU);
                         }
-   
+
                         ExFreePool(OriginalIdBuffer);
                         ExFreePool(PartialInfo);
                         ExFreePool(BasicInfo);
                         ZwClose(InstanceKey);
                         ZwClose(ChildKeyHandle);
                         ZwClose(CriticalDeviceKey);
-   
+
                         /* That's it */
                         return;
                     }
-   
+
                     ExFreePool(BasicInfo);
                 }
                 else
@@ -492,7 +505,7 @@ IopInstallCriticalDevice(PDEVICE_NODE DeviceNode)
                     continue;
                 }
             }
-   
+
             /* Advance to the next ID */
             IdBuffer += StringLength;
         }
