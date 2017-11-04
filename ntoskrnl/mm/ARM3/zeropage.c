@@ -41,7 +41,10 @@ MmZeroPageThread(VOID)
     KIRQL OldIrql;
     PVOID ZeroAddress;
     PFN_NUMBER PageIndex, FreePage;
+    ULONG Color, StartColor;
+    ULONG MaxPagesToZero, PagesToZero;
     PMMPFN Pfn1;
+    PMMPFN FirstPfn;
     LARGE_INTEGER StartCounter, EndCounter, Frequency;
     ULONG PageCount;
 
@@ -50,6 +53,20 @@ MmZeroPageThread(VOID)
     if (StartAddress) MiFreeInitializationCode(StartAddress, EndAddress);
     DPRINT("Free non-cache pages: %lx\n", MmAvailablePages + MiMemoryConsumers[MC_CACHE].PagesUsed);
 
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+    ASSERT(MmSecondaryColors == MmSecondaryColorMask + 1);
+    MaxPagesToZero = min(MmSecondaryColors, 32);
+    if (MmResidentAvailablePages - MmSystemLockPagesCount > MaxPagesToZero)
+    {
+        //InterlockedExchangeAddSizeT(&MmResidentAvailablePages, -OtherColorMask);
+    }
+    else
+    {
+        MaxPagesToZero = 1;
+    }
+    DPRINT1("Max pages to zero: %lu (resident available %lu, lock %lu)\n", MaxPagesToZero, MmResidentAvailablePages, MmSystemLockPagesCount);
+    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+
     /* Set our priority to 0 */
     Thread->BasePriority = 0;
     KeSetPriorityThread(Thread, 0);
@@ -57,6 +74,8 @@ MmZeroPageThread(VOID)
     /* Setup the wait objects */
     WaitObjects[0] = &MmZeroingPageEvent;
 //    WaitObjects[1] = &PoSystemIdleTimer; FIXME: Implement idle timer
+
+    Color = 0;
 
     while (TRUE)
     {
@@ -81,35 +100,65 @@ MmZeroPageThread(VOID)
                 break;
             }
 
-            PageIndex = MmFreePageListHead.Flink;
-            ASSERT(PageIndex != LIST_HEAD);
-            Pfn1 = MiGetPfnEntry(PageIndex);
-            MI_SET_USAGE(MI_USAGE_ZERO_LOOP);
-            MI_SET_PROCESS2("Kernel 0 Loop");
-            FreePage = MiRemoveAnyPage(MI_GET_PAGE_COLOR(PageIndex));
-
-            /* The first global free page should also be the first on its own list */
-            if (FreePage != PageIndex)
+            FirstPfn = (PMMPFN)LIST_HEAD;
+            StartColor = Color;
+            PagesToZero = 0;
+            do
             {
-                KeBugCheckEx(PFN_LIST_CORRUPT,
-                             0x8F,
-                             FreePage,
-                             PageIndex,
-                             0);
-            }
+                PageIndex = MmFreePagesByColor[FreePageList][Color].Flink;
+                if (PageIndex != LIST_HEAD)
+                {
+                    Pfn1 = MiGetPfnEntry(PageIndex);
+                    if (Pfn1->u3.e1.PageLocation != FreePageList ||
+                        Pfn1->u3.e2.ReferenceCount != 0)
+                    {
+                        KeBugCheckEx(PFN_LIST_CORRUPT,
+                                     0x8D,
+                                     PageIndex,
+                                     Pfn1->u3.e2.ReferenceCount | (Pfn1->u3.e2.ShortFlags << 16),
+                                     (ULONG_PTR)Pfn1->PteAddress);
+                    }
 
-            Pfn1->u1.Flink = LIST_HEAD;
+                    MI_SET_USAGE(MI_USAGE_ZERO_LOOP);
+                    MI_SET_PROCESS2("Kernel 0 Loop");
+                    FreePage = MiRemoveAnyPage(MI_GET_PAGE_COLOR(PageIndex));
+
+                    /* The first global free page should also be the first on its own list */
+                    if (FreePage != PageIndex)
+                    {
+                        KeBugCheckEx(PFN_LIST_CORRUPT,
+                                     0x8F,
+                                     FreePage,
+                                     PageIndex,
+                                     0);
+                    }
+
+                    Pfn1->u1.Flink = (ULONG_PTR)FirstPfn;
+                    ++PagesToZero;
+                    Pfn1->u3.e1.PageLocation = BadPageList;
+                    FirstPfn = Pfn1;
+                }
+                Color = MI_GET_PAGE_COLOR(Color + 1) | (Color & ~MmSecondaryColorMask);
+            } while (PagesToZero != MaxPagesToZero && Color != StartColor);
+            ASSERT(FirstPfn != (PMMPFN)LIST_HEAD);
+
+            //Pfn1->u1.Flink = LIST_HEAD;
             MiReleasePfnLock(OldIrql);
 
-            ZeroAddress = MiMapPagesInZeroSpace(Pfn1, 1);
+            ZeroAddress = MiMapPagesInZeroSpace(FirstPfn, PagesToZero);
             ASSERT(ZeroAddress);
-            RtlZeroMemory(ZeroAddress, PAGE_SIZE);
-            MiUnmapPagesInZeroSpace(ZeroAddress, 1);
-            PageCount++;
+            RtlFillMemoryUlong(ZeroAddress, PagesToZero << PAGE_SHIFT, 0);
+            MiUnmapPagesInZeroSpace(ZeroAddress, PagesToZero);
+            PageCount += PagesToZero;
 
             OldIrql = MiAcquirePfnLock();
 
-            MiInsertPageInList(&MmZeroedPageListHead, PageIndex);
+            do
+            {
+                PageIndex = MiGetPfnEntryIndex(FirstPfn);
+                FirstPfn = (PMMPFN)FirstPfn->u1.Flink;
+                MiInsertPageInList(&MmZeroedPageListHead, PageIndex);
+            } while (FirstPfn != (PMMPFN)LIST_HEAD);
         }
         if (PageCount > 16)
         {
