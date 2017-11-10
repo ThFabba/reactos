@@ -361,6 +361,9 @@ typedef struct _MMPFN
 } MMPFN, *PMMPFN;
 
 extern PMMPFN MmPfnDatabase;
+#if DBG
+extern PKTHREAD MmPfnOwner;
+#endif
 
 typedef struct _MMPFNLIST
 {
@@ -872,7 +875,13 @@ FORCEINLINE
 KIRQL
 MiAcquirePfnLock(VOID)
 {
-    return KeAcquireQueuedSpinLock(LockQueuePfnLock);
+    KIRQL OldIrql;
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+#if DBG
+    ASSERT(MmPfnOwner == NULL);
+    MmPfnOwner = KeGetCurrentThread();
+#endif
+    return OldIrql;
 }
 
 FORCEINLINE
@@ -880,6 +889,10 @@ VOID
 MiReleasePfnLock(
     _In_ KIRQL OldIrql)
 {
+    ASSERT(MmPfnOwner == KeGetCurrentThread());
+#if DBG
+    MmPfnOwner = NULL;
+#endif
     KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }
 
@@ -892,6 +905,10 @@ MiAcquirePfnLockAtDpcLevel(VOID)
     ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL);
     LockQueue = &KeGetCurrentPrcb()->LockQueue[LockQueuePfnLock];
     KeAcquireQueuedSpinLockAtDpcLevel(LockQueue);
+#if DBG
+    ASSERT(MmPfnOwner == NULL);
+    MmPfnOwner = KeGetCurrentThread();
+#endif
 }
 
 FORCEINLINE
@@ -900,12 +917,19 @@ MiReleasePfnLockFromDpcLevel(VOID)
 {
     PKSPIN_LOCK_QUEUE LockQueue;
 
+    ASSERT(MmPfnOwner == KeGetCurrentThread());
+#if DBG
+    MmPfnOwner = NULL;
+#endif
     LockQueue = &KeGetCurrentPrcb()->LockQueue[LockQueuePfnLock];
     KeReleaseQueuedSpinLockFromDpcLevel(LockQueue);
     ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL);
 }
 
-#define MI_ASSERT_PFN_LOCK_HELD() ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL)
+#define MI_ASSERT_PFN_LOCK_HELD() do {                  \
+        ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL);   \
+        ASSERT(MmPfnOwner == KeGetCurrentThread());     \
+    } while (0)
 
 FORCEINLINE
 PMMPFN

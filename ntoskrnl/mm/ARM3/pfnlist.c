@@ -31,6 +31,10 @@ do { \
 
 /* GLOBALS ********************************************************************/
 
+#if DBG
+PKTHREAD MmPfnOwner;
+#endif
+
 BOOLEAN MmDynamicPfn;
 BOOLEAN MmMirroring;
 ULONG MmSystemPageColor;
