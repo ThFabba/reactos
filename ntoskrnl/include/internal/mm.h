@@ -363,6 +363,8 @@ typedef struct _MMPFN
 extern PMMPFN MmPfnDatabase;
 #if DBG
 extern PKTHREAD MmPfnOwner;
+extern PCSTR MmPfnAcquiredAtFile;
+extern INT MmPfnAcquiredAtLine;
 #endif
 
 typedef struct _MMPFNLIST
@@ -873,16 +875,21 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page);
 
 FORCEINLINE
 KIRQL
-MiAcquirePfnLock(VOID)
+MiAcquirePfnLock_(
+    _In_ PCSTR File,
+    _In_ INT Line)
 {
     KIRQL OldIrql;
     OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
 #if DBG
     ASSERT(MmPfnOwner == NULL);
     MmPfnOwner = KeGetCurrentThread();
+    MmPfnAcquiredAtFile = File;
+    MmPfnAcquiredAtLine = Line;
 #endif
     return OldIrql;
 }
+#define MiAcquirePfnLock() MiAcquirePfnLock_(__FILE__, __LINE__)
 
 FORCEINLINE
 VOID
@@ -892,6 +899,8 @@ MiReleasePfnLock(
     ASSERT(MmPfnOwner == KeGetCurrentThread());
 #if DBG
     MmPfnOwner = NULL;
+    MmPfnAcquiredAtFile = NULL;
+    MmPfnAcquiredAtLine = 0;
 #endif
     KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }

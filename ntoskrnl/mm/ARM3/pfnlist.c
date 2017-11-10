@@ -33,6 +33,8 @@ do { \
 
 #if DBG
 PKTHREAD MmPfnOwner;
+PCSTR MmPfnAcquiredAtFile;
+INT MmPfnAcquiredAtLine;
 #endif
 
 BOOLEAN MmDynamicPfn;
