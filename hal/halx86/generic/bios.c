@@ -41,7 +41,7 @@ USHORT HalpSavedTss;
 //
 USHORT HalpSavedIopmBase;
 PUSHORT HalpSavedIoMap;
-USHORT HalpSavedIoMapData[32][2];
+USHORT HalpSavedIoMapData[64][2];
 ULONG HalpSavedIoMapEntries;
 
 /* Where the protected mode stack is */
@@ -400,7 +400,7 @@ HalpStoreAndClearIopm(VOID)
             //
             // Save it
             //
-            ASSERT(j < 32);
+            ASSERT(j < 64);
             HalpSavedIoMapData[j][0] = i;
             HalpSavedIoMapData[j][1] = *Entry;
             j++;
