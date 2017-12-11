@@ -1,6 +1,6 @@
 
 spec2def(hidparse.sys hidparse.spec ADD_IMPORTLIB)
-add_definitions(-DDEBUG_MODE)
+add_definitions(-DDEBUG_MODE -DHID_DBG)
 
 include_directories(
     ${REACTOS_SOURCE_DIR}/ntoskrnl/include
