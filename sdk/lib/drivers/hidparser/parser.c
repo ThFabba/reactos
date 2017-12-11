@@ -926,7 +926,9 @@ HidParser_ParseReportDescriptor(
 
                         default:
                             Parser->Debug("[HIDPARSE] Unknown ReportType Tag %x Type %x Size %x CurrentItemSize %x\n", CurrentItem->Tag, CurrentItem->Type, CurrentItem->Size, CurrentItemSize);
-                            ASSERT(FALSE);
+                            ASSERT(CurrentItem->Tag == ITEM_TAG_MAIN_INPUT ||
+                                   CurrentItem->Tag == ITEM_TAG_MAIN_OUTPUT ||
+                                   CurrentItem->Tag == ITEM_TAG_MAIN_FEATURE);
                             break;
                     }
 
@@ -1059,7 +1061,7 @@ HidParser_ParseReportDescriptor(
                             //
                             // pop without push
                             //
-                            ASSERT(FALSE);
+                            ASSERT(ParserContext->GlobalItemState.Next != NULL);
                             break;
                         }
 
@@ -1084,7 +1086,7 @@ HidParser_ParseReportDescriptor(
                         //
                         // unknown  / unsupported tag
                         //
-                        ASSERT(FALSE);
+                        ASSERTMSG("Unknown/unsupported global item tag", FALSE);
                         break;
                 }
 
@@ -1193,7 +1195,7 @@ HidParser_ParseReportDescriptor(
 
                     default:
                         Parser->Debug("Unknown Local Item Tag %x\n", CurrentItem->Tag);
-                        ASSERT(FALSE);
+                        ASSERTMSG("Unknown local item tag", FALSE);
                         break;
                 }
                 break;

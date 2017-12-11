@@ -80,7 +80,7 @@ HidParser_GetCollectionDescription(
         //
         // no top level collections found
         //
-        ASSERT(FALSE);
+        ASSERT(CollectionCount != 0);
         return STATUS_NO_DATA_DETECTED;
     }
 
