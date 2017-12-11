@@ -76,6 +76,13 @@ typedef struct
     // device relations
     //
     PDEVICE_RELATIONS DeviceRelations;
+#if defined(__REACTOS__) && DBG
+
+    //
+    // Debugging for CORE-10456
+    //
+    LONG StartDeviceInProgress;
+#endif
 
 } HIDCLASS_FDO_EXTENSION, *PHIDCLASS_FDO_EXTENSION;
 

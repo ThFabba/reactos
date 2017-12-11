@@ -402,6 +402,9 @@ HidClassFDO_StartDevice(
     //
     FDODeviceExtension = DeviceObject->DeviceExtension;
     ASSERT(FDODeviceExtension->Common.IsFDO);
+#if defined(__REACTOS__) && DBG
+    NT_VERIFYMSG("CORE-10456: Device is being started twice. Please reboot and retry", InterlockedIncrement(&FDODeviceExtension->StartDeviceInProgress) == 1);
+#endif
 
     //
     // query capabilities
@@ -410,9 +413,7 @@ HidClassFDO_StartDevice(
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("[HIDCLASS] Failed to retrieve capabilities %x\n", Status);
-        Irp->IoStatus.Status = Status;
-        IoCompleteRequest(Irp, IO_NO_INCREMENT);
-        return Status;
+        goto Exit;
     }
 
     //
@@ -423,9 +424,7 @@ HidClassFDO_StartDevice(
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("[HIDCLASS] Failed to start lower device with %x\n", Status);
-        Irp->IoStatus.Status = Status;
-        IoCompleteRequest(Irp, IO_NO_INCREMENT);
-        return Status;
+        goto Exit;
     }
 
     //
@@ -435,9 +434,7 @@ HidClassFDO_StartDevice(
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("[HIDCLASS] Failed to retrieve the descriptors %x\n", Status);
-        Irp->IoStatus.Status = Status;
-        IoCompleteRequest(Irp, IO_NO_INCREMENT);
-        return Status;
+        goto Exit;
     }
 
     //
@@ -447,16 +444,18 @@ HidClassFDO_StartDevice(
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("[HIDCLASS] Failed to retrieve the collection description %x\n", Status);
-        Irp->IoStatus.Status = Status;
-        IoCompleteRequest(Irp, IO_NO_INCREMENT);
-        return Status;
+        goto Exit;
     }
 
+Exit:
     //
     // complete request
     //
     Irp->IoStatus.Status = Status;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
+#if defined(__REACTOS__) && DBG
+    InterlockedDecrement(&FDODeviceExtension->StartDeviceInProgress);
+#endif
     return Status;
 }
 
