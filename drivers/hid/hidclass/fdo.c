@@ -385,6 +385,27 @@ HidClassFDO_GetDescriptors(
     // completed successfully
     //
     IoFreeIrp(Irp);
+
+    //
+    // dump the report descriptor
+    //
+    {
+    ULONG Length = FDODeviceExtension->HidDescriptor.DescriptorList[0].wReportLength;
+    ULONG i;
+    PUCHAR Desc = (PUCHAR)FDODeviceExtension->ReportDescriptor;
+    DPRINT1("Report descriptor dump, wReportLength = %lu:\n", Length);
+    for (i = 0; i < Length; i += 4)
+    {
+        DbgPrint("%02x ", Desc[i]);
+        if (i + 1 < Length)
+            DbgPrint("%02x ", Desc[i + 1]);
+        if (i + 2 < Length)
+            DbgPrint("%02x ", Desc[i + 2]);
+        if (i + 3 < Length)
+            DbgPrint("%02x", Desc[i + 3]);
+        DbgPrint("\n");
+    }
+    }
     return STATUS_SUCCESS;
 }
 
