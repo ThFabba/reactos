@@ -972,6 +972,23 @@ WSPBind(SOCKET Handle,
         }
     }
 
+    /* Get Window Sizes and Save them */
+    GetSocketInformation (Socket,
+                          AFD_INFO_SEND_WINDOW_SIZE,
+                          NULL,
+                          &Socket->SharedData->SizeOfSendBuffer,
+                          NULL,
+                          NULL,
+                          NULL);
+
+    GetSocketInformation (Socket,
+                          AFD_INFO_RECEIVE_WINDOW_SIZE,
+                          NULL,
+                          &Socket->SharedData->SizeOfRecvBuffer,
+                          NULL,
+                          NULL,
+                          NULL);
+
     return MsafdReturnWithErrno ( Status, lpErrno, 0, NULL );
 }
 
@@ -2060,6 +2077,26 @@ notify:
             if (lpErrno) *lpErrno = Errno;
             return SOCKET_ERROR;
         }
+    }
+
+    if (Status == STATUS_SUCCESS)
+    {
+        /* Get Window Sizes and Save them */
+        GetSocketInformation (Socket,
+                              AFD_INFO_SEND_WINDOW_SIZE,
+                              NULL,
+                              &Socket->SharedData->SizeOfSendBuffer,
+                              NULL,
+                              NULL,
+                              NULL);
+
+        GetSocketInformation (Socket,
+                              AFD_INFO_RECEIVE_WINDOW_SIZE,
+                              NULL,
+                              &Socket->SharedData->SizeOfRecvBuffer,
+                              NULL,
+                              NULL,
+                              NULL);
     }
 
     return MsafdReturnWithErrno(Status, lpErrno, 0, NULL);
