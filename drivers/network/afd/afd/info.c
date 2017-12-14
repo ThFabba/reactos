@@ -55,7 +55,8 @@ AfdGetInfo( PDEVICE_OBJECT DeviceObject, PIRP Irp,
         break;
 
     case AFD_INFO_RECEIVE_CONTENT_SIZE:
-        InfoReq->Information.Ulong = FCB->Recv.Content - FCB->Recv.BytesUsed;
+        InfoReq->Information.Ulong = min(FCB->Recv.Content - FCB->Recv.BytesUsed,
+                                         FCB->Recv.Size);
         break;
 
         case AFD_INFO_SENDS_IN_PROGRESS:
