@@ -1,8 +1,10 @@
 /*
- * PROJECT:         ReactOS api tests
- * LICENSE:         GPL - See COPYING in the top level directory
- * PURPOSE:         Test for recv
- * PROGRAMMERS:     Colin Finck
+ * PROJECT:     ReactOS API Tests
+ * LICENSE:     GPL-2.0+ (https://spdx.org/licenses/GPL-2.0+)
+ * PURPOSE:     Test for recv
+ * COPYRIGHT:   Copyright 2008 Colin Finck (colin@reactos.org)
+ *              Copyright 2012 Cameron Gutman (cameron.gutman@reactos.org)
+ *              Copyright 2017 Thomas Faber (thomas.faber@reactos.org)
  */
 
 #include "ws2_32.h"
@@ -118,8 +120,127 @@ int Test_recv()
     return 1;
 }
 
+static void Test_ReceiveBuffer(void)
+{
+    WSADATA wdata;
+    SOCKET sin, sout;
+    SOCKADDR_IN addr;
+    int addrlen;
+    int iResult;
+    char buffer[16];
+    char expected[16];
+    unsigned i;
+    u_long available;
+    int bufsize;
+
+    /* Start up Winsock */
+    iResult = WSAStartup(MAKEWORD(2, 2), &wdata);
+    ok(iResult == 0, "WSAStartup failed, iResult == %d\n", iResult);
+
+    sin = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    ok(sin != INVALID_SOCKET, "Invalid sin, error %d\n", WSAGetLastError());
+    sout = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    ok(sout != INVALID_SOCKET, "Invalid sout, error %d\n", WSAGetLastError());
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = 0;
+    addr.sin_addr.S_un.S_addr = htonl(INADDR_LOOPBACK);
+    iResult = bind(sin, (PVOID)&addr, sizeof(addr));
+    ok(iResult == 0, "bind failed with %d\n", iResult);
+
+    addrlen = sizeof(addr);
+    iResult = getsockname(sin, (PVOID)&addr, &addrlen);
+    ok(iResult == 0, "getsockname failed with %d\n", iResult);
+
+    trace("Assigned port: %u\n", ntohs(addr.sin_port));
+
+    bufsize = 0x55555555;
+    addrlen = sizeof(bufsize);
+    iResult = getsockopt(sin, SOL_SOCKET, SO_RCVBUF, (PVOID)&bufsize, &addrlen);
+    ok(iResult == 0, "getsockopt failed with %d\n", iResult);
+    trace("Buffer size: %d\n", bufsize);
+
+    iResult = ioctlsocket(sin, FIONREAD, &available);
+    ok(iResult == 0, "ioctlsocket failed with %d\n", iResult);
+    ok(available == 0, "Available: %lu\n", available);
+
+#define MSG_LENGTH 7
+
+    /* Fill up the receive buffer */
+    for (i = 0; available + MSG_LENGTH <= bufsize; i++)
+    {
+        StringCbPrintfA(buffer, sizeof(buffer), "A%-4uBC", i);
+        ok(strlen(buffer) == MSG_LENGTH, "[%d] This test is broken, %zu\n", i, strlen(buffer));
+
+        iResult = sendto(sout, buffer, MSG_LENGTH, 0, (PVOID)&addr, sizeof(addr));
+        ok(iResult == MSG_LENGTH, "[%d] sendto failed with %d\n", i, iResult);
+
+        iResult = ioctlsocket(sin, FIONREAD, &available);
+        ok(iResult == 0, "[%d] ioctlsocket failed with %d\n", i, iResult);
+        ok(available == (i + 1) * MSG_LENGTH ||
+           available == i * MSG_LENGTH, "[%d] Available: %lu\n", i, available);
+        if (available != (i + 1) * MSG_LENGTH)
+        {
+            Sleep(100);
+            iResult = ioctlsocket(sin, FIONREAD, &available);
+            ok(iResult == 0, "[%d] ioctlsocket failed with %d\n", i, iResult);
+            ok(available == (i + 1) * MSG_LENGTH, "[%d] Available: %lu\n", i, available);
+        }
+    }
+
+    memset(buffer, 'D', sizeof(buffer));
+    iResult = sendto(sout, buffer, MSG_LENGTH, 0, (PVOID)&addr, sizeof(addr));
+    ok(iResult == MSG_LENGTH, "sendto failed with %d\n", iResult);
+
+    memset(buffer, 'E', sizeof(buffer));
+    iResult = sendto(sout, buffer, MSG_LENGTH, 0, (PVOID)&addr, sizeof(addr));
+    ok(iResult == MSG_LENGTH, "sendto failed with %d\n", iResult);
+
+    memset(buffer, 'F', sizeof(buffer));
+    iResult = sendto(sout, buffer, MSG_LENGTH, 0, (PVOID)&addr, sizeof(addr));
+    ok(iResult == MSG_LENGTH, "sendto failed with %d\n", iResult);
+
+    Sleep(100);
+
+    iResult = ioctlsocket(sin, FIONREAD, &available);
+    ok(iResult == 0, "ioctlsocket failed with %d\n", iResult);
+    ok(available == bufsize, "Available: %lu\n", available);
+
+    for (i = 0; (i + 1) * MSG_LENGTH < available; i++)
+    {
+        StringCbPrintfA(expected, sizeof(expected), "A%-4uBC", i);
+        ok(strlen(expected) == MSG_LENGTH, "[%d] This test is broken, %zu\n", i, strlen(expected));
+
+        memset(buffer, 0, sizeof(buffer));
+        addrlen = sizeof(addr);
+        iResult = recvfrom(sin, buffer, sizeof(buffer), 0, (PVOID)&addr, &addrlen);
+        ok(iResult == MSG_LENGTH, "[%d] recvfrom returned %d\n", i, iResult);
+        ok_str(buffer, expected);
+    }
+
+    iResult = ioctlsocket(sin, FIONREAD, &available);
+    ok(iResult == 0, "ioctlsocket failed with %d\n", iResult);
+    ok(available == MSG_LENGTH, "Available: %lu\n", available);
+
+    memset(expected, 'D', sizeof(expected));
+    memset(buffer, 0, sizeof(buffer));
+    addrlen = sizeof(addr);
+    iResult = recvfrom(sin, buffer, sizeof(buffer), 0, (PVOID)&addr, &addrlen);
+    ok(iResult == MSG_LENGTH, "[%d] recvfrom returned %d\n", i, iResult);
+    ok(!memcmp(buffer, expected, iResult), "Buffers not equal\n");
+
+    iResult = ioctlsocket(sin, FIONREAD, &available);
+    ok(iResult == 0, "ioctlsocket failed with %d\n", iResult);
+    ok(available == 0, "Available: %lu\n", available);
+
+    closesocket(sout);
+    closesocket(sin);
+    WSACleanup();
+}
+
 START_TEST(recv)
 {
     Test_recv();
+    Test_ReceiveBuffer();
 }
 
