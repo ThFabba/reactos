@@ -44,6 +44,8 @@ typedef struct _DEVICE_ACTION_DATA
     LIST_ENTRY RequestListEntry;
     PDEVICE_OBJECT DeviceObject;
     DEVICE_RELATION_TYPE Type;
+    PKEVENT Event;
+    NTSTATUS Status;
 } DEVICE_ACTION_DATA, *PDEVICE_ACTION_DATA;
 
 /* FUNCTIONS *****************************************************************/
@@ -745,7 +747,7 @@ IopStartAndEnumerateDevice(IN PDEVICE_NODE DeviceNode)
         (DeviceNode->Flags & DNF_NEED_ENUMERATION_ONLY))
     {
         /* Enumerate us */
-        IoSynchronousInvalidateDeviceRelations(DeviceObject, BusRelations);
+        IoInvalidateDeviceRelations(DeviceObject, BusRelations);
         Status = STATUS_SUCCESS;
     }
     else
@@ -922,11 +924,35 @@ IopDeviceActionWorker(
                                  DEVICE_ACTION_DATA,
                                  RequestListEntry);
 
-        IoSynchronousInvalidateDeviceRelations(Data->DeviceObject,
-                                               Data->Type);
+        switch (Data->Type)
+        {
+            case BusRelations:
+                /* Enumerate the device */
+                Data->Status = IopEnumerateDevice(Data->DeviceObject);
+                break;
+            case PowerRelations:
+                 /* Not handled yet */
+                 Data->Status = STATUS_NOT_IMPLEMENTED;
+                 break;
+            case TargetDeviceRelation:
+                /* Nothing to do */
+                Data->Status = STATUS_SUCCESS;
+                break;
+            default:
+                /* Ejection relations are not supported */
+                Data->Status = STATUS_NOT_SUPPORTED;
+                break;
+        }
 
         ObDereferenceObject(Data->DeviceObject);
-        ExFreePoolWithTag(Data, TAG_IO);
+        if (Data->Event != NULL)
+        {
+            KeSetEvent(Data->Event, IO_NO_INCREMENT, FALSE);
+        }
+        else
+        {
+            ExFreePoolWithTag(Data, TAG_IO);
+        }
         KeAcquireSpinLock(&IopDeviceActionLock, &OldIrql);
     }
     IopDeviceActionInProgress = FALSE;
@@ -4901,6 +4927,7 @@ IoInvalidateDeviceRelations(
     ObReferenceObject(DeviceObject);
     Data->DeviceObject = DeviceObject;
     Data->Type = Type;
+    Data->Event = NULL;
 
     KeAcquireSpinLock(&IopDeviceActionLock, &OldIrql);
     InsertTailList(&IopDeviceActionRequestList, &Data->RequestListEntry);
@@ -4928,23 +4955,47 @@ IoSynchronousInvalidateDeviceRelations(
     IN PDEVICE_OBJECT DeviceObject,
     IN DEVICE_RELATION_TYPE Type)
 {
+    PDEVICE_ACTION_DATA Data;
+    KIRQL OldIrql;
+    KEVENT Event;
+    NTSTATUS Status;
+
     PAGED_CODE();
 
-    switch (Type)
+    Data = ExAllocatePoolWithTag(NonPagedPool,
+                                 sizeof(DEVICE_ACTION_DATA),
+                                 TAG_IO);
+    if (!Data)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    ObReferenceObject(DeviceObject);
+    Data->DeviceObject = DeviceObject;
+    Data->Type = Type;
+    KeInitializeEvent(&Event, NotificationEvent, FALSE);
+    Data->Event = &Event;
+
+    KeAcquireSpinLock(&IopDeviceActionLock, &OldIrql);
+    InsertTailList(&IopDeviceActionRequestList, &Data->RequestListEntry);
+    if (IopDeviceActionInProgress)
     {
-        case BusRelations:
-            /* Enumerate the device */
-            return IopEnumerateDevice(DeviceObject);
-        case PowerRelations:
-             /* Not handled yet */
-             return STATUS_NOT_IMPLEMENTED;
-        case TargetDeviceRelation:
-            /* Nothing to do */
-            return STATUS_SUCCESS;
-        default:
-            /* Ejection relations are not supported */
-            return STATUS_NOT_SUPPORTED;
+        KeReleaseSpinLock(&IopDeviceActionLock, OldIrql);
     }
+    else
+    {
+        IopDeviceActionInProgress = TRUE;
+        KeReleaseSpinLock(&IopDeviceActionLock, OldIrql);
+
+        ExInitializeWorkItem(&IopDeviceActionWorkItem,
+                             IopDeviceActionWorker,
+                             NULL);
+        ExQueueWorkItem(&IopDeviceActionWorkItem,
+                        DelayedWorkQueue);
+    }
+
+    (void)KeWaitForSingleObject(&Event, KernelMode, Executive, FALSE, NULL);
+    Status = Data->Status;
+    ExFreePoolWithTag(Data, TAG_IO);
+    return Status;
 }
 
 /*
