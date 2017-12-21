@@ -905,6 +905,29 @@ IopQueryDeviceCapabilities(PDEVICE_NODE DeviceNode,
 
 static
 VOID
+IopPerformDeviceAction(
+    _In_ const DEVICE_ACTION_DATA *Data)
+{
+    switch (Data->Type)
+    {
+        case BusRelations:
+            /* Enumerate the device */
+            (void)IopEnumerateDevice(Data->DeviceObject);
+            break;
+        case PowerRelations:
+            /* Not handled yet */
+            break;
+        case TargetDeviceRelation:
+            /* Nothing to do */
+            break;
+        default:
+            /* Ejection relations are not supported */
+            break;
+    }
+}
+
+static
+VOID
 NTAPI
 IopDeviceActionWorker(
     _In_ PVOID Context)
@@ -922,8 +945,7 @@ IopDeviceActionWorker(
                                  DEVICE_ACTION_DATA,
                                  RequestListEntry);
 
-        IoSynchronousInvalidateDeviceRelations(Data->DeviceObject,
-                                               Data->Type);
+        IopPerformDeviceAction(Data);
 
         ObDereferenceObject(Data->DeviceObject);
         ExFreePoolWithTag(Data, TAG_IO);
@@ -4928,23 +4950,21 @@ IoSynchronousInvalidateDeviceRelations(
     IN PDEVICE_OBJECT DeviceObject,
     IN DEVICE_RELATION_TYPE Type)
 {
+    DEVICE_ACTION_DATA Data;
+
     PAGED_CODE();
 
-    switch (Type)
+    if (Type != BusRelations &&
+        Type != PowerRelations &&
+        Type != TargetDeviceRelation)
     {
-        case BusRelations:
-            /* Enumerate the device */
-            return IopEnumerateDevice(DeviceObject);
-        case PowerRelations:
-             /* Not handled yet */
-             return STATUS_NOT_IMPLEMENTED;
-        case TargetDeviceRelation:
-            /* Nothing to do */
-            return STATUS_SUCCESS;
-        default:
-            /* Ejection relations are not supported */
-            return STATUS_NOT_SUPPORTED;
+        return STATUS_NOT_SUPPORTED;
     }
+
+    Data.DeviceObject = DeviceObject;
+    Data.Type = Type;
+    IopPerformDeviceAction(&Data);
+    return STATUS_SUCCESS;
 }
 
 /*
