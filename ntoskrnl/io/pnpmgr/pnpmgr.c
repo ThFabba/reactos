@@ -955,6 +955,45 @@ IopDeviceActionWorker(
     KeReleaseSpinLock(&IopDeviceActionLock, OldIrql);
 }
 
+static
+NTSTATUS
+IopRequestDeviceAction(
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_ DEVICE_RELATION_TYPE Type)
+{
+    PDEVICE_ACTION_DATA Data;
+    KIRQL OldIrql;
+
+    Data = ExAllocatePoolWithTag(NonPagedPool,
+                                 sizeof(DEVICE_ACTION_DATA),
+                                 TAG_IO);
+    if (!Data)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    ObReferenceObject(DeviceObject);
+    Data->DeviceObject = DeviceObject;
+    Data->Type = Type;
+
+    KeAcquireSpinLock(&IopDeviceActionLock, &OldIrql);
+    InsertTailList(&IopDeviceActionRequestList, &Data->RequestListEntry);
+    if (IopDeviceActionInProgress)
+    {
+        KeReleaseSpinLock(&IopDeviceActionLock, OldIrql);
+        return STATUS_SUCCESS;
+    }
+    IopDeviceActionInProgress = TRUE;
+    KeReleaseSpinLock(&IopDeviceActionLock, OldIrql);
+
+    ExInitializeWorkItem(&IopDeviceActionWorkItem,
+                         IopDeviceActionWorker,
+                         NULL);
+    ExQueueWorkItem(&IopDeviceActionWorkItem,
+                    DelayedWorkQueue);
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS
 IopGetSystemPowerDeviceObject(PDEVICE_OBJECT *DeviceObject)
 {
@@ -4911,34 +4950,7 @@ IoInvalidateDeviceRelations(
     IN PDEVICE_OBJECT DeviceObject,
     IN DEVICE_RELATION_TYPE Type)
 {
-    PDEVICE_ACTION_DATA Data;
-    KIRQL OldIrql;
-
-    Data = ExAllocatePoolWithTag(NonPagedPool,
-                                 sizeof(DEVICE_ACTION_DATA),
-                                 TAG_IO);
-    if (!Data)
-        return;
-
-    ObReferenceObject(DeviceObject);
-    Data->DeviceObject = DeviceObject;
-    Data->Type = Type;
-
-    KeAcquireSpinLock(&IopDeviceActionLock, &OldIrql);
-    InsertTailList(&IopDeviceActionRequestList, &Data->RequestListEntry);
-    if (IopDeviceActionInProgress)
-    {
-        KeReleaseSpinLock(&IopDeviceActionLock, OldIrql);
-        return;
-    }
-    IopDeviceActionInProgress = TRUE;
-    KeReleaseSpinLock(&IopDeviceActionLock, OldIrql);
-
-    ExInitializeWorkItem(&IopDeviceActionWorkItem,
-                         IopDeviceActionWorker,
-                         NULL);
-    ExQueueWorkItem(&IopDeviceActionWorkItem,
-                    DelayedWorkQueue);
+    (void)IopRequestDeviceAction(DeviceObject, Type);
 }
 
 /*
