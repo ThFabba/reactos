@@ -745,7 +745,10 @@ IopStartAndEnumerateDevice(IN PDEVICE_NODE DeviceNode)
         (DeviceNode->Flags & DNF_NEED_ENUMERATION_ONLY))
     {
         /* Enumerate us */
-        IoSynchronousInvalidateDeviceRelations(DeviceObject, BusRelations);
+        DEVICE_ACTION_DATA Data;
+        Data.DeviceObject = DeviceObject;
+        Data.Type = BusRelations;
+        IopPerformDeviceAction(&Data);
         Status = STATUS_SUCCESS;
     }
     else
