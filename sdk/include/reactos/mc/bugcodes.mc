@@ -79,8 +79,14 @@ Severity=Warning
 Facility=System
 SymbolicName=BUGCHECK_MESSAGE_INTRO
 Language=English
-A problem has been detected and ReactOS has been shut down to prevent damage
-to your computer.
+Unfortunately, ReactOS has encountered a fatal error. Please remember that
+ReactOS is alpha-quality software, and we may need your help to improve it.
+
+Consider filing a ticket at https://jira.reactos.org/ with information on what
+you were doing as well as a picture of this screen.
+
+Ideally, try to reproduce the problem while capturing a debug log.
+See https://reactos.org/wiki/Debugging for details.
 .
 
 MessageId=0x80

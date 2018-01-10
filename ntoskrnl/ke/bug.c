@@ -694,6 +694,7 @@ KiDisplayBlueScreen(IN ULONG MessageId,
         InbvDisplayString("\r\n\r\n");
     }
 
+#ifndef __REACTOS__
     /* Check if this is the generic message */
     if (MessageId == BUGCODE_PSS_MESSAGE)
     {
@@ -709,6 +710,7 @@ KiDisplayBlueScreen(IN ULONG MessageId,
     /* Get the bug code string */
     KeGetBugMessageText(MessageId, NULL);
     InbvDisplayString("\r\n\r\n");
+#endif
 
     /* Print message for technical information */
     KeGetBugMessageText(BUGCHECK_TECH_INFO, NULL);
@@ -737,6 +739,49 @@ KiDisplayBlueScreen(IN ULONG MessageId,
                               4,
                               KeBugCheckUnicodeToAnsi);
     }
+
+#ifdef __REACTOS__
+    InbvDisplayString(NtBuildLab);
+    InbvDisplayString("\r\n\r\n");
+    InbvDisplayString("---stack backtrace---\r\n");
+    {
+        CHAR Buffer[64];
+        PVOID *Frame;
+        PVOID *FramePc, *NextFrame;
+        PLDR_DATA_TABLE_ENTRY LdrEntry;
+        BOOLEAN InSystem;
+        CHAR AnsiName[64];
+
+        NextFrame = _AddressOfReturnAddress();
+        NextFrame--;
+        do
+        {
+            Frame = NextFrame;
+            FramePc = Frame[1];
+            NextFrame = Frame[0];
+
+            if ((ULONG_PTR)FramePc > (ULONG_PTR)MmHighestUserAddress &&
+                KiPcToFileHeader(FramePc, &LdrEntry, FALSE, &InSystem))
+            {
+                KeBugCheckUnicodeToAnsi(&LdrEntry->BaseDllName,
+                                        AnsiName,
+                                        sizeof(AnsiName));
+                FramePc = (PVOID)((ULONG_PTR)FramePc - (ULONG_PTR)LdrEntry->DllBase);
+                sprintf(Buffer, "%p <%s:%p>\r\n", Frame, AnsiName, FramePc);
+            }
+            else
+            {
+                sprintf(Buffer, "%p <%p>\r\n", Frame, FramePc);
+            }
+
+            InbvDisplayString(Buffer);
+        } while ((ULONG_PTR)NextFrame > (ULONG_PTR)Frame &&
+                 (ULONG_PTR)NextFrame < (ULONG_PTR)Frame + 4 * PAGE_SIZE);
+        sprintf(Buffer, "%p\r\n", NextFrame);
+        InbvDisplayString(Buffer);
+    }
+    InbvDisplayString("---end of backtrace---\r\n");
+#endif
 }
 
 VOID
