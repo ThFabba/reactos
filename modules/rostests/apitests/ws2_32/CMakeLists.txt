@@ -6,6 +6,7 @@ list(APPEND SOURCE
     getnameinfo.c
     getservbyname.c
     getservbyport.c
+    getsockopt.c
     helpers.c
     ioctlsocket.c
     nonblocking.c
