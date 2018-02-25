@@ -4,6 +4,7 @@ include_directories(
 
 list(APPEND SOURCE
     AfdHelpers.c
+    info.c
     send.c
     precomp.h)
 

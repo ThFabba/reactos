@@ -39,3 +39,15 @@ AfdSendTo(
     _In_ ULONG BufferLength,
     _In_ const struct sockaddr *Address,
     _In_ ULONG AddressLength);
+
+NTSTATUS
+AfdGetInfo(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG InformationClass,
+    _Out_ PULONGLONG Value);
+
+NTSTATUS
+AfdSetInfo(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG InformationClass,
+    _In_ ULONGLONG Value);

@@ -382,3 +382,109 @@ AfdSendTo(
 
     return Status;
 }
+
+NTSTATUS
+AfdGetInfo(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG InformationClass,
+    _Out_ PULONGLONG Value)
+{
+    NTSTATUS Status;
+    IO_STATUS_BLOCK IoStatus;
+    AFD_INFO AfdInfo;
+    HANDLE Event;
+
+    *Value = 0;
+
+    Status = NtCreateEvent(&Event,
+                           EVENT_ALL_ACCESS,
+                           NULL,
+                           NotificationEvent,
+                           FALSE);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    RtlZeroMemory(&AfdInfo, sizeof(AfdInfo));
+    AfdInfo.InformationClass = InformationClass;
+
+    Status = NtDeviceIoControlFile(SocketHandle,
+                                   Event,
+                                   NULL,
+                                   NULL,
+                                   &IoStatus,
+                                   IOCTL_AFD_GET_INFO,
+                                   &AfdInfo,
+                                   sizeof(AfdInfo),
+                                   &AfdInfo,
+                                   sizeof(AfdInfo));
+    if (Status == STATUS_PENDING)
+    {
+        NtWaitForSingleObject(Event, FALSE, NULL);
+        Status = IoStatus.Status;
+    }
+
+    NtClose(Event);
+
+    ok(AfdInfo.InformationClass == InformationClass,
+       "Information class changed from %lu to %lu\n",
+       InformationClass, AfdInfo.InformationClass);
+
+    if (NT_SUCCESS(Status))
+    {
+        *Value = AfdInfo.Information.LargeInteger.QuadPart;
+    }
+
+    return Status;
+}
+
+NTSTATUS
+AfdSetInfo(
+    _In_ HANDLE SocketHandle,
+    _In_ ULONG InformationClass,
+    _In_ ULONGLONG Value)
+{
+    NTSTATUS Status;
+    IO_STATUS_BLOCK IoStatus;
+    AFD_INFO AfdInfo;
+    HANDLE Event;
+
+    Status = NtCreateEvent(&Event,
+                           EVENT_ALL_ACCESS,
+                           NULL,
+                           NotificationEvent,
+                           FALSE);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    RtlZeroMemory(&AfdInfo, sizeof(AfdInfo));
+    AfdInfo.InformationClass = InformationClass;
+    AfdInfo.Information.LargeInteger.QuadPart = Value;
+
+    Status = NtDeviceIoControlFile(SocketHandle,
+                                   Event,
+                                   NULL,
+                                   NULL,
+                                   &IoStatus,
+                                   IOCTL_AFD_SET_INFO,
+                                   &AfdInfo,
+                                   sizeof(AfdInfo),
+                                   &AfdInfo,
+                                   sizeof(AfdInfo));
+    if (Status == STATUS_PENDING)
+    {
+        NtWaitForSingleObject(Event, FALSE, NULL);
+        Status = IoStatus.Status;
+    }
+
+    NtClose(Event);
+
+    ok(AfdInfo.InformationClass == InformationClass,
+       "Information class changed from %lu to %lu\n",
+       InformationClass, AfdInfo.InformationClass);
+
+    return Status;
+}
