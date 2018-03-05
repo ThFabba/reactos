@@ -11,7 +11,7 @@ static
 VOID
 TestWindowSize(void)
 {
-    const ULONGLONG DefaultBufferSize = 65536;
+    ULONGLONG DefaultBufferSize;
     NTSTATUS Status;
     HANDLE SocketHandle;
     ULONGLONG BufferSize;
@@ -22,7 +22,9 @@ TestWindowSize(void)
     /* Default buffer sizes */
     Status = AfdGetInfo(SocketHandle, AFD_INFO_RECEIVE_WINDOW_SIZE, &BufferSize);
     ok(Status == STATUS_SUCCESS, "AfdGetInfo failed with %lx\n", Status);
-    ok(BufferSize == DefaultBufferSize, "Receive buffer size is %I64u\n", BufferSize);
+    ok(BufferSize == 8192 /* Win2003 */ ||
+       BufferSize == 65536 /* Win10 */, "Receive buffer size is %I64u\n", BufferSize);
+    DefaultBufferSize = BufferSize;
 
     Status = AfdGetInfo(SocketHandle, AFD_INFO_SEND_WINDOW_SIZE, &BufferSize);
     ok(Status == STATUS_SUCCESS, "AfdGetInfo failed with %lx\n", Status);
@@ -44,7 +46,7 @@ TestWindowSize(void)
     ok(Status == STATUS_SUCCESS, "AfdGetInfo failed with %lx\n", Status);
     ok(BufferSize == DefaultBufferSize, "Send buffer size is %I64u\n", BufferSize);
 
-    /* Set larger buffer sizes */
+    /* Set smaller buffer sizes */
     Status = AfdSetInfo(SocketHandle, AFD_INFO_RECEIVE_WINDOW_SIZE, DefaultBufferSize / 2);
     ok(Status == STATUS_SUCCESS, "AfdSetInfo failed with %lx\n", Status);
 
