@@ -64,6 +64,9 @@ set(BUILD_MP TRUE CACHE BOOL
 set(GENERATE_DEPENDENCY_GRAPH FALSE CACHE BOOL
 "Whether to create a GraphML dependency graph of DLLs.")
 
+set(CLEAN_TARGETS TRUE CACHE BOOL
+"Whether to generate module_clean targets (slows down CMake).")
+
 if(MSVC)
 set(_PREFAST_ FALSE CACHE BOOL
 "Whether to enable PREFAST while compiling.")
