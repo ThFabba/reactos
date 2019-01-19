@@ -1077,8 +1077,9 @@ KxSetTimerForThreadWait(IN PKTIMER Timer,
                                                                             \
     /* Link the timer to this Wait Block */                                 \
     TimerBlock->NextWaitBlock = TimerBlock;                                 \
-    Timer->Header.WaitListHead.Flink = &TimerBlock->WaitListEntry;          \
-    Timer->Header.WaitListHead.Blink = &TimerBlock->WaitListEntry;          \
+    InitializeListHead(&Timer->Header.WaitListHead);                        \
+    InsertTailList(&Timer->Header.WaitListHead,                             \
+                   &TimerBlock->WaitListEntry);                             \
                                                                             \
     /* Clear wait status */                                                 \
     Thread->WaitStatus = STATUS_SUCCESS;                                    \
@@ -1175,8 +1176,9 @@ KxSetTimerForThreadWait(IN PKTIMER Timer,
         TimerBlock->NextWaitBlock = WaitBlock;                              \
                                                                             \
         /* Link the timer to this Wait Block */                             \
-        Timer->Header.WaitListHead.Flink = &TimerBlock->WaitListEntry;      \
-        Timer->Header.WaitListHead.Blink = &TimerBlock->WaitListEntry;      \
+        InitializeListHead(&Timer->Header.WaitListHead);                    \
+        InsertTailList(&Timer->Header.WaitListHead,                         \
+                       &TimerBlock->WaitListEntry);                         \
     }                                                                       \
     else                                                                    \
     {                                                                       \
@@ -1221,8 +1223,9 @@ KxSetTimerForThreadWait(IN PKTIMER Timer,
         TimerBlock->NextWaitBlock = WaitBlock;                              \
                                                                             \
         /* Link the timer to this Wait Block */                             \
-        Timer->Header.WaitListHead.Flink = &TimerBlock->WaitListEntry;      \
-        Timer->Header.WaitListHead.Blink = &TimerBlock->WaitListEntry;      \
+        InitializeListHead(&Timer->Header.WaitListHead);                    \
+        InsertTailList(&Timer->Header.WaitListHead,                         \
+                       &TimerBlock->WaitListEntry);                         \
     }                                                                       \
     else                                                                    \
     {                                                                       \
