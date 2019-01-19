@@ -120,6 +120,10 @@ RemoveEntryList(
 #endif
   OldFlink->Blink = OldBlink;
   OldBlink->Flink = OldFlink;
+#ifdef EXTRA_KERNEL_LIST_ENTRY_CHECKS
+  Entry->Flink = (PLIST_ENTRY)(ULONG_PTR)0xBADDD0FFBADDD0FFULL;
+  Entry->Blink = (PLIST_ENTRY)(ULONG_PTR)0xBADDD0FFBADDD0FFULL;
+#endif
   return (BOOLEAN)(OldFlink == OldBlink);
 }
 
