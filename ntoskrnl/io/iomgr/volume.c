@@ -358,10 +358,11 @@ IopShutdownBaseFileSystems(IN PLIST_ENTRY ListHead)
     ListEntry = ListHead->Flink;
     while (ListEntry != ListHead)
     {
-        /* Get the device object */
+        /* Get the device object and fetch the next entry */
         DeviceObject = CONTAINING_RECORD(ListEntry,
                                          DEVICE_OBJECT,
                                          Queue.ListEntry);
+        ListEntry = ListEntry->Flink;
 
         /* Get the attached device */
         DeviceObject = IoGetAttachedDevice(DeviceObject);
@@ -392,9 +393,6 @@ IopShutdownBaseFileSystems(IN PLIST_ENTRY ListHead)
 
         IopDecrementDeviceObjectRef(DeviceObject, FALSE);
         ObDereferenceObject(DeviceObject);
-
-        /* Go to the next entry */
-        ListEntry = ListEntry->Flink;
     }
 }
 
