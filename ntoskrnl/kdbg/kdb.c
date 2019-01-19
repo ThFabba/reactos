@@ -1558,6 +1558,91 @@ KdbEnterDebuggerException(
 
         KdbpPrint("\nEntered debugger on embedded INT3 at 0x%04x:0x%08x.\n",
                   TrapFrame->SegCs & 0xffff, TrapFrame->Eip - 1);
+
+        //regs
+        {
+            PKTRAP_FRAME Tf = TrapFrame;
+            INT i;
+            static const PCHAR EflagsBits[32] = { " CF", NULL, " PF", " BIT3", " AF", " BIT5",
+                                                  " ZF", " SF", " TF", " IF", " DF", " OF",
+                                                  NULL, NULL, " NT", " BIT15", " RF", " VF",
+                                                  " AC", " VIF", " VIP", " ID", " BIT22",
+                                                  " BIT23", " BIT24", " BIT25", " BIT26",
+                                                  " BIT27", " BIT28", " BIT29", " BIT30",
+                                                  " BIT31" };
+
+            KdbpPrint("CS:EIP  0x%04x:0x%08x\n"
+                      "SS:ESP  0x%04x:0x%08x\n"
+                      "   EAX  0x%08x   EBX  0x%08x\n"
+                      "   ECX  0x%08x   EDX  0x%08x\n"
+                      "   ESI  0x%08x   EDI  0x%08x\n"
+                      "   EBP  0x%08x\n",
+                      Tf->SegCs & 0xFFFF, Tf->Eip,
+                      Tf->HardwareSegSs, Tf->HardwareEsp,
+                      Tf->Eax, Tf->Ebx,
+                      Tf->Ecx, Tf->Edx,
+                      Tf->Esi, Tf->Edi,
+                      Tf->Ebp);
+            KdbpPrint("EFLAGS  0x%08x ", Tf->EFlags);
+
+            for (i = 0; i < 32; i++)
+            {
+                if (i == 1)
+                {
+                    if ((Tf->EFlags & (1 << 1)) == 0)
+                        KdbpPrint(" !BIT1");
+                }
+                else if (i == 12)
+                {
+                    KdbpPrint(" IOPL%d", (Tf->EFlags >> 12) & 3);
+                }
+                else if (i == 13)
+                {
+                }
+                else if ((Tf->EFlags & (1 << i)) != 0)
+                {
+                    KdbpPrint(EflagsBits[i]);
+                }
+            }
+
+            KdbpPrint("\n");
+        }
+        // x esp L 80
+        {
+            ULONG Count;
+            ULONG ul;
+            INT i;
+            ULONG_PTR Address;
+
+            Count = 80;
+
+            Address = (ULONG_PTR)TrapFrame->HardwareEsp;
+            /* Display dwords */
+            ul = 0;
+
+            while (Count > 0)
+            {
+                if (!KdbSymPrintAddress((PVOID)Address, NULL))
+                    KdbpPrint("<%x>:", Address);
+                else
+                    KdbpPrint(":");
+
+                i = min(4, Count);
+                Count -= i;
+
+                while (--i >= 0)
+                {
+                    if (!NT_SUCCESS(KdbpSafeReadMemory(&ul, (PVOID)Address, sizeof(ul))))
+                        KdbpPrint(" ????????");
+                    else
+                        KdbpPrint(" %08x", ul);
+
+                    Address += sizeof(ul);
+                }
+
+                KdbpPrint("\n");
+            }
+        }
     }
     else
     {
