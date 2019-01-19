@@ -76,18 +76,46 @@ BOOLEAN
 NTAPI
 MmUseSpecialPool(SIZE_T NumberOfBytes, ULONG Tag)
 {
+    PLDR_DATA_TABLE_ENTRY LdrEntry;
+    PVOID CallersCaller;
+    UNICODE_STRING Fastfat = RTL_CONSTANT_STRING(L"fastfat.sys");
+    static int count;
+
     /* Special pool is not suitable for allocations bigger than 1 page */
     if (NumberOfBytes > (PAGE_SIZE - sizeof(POOL_HEADER)))
     {
         return FALSE;
     }
 
-    if (MmSpecialPoolTag == '*')
+    if (Tag == 'enoN' || KeGetCurrentIrql() >= DISPATCH_LEVEL)
     {
         return TRUE;
     }
 
-    return Tag == MmSpecialPoolTag;
+    count++;
+    if (count > 100000)
+    {
+        return TRUE;
+    }
+if (0){
+    RtlGetCallersAddress(NULL, &CallersCaller);
+    if (!PsLoadedModuleList.Flink)
+    {
+        return TRUE;
+    }
+
+    LdrEntry = MiLookupDataTableEntry(CallersCaller);
+    if (!LdrEntry)
+    {
+        return TRUE;
+    }
+
+    if (RtlEqualUnicodeString(&LdrEntry->BaseDllName, &Fastfat, TRUE))
+    {
+        return TRUE;
+    }
+}
+    return FALSE;
 }
 
 BOOLEAN

@@ -24,7 +24,7 @@ PFN_NUMBER MiStartOfInitialPoolFrame, MiEndOfInitialPoolFrame;
 KGUARDED_MUTEX MmPagedPoolMutex;
 MM_PAGED_POOL_INFO MmPagedPoolInfo;
 SIZE_T MmAllocatedNonPagedPool;
-ULONG MmSpecialPoolTag;
+ULONG MmSpecialPoolTag = 1;
 ULONG MmConsumedPoolPercentage;
 BOOLEAN MmProtectFreedNonPagedPool;
 SLIST_HEADER MiNonPagedPoolSListHead;
