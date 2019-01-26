@@ -355,14 +355,17 @@ IopShutdownBaseFileSystems(IN PLIST_ENTRY ListHead)
     KeInitializeEvent(&Event, NotificationEvent, FALSE);
 
     /* Get the first entry and start looping */
-    ListEntry = ListHead->Flink;
-    while (ListEntry != ListHead)
+    while (!IsListEmpty(ListHead))
     {
         /* Get the device object and fetch the next entry */
+        ListEntry = RemoveHeadList(ListHead);
         DeviceObject = CONTAINING_RECORD(ListEntry,
                                          DEVICE_OBJECT,
                                          Queue.ListEntry);
-        ListEntry = ListEntry->Flink;
+
+        /* Don't confuse IoUnregisterFileSystem */
+        DeviceObject->Queue.ListEntry.Flink = NULL;
+        DeviceObject->Queue.ListEntry.Blink = NULL;
 
         /* Get the attached device */
         DeviceObject = IoGetAttachedDevice(DeviceObject);
