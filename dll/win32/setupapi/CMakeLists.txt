@@ -7,7 +7,8 @@ include_directories(
 add_definitions(
     -D_SETUPAPI_
     -D_CFGMGR32_
-    -Dwcsnicmp=_wcsnicmp)
+    -D_WINE
+    -Dwcsnicmp=_wcsnicmp )
 
 add_rpc_files(client ${REACTOS_SOURCE_DIR}/sdk/include/reactos/idl/pnp.idl)
 spec2def(setupapi.dll setupapi.spec ADD_IMPORTLIB)

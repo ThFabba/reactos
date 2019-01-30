@@ -580,6 +580,8 @@ if(NOT ARCH STREQUAL "i386")
         string/wcsrchr.c)
 endif()
 
+add_definitions(-D_WINE)
+
 set_source_files_properties(${CRT_ASM_SOURCE} PROPERTIES COMPILE_DEFINITIONS "__MINGW_IMPORT=extern;USE_MSVCRT_PREFIX;_MSVCRT_LIB_;_MSVCRT_;_MT;CRTDLL")
 add_asm_files(crt_asm ${CRT_ASM_SOURCE})
 

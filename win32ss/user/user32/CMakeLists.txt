@@ -6,6 +6,8 @@ include_directories(
     include
     ${REACTOS_SOURCE_DIR}/win32ss/include)
 
+add_definitions(-D_WINE)
+
 list(APPEND SOURCE
     controls/appswitch.c
     controls/button.c
