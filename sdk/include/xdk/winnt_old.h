@@ -2560,9 +2560,9 @@ typedef struct _RTL_CRITICAL_SECTION_DEBUG {
   LIST_ENTRY ProcessLocksList;
   DWORD EntryCount;
   DWORD ContentionCount;
-#if defined(__WINESRC__) || defined(_WINE)
-  DWORD Spare[2];
-#else /* neither Wine, no ReactOS use this fields (they are in 0x600+ struct definition) */
+#ifdef __WINESRC__  /* in Wine we store the name here */
+  DWORD_PTR Spare[8/sizeof(DWORD_PTR)];
+#else
   DWORD Flags;
   WORD CreatorBackTraceIndexHigh;
   WORD SpareWORD;

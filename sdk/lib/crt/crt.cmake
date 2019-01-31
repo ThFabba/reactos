@@ -219,7 +219,6 @@ list(APPEND CRT_SOURCE
     stdio/_flsbuf.c
     stdio/_flswbuf.c
     stdio/access.c
-    stdio/file.c
     stdio/find.c
     stdio/find64.c
     stdio/findi64.c
@@ -363,6 +362,9 @@ list(APPEND CRT_SOURCE
     wstring/wcsxfrm.c
     wine/heap.c
     wine/undname.c)
+
+list(APPEND CRT_WINE_SOURCE
+    stdio/file.c)
 
 if(ARCH STREQUAL "i386")
     list(APPEND CRT_ASM_SOURCE
@@ -580,8 +582,6 @@ if(NOT ARCH STREQUAL "i386")
         string/wcsrchr.c)
 endif()
 
-add_definitions(-D_WINE)
-
 set_source_files_properties(${CRT_ASM_SOURCE} PROPERTIES COMPILE_DEFINITIONS "__MINGW_IMPORT=extern;USE_MSVCRT_PREFIX;_MSVCRT_LIB_;_MSVCRT_;_MT;CRTDLL")
 add_asm_files(crt_asm ${CRT_ASM_SOURCE})
 
@@ -591,7 +591,8 @@ if(USE_CLANG_CL)
     set_property(SOURCE stdlib/rot.c APPEND_STRING PROPERTY COMPILE_FLAGS " /fallback")
 endif()
 
-add_library(crt ${CRT_SOURCE} ${crt_asm})
+add_library(crt ${CRT_SOURCE} ${CRT_WINE_SOURCE} ${crt_asm})
+set_source_files_properties(${CRT_WINE_SOURCE} PROPERTIES COMPILE_DEFINITIONS __WINESRC__)
 target_link_libraries(crt chkstk)
 add_target_compile_definitions(crt
     __MINGW_IMPORT=extern

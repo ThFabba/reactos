@@ -6,8 +6,6 @@ include_directories(
     include
     ${REACTOS_SOURCE_DIR}/win32ss/include)
 
-add_definitions(-D_WINE)
-
 list(APPEND SOURCE
     controls/appswitch.c
     controls/button.c
@@ -20,9 +18,6 @@ list(APPEND SOURCE
     controls/scrollbar.c
     controls/static.c
     misc/dde.c
-    misc/ddeclient.c
-    misc/ddemisc.c
-    misc/ddeserver.c
     misc/desktop.c
     misc/display.c
     misc/dllmain.c
@@ -67,6 +62,11 @@ list(APPEND SOURCE
     ${CMAKE_CURRENT_BINARY_DIR}/user32_stubs.c
     include/user32.h)
 
+list(APPEND WINE_SOURCE
+    misc/ddeclient.c
+    misc/ddemisc.c
+    misc/ddeserver.c)
+
 if(ARCH STREQUAL "i386")
     list(APPEND ASM_SOURCE
         windows/wndproc_fixup.S)
@@ -76,11 +76,13 @@ add_asm_files(user32_asm ${ASM_SOURCE})
 
 add_library(user32 SHARED
     ${SOURCE}
+    ${WINE_SOURCE}
     ${user32_asm}
     user32.rc
     ${CMAKE_CURRENT_BINARY_DIR}/user32.def)
 
 set_module_type(user32 win32dll ENTRYPOINT DllMain 12 UNICODE)
+set_source_files_properties(${WINE_SOURCE} PROPERTIES COMPILE_DEFINITIONS __WINESRC__)
 target_link_libraries(user32 user32_wsprintf wine win32ksys ${PSEH_LIB})
 add_dependencies(user32 asm)
 
