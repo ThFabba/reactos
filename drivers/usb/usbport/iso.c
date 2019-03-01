@@ -16,6 +16,10 @@ USBPORT_InitializeIsoTransfer(PDEVICE_OBJECT FdoDevice,
                               struct _URB_ISOCH_TRANSFER * Urb,
                               PUSBPORT_TRANSFER Transfer)
 {
+    DBG_UNREFERENCED_PARAMETER(FdoDevice);
+    DBG_UNREFERENCED_PARAMETER(Urb);
+    DBG_UNREFERENCED_PARAMETER(Transfer);
+
     DPRINT1("USBPORT_InitializeIsoTransfer: UNIMPLEMENTED. FIXME.\n");
     return USBD_STATUS_NOT_SUPPORTED;
 }
@@ -27,6 +31,11 @@ USBPORT_CompleteIsoTransfer(IN PVOID MiniPortExtension,
                             IN PVOID TransferParameters,
                             IN ULONG TransferLength)
 {
+    DBG_UNREFERENCED_PARAMETER(MiniPortExtension);
+    DBG_UNREFERENCED_PARAMETER(MiniPortEndpoint);
+    DBG_UNREFERENCED_PARAMETER(TransferParameters);
+    DBG_UNREFERENCED_PARAMETER(TransferLength);
+
     DPRINT1("USBPORT_CompleteIsoTransfer: UNIMPLEMENTED. FIXME.\n");
     return 0;
 }

@@ -22,6 +22,8 @@ USBPORT_CalculateUsbBandwidth(IN PDEVICE_OBJECT FdoDevice,
     ULONG Bandwidth;
     ULONG Overhead;
 
+    UNREFERENCED_PARAMETER(FdoDevice);
+
     DPRINT("USBPORT_CalculateUsbBandwidth ... \n");
 
     EndpointProperties = &Endpoint->EndpointProperties;
@@ -259,6 +261,8 @@ USBPORT_EndpointHasQueuedTransfers(IN PDEVICE_OBJECT FdoDevice,
     PUSBPORT_TRANSFER Transfer;
     BOOLEAN Result = FALSE;
 
+    UNREFERENCED_PARAMETER(FdoDevice);
+
     DPRINT_CORE("USBPORT_EndpointHasQueuedTransfers: ... \n");
 
     KeAcquireSpinLock(&Endpoint->EndpointSpinLock, &Endpoint->EndpointOldIrql);
@@ -456,6 +460,8 @@ NTAPI
 USBPORT_RemovePipeHandle(IN PUSBPORT_DEVICE_HANDLE DeviceHandle,
                          IN PUSBPORT_PIPE_HANDLE PipeHandle)
 {
+    UNREFERENCED_PARAMETER(DeviceHandle);
+
     DPRINT("USBPORT_RemovePipeHandle: PipeHandle - %p\n", PipeHandle);
 
     RemoveEntryList(&PipeHandle->PipeLink);

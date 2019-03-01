@@ -14,6 +14,8 @@ VOID
 USB_BUSIFFN
 USBI_InterfaceReference(IN PVOID BusContext)
 {
+    UNREFERENCED_PARAMETER(BusContext);
+
     DPRINT("USBI_InterfaceReference \n");
 }
 
@@ -21,6 +23,8 @@ VOID
 USB_BUSIFFN
 USBI_InterfaceDereference(IN PVOID BusContext)
 {
+    UNREFERENCED_PARAMETER(BusContext);
+
     DPRINT("USBI_InterfaceDereference \n");
 }
 
@@ -174,6 +178,8 @@ USBHI_QueryDeviceInformation(IN PVOID BusContext,
     PUSBPORT_INTERFACE_HANDLE InterfaceHandle;
     ULONG ActualLength;
     ULONG ix;
+
+    UNREFERENCED_PARAMETER(BusContext);
 
     DPRINT("USBHI_QueryDeviceInformation: ... \n");
 
@@ -559,6 +565,9 @@ USB_BUSIFFN
 USBHI_GetDeviceBusContext(IN PVOID BusContext,
                           IN PVOID DeviceHandle)
 {
+    DBG_UNREFERENCED_PARAMETER(BusContext);
+    DBG_UNREFERENCED_PARAMETER(DeviceHandle);
+
     DPRINT1("USBHI_GetDeviceBusContext: UNIMPLEMENTED. FIXME. \n");
     return NULL;
 }
@@ -619,6 +628,8 @@ USBHI_FlushTransfers(IN PVOID BusContext,
     PDEVICE_OBJECT PdoDevice;
     PUSBPORT_RHDEVICE_EXTENSION PdoExtension;
 
+    UNREFERENCED_PARAMETER(UsbdDeviceHandle);
+
     DPRINT("USBHI_FlushTransfers: ... \n");
 
     PdoDevice = BusContext;
@@ -633,6 +644,10 @@ USBHI_SetDeviceHandleData(IN PVOID BusContext,
                           IN PVOID DeviceHandle,
                           IN PDEVICE_OBJECT UsbDevicePdo)
 {
+    DBG_UNREFERENCED_PARAMETER(BusContext);
+    DBG_UNREFERENCED_PARAMETER(DeviceHandle);
+    DBG_UNREFERENCED_PARAMETER(UsbDevicePdo);
+
     DPRINT1("USBHI_SetDeviceHandleData: UNIMPLEMENTED. FIXME. \n");
 }
 
@@ -644,6 +659,10 @@ USBDI_GetUSBDIVersion(IN PVOID BusContext,
                       OUT PUSBD_VERSION_INFORMATION VersionInfo,
                       OUT PULONG HcdCapabilities)
 {
+    DBG_UNREFERENCED_PARAMETER(BusContext);
+    DBG_UNREFERENCED_PARAMETER(VersionInfo);
+    DBG_UNREFERENCED_PARAMETER(HcdCapabilities);
+
     DPRINT1("USBDI_GetUSBDIVersion: UNIMPLEMENTED. FIXME. \n");
 }
 
@@ -652,6 +671,9 @@ USB_BUSIFFN
 USBDI_QueryBusTime(IN PVOID BusContext,
                    OUT PULONG CurrentFrame)
 {
+    DBG_UNREFERENCED_PARAMETER(BusContext);
+    DBG_UNREFERENCED_PARAMETER(CurrentFrame);
+
     DPRINT1("USBDI_QueryBusTime: UNIMPLEMENTED. FIXME. \n");
     return STATUS_SUCCESS;
 }
@@ -661,6 +683,9 @@ USB_BUSIFFN
 USBDI_SubmitIsoOutUrb(IN PVOID BusContext,
                       IN PURB Urb)
 {
+    DBG_UNREFERENCED_PARAMETER(BusContext);
+    DBG_UNREFERENCED_PARAMETER(Urb);
+
     DPRINT1("USBDI_SubmitIsoOutUrb: UNIMPLEMENTED. FIXME. \n");
     return STATUS_SUCCESS;
 }
@@ -773,6 +798,12 @@ USBDI_EnumLogEntry(IN PVOID BusContext,
                    IN ULONG P1,
                    IN ULONG P2)
 {
+    DBG_UNREFERENCED_PARAMETER(BusContext);
+    DBG_UNREFERENCED_PARAMETER(DriverTag);
+    DBG_UNREFERENCED_PARAMETER(EnumTag);
+    DBG_UNREFERENCED_PARAMETER(P1);
+    DBG_UNREFERENCED_PARAMETER(P2);
+
     DPRINT1("USBDI_EnumLogEntry: UNIMPLEMENTED. FIXME. \n");
     return STATUS_SUCCESS;
 }
@@ -788,6 +819,8 @@ USBPORT_PdoQueryInterface(IN PDEVICE_OBJECT FdoDevice,
     PUSB_BUS_INTERFACE_USBDI_V2 InterfaceDI;
     UNICODE_STRING GuidBuffer;
     NTSTATUS Status;
+
+    UNREFERENCED_PARAMETER(FdoDevice);
 
     DPRINT("USBPORT_PdoQueryInterface: ... \n");
 

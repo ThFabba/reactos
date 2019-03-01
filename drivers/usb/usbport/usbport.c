@@ -307,6 +307,8 @@ USBPORT_GetRegistryKeyValueFullInfo(IN PDEVICE_OBJECT FdoDevice,
     HANDLE KeyHandle;
     ULONG LengthKey;
 
+    UNREFERENCED_PARAMETER(FdoDevice);
+
     DPRINT("USBPORT_GetRegistryKeyValue: UseDriverKey - %x, SourceString - %S, LengthStr - %x, Buffer - %p, BufferLength - %x\n",
            UseDriverKey,
            SourceString,
@@ -545,6 +547,8 @@ USBPORT_Wait(IN PVOID MiniPortExtension,
 {
     LARGE_INTEGER Interval = {{0, 0}};
 
+    UNREFERENCED_PARAMETER(MiniPortExtension);
+
     DPRINT("USBPORT_Wait: Milliseconds - %x\n", Milliseconds);
     Interval.QuadPart -= 10000 * Milliseconds + (KeQueryTimeIncrement() - 1);
     return KeDelayExecutionThread(KernelMode, FALSE, &Interval);
@@ -594,6 +598,10 @@ USBPORT_SoftInterruptDpc(IN PRKDPC Dpc,
 {
     PDEVICE_OBJECT FdoDevice;
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
+
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
 
     DPRINT_INT("USBPORT_SoftInterruptDpc: ... \n");
 
@@ -692,6 +700,11 @@ USBPORT_NotifyDoubleBuffer(IN PVOID MiniPortExtension,
                            IN PVOID Buffer,
                            IN SIZE_T Length)
 {
+    DBG_UNREFERENCED_PARAMETER(MiniPortExtension);
+    DBG_UNREFERENCED_PARAMETER(MiniPortTransfer);
+    DBG_UNREFERENCED_PARAMETER(Buffer);
+    DBG_UNREFERENCED_PARAMETER(Length);
+
     DPRINT1("USBPORT_NotifyDoubleBuffer: UNIMPLEMENTED. FIXME. \n");
     return 0;
 }
@@ -705,6 +718,10 @@ USBPORT_WorkerRequestDpc(IN PRKDPC Dpc,
 {
     PDEVICE_OBJECT FdoDevice;
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
+
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
 
     DPRINT("USBPORT_WorkerRequestDpc: ... \n");
 
@@ -828,6 +845,10 @@ USBPORT_TransferFlushDpc(IN PRKDPC Dpc,
                          IN PVOID SystemArgument2)
 {
     PDEVICE_OBJECT FdoDevice;
+
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
 
     DPRINT_CORE("USBPORT_TransferFlushDpc: ... \n");
     FdoDevice = DeferredContext;
@@ -1038,6 +1059,9 @@ USBPORT_IsrDpc(IN PRKDPC Dpc,
     PUSBPORT_REGISTRATION_PACKET Packet;
     BOOLEAN InterruptEnable;
 
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+
     DPRINT_INT("USBPORT_IsrDpc: DeferredContext - %p, SystemArgument2 - %p\n",
                DeferredContext,
                SystemArgument2);
@@ -1081,6 +1105,8 @@ USBPORT_InterruptService(IN PKINTERRUPT Interrupt,
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
     PUSBPORT_REGISTRATION_PACKET Packet;
     BOOLEAN Result = FALSE;
+
+    UNREFERENCED_PARAMETER(Interrupt);
 
     FdoDevice = ServiceContext;
     FdoExtension = FdoDevice->DeviceExtension;
@@ -1545,6 +1571,10 @@ USBPORT_TimerDpc(IN PRKDPC Dpc,
     KIRQL OldIrql;
     KIRQL TimerOldIrql;
 
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
     DPRINT_TIMER("USBPORT_TimerDpc: Dpc - %p, DeferredContext - %p\n",
            Dpc,
            DeferredContext);
@@ -1978,6 +2008,9 @@ USBPORT_MiniportCompleteTransfer(IN PVOID MiniPortExtension,
     PLIST_ENTRY Entry;
     KIRQL OldIrql;
 
+    UNREFERENCED_PARAMETER(MiniPortExtension);
+    UNREFERENCED_PARAMETER(MiniPortEndpoint);
+
     DPRINT_CORE("USBPORT_MiniportCompleteTransfer: USBDStatus - %x, TransferLength - %x\n",
                 USBDStatus,
                 TransferLength);
@@ -2039,6 +2072,10 @@ USBPORT_AsyncTimerDpc(IN PRKDPC Dpc,
     PDEVICE_OBJECT FdoDevice;
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
     PUSBPORT_ASYNC_CALLBACK_DATA AsyncCallbackData;
+
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
 
     DPRINT("USBPORT_AsyncTimerDpc: ... \n");
 
@@ -2118,6 +2155,8 @@ USBPORT_GetMappedVirtualAddress(IN ULONG PhysicalAddress,
     PUSBPORT_ENDPOINT Endpoint;
     ULONG Offset;
     ULONG_PTR VirtualAddress;
+
+    UNREFERENCED_PARAMETER(MiniPortExtension);
 
     DPRINT_CORE("USBPORT_GetMappedVirtualAddress ... \n");
 
@@ -2309,6 +2348,8 @@ USBPORT_MapTransfer(IN PDEVICE_OBJECT FdoDevice,
     USBD_STATUS USBDStatus;
     LIST_ENTRY List;
     PUSBPORT_TRANSFER transfer;
+
+    UNREFERENCED_PARAMETER(Irp);
 
     DPRINT_CORE("USBPORT_MapTransfer: ... \n");
 
@@ -2535,6 +2576,8 @@ USBPORT_AllocateTransfer(IN PDEVICE_OBJECT FdoDevice,
     PUSBPORT_PIPE_HANDLE PipeHandle;
     USBD_STATUS USBDStatus;
     SIZE_T IsoBlockLen = 0;
+
+    UNREFERENCED_PARAMETER(DeviceHandle);
 
     DPRINT_CORE("USBPORT_AllocateTransfer: FdoDevice - %p, Urb - %p, DeviceHandle - %p, Irp - %p, Event - %p\n",
            FdoDevice,
@@ -2876,5 +2919,8 @@ NTAPI
 DriverEntry(IN PDRIVER_OBJECT DriverObject,
             IN PUNICODE_STRING RegistryPath)
 {
+    UNREFERENCED_PARAMETER(DriverObject);
+    UNREFERENCED_PARAMETER(RegistryPath);
+
     return STATUS_SUCCESS;
 }

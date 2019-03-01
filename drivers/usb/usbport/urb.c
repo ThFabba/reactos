@@ -51,6 +51,8 @@ USBPORT_HandleGetCurrentFrame(IN PDEVICE_OBJECT FdoDevice,
     ULONG FrameNumber;
     KIRQL OldIrql;
 
+    UNREFERENCED_PARAMETER(Irp);
+
     FdoExtension = FdoDevice->DeviceExtension;
     Packet = &FdoExtension->MiniPortInterface->Packet;
 
@@ -121,6 +123,8 @@ USBPORT_ResetPipe(IN PDEVICE_OBJECT FdoDevice,
     PUSBPORT_ENDPOINT Endpoint;
     NTSTATUS Status;
 
+    UNREFERENCED_PARAMETER(Irp);
+
     DPRINT_URB("USBPORT_ResetPipe: ... \n");
 
     FdoExtension = FdoDevice->DeviceExtension;
@@ -184,6 +188,8 @@ USBPORT_ClearStall(IN PDEVICE_OBJECT FdoDevice,
     PUSBPORT_ENDPOINT Endpoint;
     NTSTATUS Status;
     USB_DEFAULT_PIPE_SETUP_PACKET SetupPacket;
+
+    UNREFERENCED_PARAMETER(Irp);
 
     DPRINT_URB("USBPORT_ClearStall: ... \n");
 
@@ -415,6 +421,8 @@ USBPORT_HandleGetStatus(IN PIRP Irp,
     PUSB_DEFAULT_PIPE_SETUP_PACKET SetupPacket;
     NTSTATUS Status;
 
+    UNREFERENCED_PARAMETER(Irp);
+
     SetupPacket = (PUSB_DEFAULT_PIPE_SETUP_PACKET)
                    &Urb->UrbControlDescriptorRequest.Reserved1;
 
@@ -480,6 +488,8 @@ USBPORT_HandleVendorOrClass(IN PIRP Irp,
                             IN PURB Urb)
 {
     PUSB_DEFAULT_PIPE_SETUP_PACKET SetupPacket;
+
+    UNREFERENCED_PARAMETER(Irp);
 
     /*
         Specifies a value, from 4 to 31 inclusive,
@@ -561,6 +571,8 @@ USBPORT_HandleGetSetDescriptor(IN PIRP Irp,
                                IN PURB Urb)
 {
     PUSB_DEFAULT_PIPE_SETUP_PACKET SetupPacket;
+
+    UNREFERENCED_PARAMETER(Irp);
 
     SetupPacket = (PUSB_DEFAULT_PIPE_SETUP_PACKET)
                    &Urb->UrbControlDescriptorRequest.Reserved1;

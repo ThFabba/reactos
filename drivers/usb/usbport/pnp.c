@@ -21,6 +21,9 @@ USBPORT_FdoStartCompletion(IN PDEVICE_OBJECT DeviceObject,
                            IN PIRP Irp,
                            IN PVOID Context)
 {
+    UNREFERENCED_PARAMETER(DeviceObject);
+    UNREFERENCED_PARAMETER(Irp);
+
     KeSetEvent((PKEVENT)Context, EVENT_INCREMENT, FALSE);
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
@@ -116,6 +119,10 @@ USBPORT_GetConfigValue(IN PWSTR ValueName,
 {
     NTSTATUS Status = STATUS_SUCCESS;
 
+    UNREFERENCED_PARAMETER(ValueName);
+    UNREFERENCED_PARAMETER(ValueLength);
+    UNREFERENCED_PARAMETER(Context);
+
     DPRINT("USBPORT_GetConfigValue \n");
 
     if (ValueType == REG_DWORD)
@@ -141,6 +148,8 @@ USBPORT_GetDefaultBIOSx(IN PDEVICE_OBJECT FdoDevice,
                          IN PULONG SoftRetry)
 {
     RTL_QUERY_REGISTRY_TABLE QueryTable[7];
+
+    UNREFERENCED_PARAMETER(FdoDevice);
 
     DPRINT("USBPORT_GetDefaultBIOS_X: ... \n");
 
@@ -489,6 +498,8 @@ NTSTATUS
 NTAPI
 USBPORT_StopDevice(IN PDEVICE_OBJECT FdoDevice)
 {
+    DBG_UNREFERENCED_PARAMETER(FdoDevice);
+
     DPRINT1("USBPORT_StopDevice: UNIMPLEMENTED. FIXME\n");
     DbgBreakPoint();
     return STATUS_SUCCESS;
@@ -922,6 +933,8 @@ USBPORT_ParseResources(IN PDEVICE_OBJECT FdoDevice,
     PIO_STACK_LOCATION IoStack;
     ULONG ix;
     NTSTATUS Status = STATUS_SUCCESS;
+
+    UNREFERENCED_PARAMETER(FdoDevice);
 
     DPRINT("USBPORT_ParseResources: ... \n");
 

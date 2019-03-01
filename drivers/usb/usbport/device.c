@@ -587,6 +587,8 @@ USBPORT_HandleSelectConfiguration(IN PDEVICE_OBJECT FdoDevice,
     USBD_STATUS USBDStatus;
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
 
+    UNREFERENCED_PARAMETER(Irp);
+
     DPRINT("USBPORT_HandleSelectConfiguration: ConfigDescriptor %p\n",
            Urb->UrbSelectConfiguration.ConfigurationDescriptor);
 
@@ -918,6 +920,8 @@ USBPORT_GetTt(IN PDEVICE_OBJECT FdoDevice,
     ULONG TtCount;
     PLIST_ENTRY Entry;
     PUSB2_TT_EXTENSION TtExtension = NULL;
+
+    UNREFERENCED_PARAMETER(FdoDevice);
 
     DPRINT("USBPORT_GetTt: HubDeviceHandle - %p\n", HubDeviceHandle);
 
@@ -1497,6 +1501,8 @@ USBPORT_HandleSelectInterface(IN PDEVICE_OBJECT FdoDevice,
     USHORT Length;
     ULONG ix;
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
+
+    UNREFERENCED_PARAMETER(Irp);
 
     DPRINT("USBPORT_HandleSelectInterface: ... \n");
 

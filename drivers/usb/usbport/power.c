@@ -54,6 +54,10 @@ USBPORT_HcWakeDpc(IN PRKDPC Dpc,
                   IN PVOID SystemArgument1,
                   IN PVOID SystemArgument2)
 {
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
     DPRINT("USBPORT_HcWakeDpc: ... \n");
     USBPORT_CompletePdoWaitWake((PDEVICE_OBJECT)DeferredContext);
 }
@@ -103,6 +107,8 @@ VOID
 NTAPI
 USBPORT_DoSetPowerD0(IN PDEVICE_OBJECT FdoDevice)
 {
+    DBG_UNREFERENCED_PARAMETER(FdoDevice);
+
     DPRINT("USBPORT_DoSetPowerD0: FIXME!\n");
     return;
 }
@@ -462,6 +468,9 @@ NTAPI
 USBPORT_HcWake(IN PDEVICE_OBJECT FdoDevice,
                IN PIRP Irp)
 {
+    DBG_UNREFERENCED_PARAMETER(FdoDevice);
+    DBG_UNREFERENCED_PARAMETER(Irp);
+
     DPRINT1("USBPORT_HcWake: UNIMPLEMENTED. FIXME. \n");
     return STATUS_SUCCESS;
 }
@@ -471,6 +480,9 @@ NTAPI
 USBPORT_DevicePowerState(IN PDEVICE_OBJECT FdoDevice,
                          IN PIRP Irp)
 {
+    DBG_UNREFERENCED_PARAMETER(FdoDevice);
+    DBG_UNREFERENCED_PARAMETER(Irp);
+
     DPRINT1("USBPORT_DevicePowerState: UNIMPLEMENTED. FIXME. \n");
     return STATUS_SUCCESS;
 }
@@ -480,6 +492,9 @@ NTAPI
 USBPORT_SystemPowerState(IN PDEVICE_OBJECT FdoDevice,
                          IN PIRP Irp)
 {
+    DBG_UNREFERENCED_PARAMETER(FdoDevice);
+    DBG_UNREFERENCED_PARAMETER(Irp);
+
     DPRINT1("USBPORT_SystemPowerState: UNIMPLEMENTED. FIXME. \n");
     return STATUS_SUCCESS;
 }

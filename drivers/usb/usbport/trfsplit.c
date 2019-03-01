@@ -27,6 +27,8 @@ USBPORT_MakeSplitTransfer(IN PDEVICE_OBJECT FdoDevice,
     SIZE_T SgLength;
     SIZE_T SgRemainLen;
 
+    UNREFERENCED_PARAMETER(FdoDevice);
+
     DPRINT("USBPORT_MakeSplitTransfer: ... \n");
 
     SplitSgList = &SplitTransfer->SgList;

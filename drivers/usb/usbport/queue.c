@@ -37,6 +37,8 @@ NTAPI
 USBPORT_RemoveIdleIrp(IN PIO_CSQ Csq,
                       IN PIRP Irp)
 {
+    UNREFERENCED_PARAMETER(Csq);
+
     DPRINT_QUEUE("USBPORT_RemoveIdleIrp: Irp - %p\n", Irp);
     RemoveEntryList(&Irp->Tail.Overlay.ListEntry);
 }
@@ -160,6 +162,8 @@ NTAPI
 USBPORT_RemoveBadRequest(IN PIO_CSQ Csq,
                          IN PIRP Irp)
 {
+    UNREFERENCED_PARAMETER(Csq);
+
     DPRINT_QUEUE("USBPORT_RemoveBadRequest: Irp - %p\n", Irp);
     RemoveEntryList(&Irp->Tail.Overlay.ListEntry);
 }
@@ -1230,6 +1234,8 @@ USBPORT_KillEndpointActiveTransfers(IN PDEVICE_OBJECT FdoDevice,
     PLIST_ENTRY ActiveList;
     PUSBPORT_TRANSFER Transfer;
     ULONG KilledTransfers = 0;
+
+    UNREFERENCED_PARAMETER(FdoDevice);
 
     DPRINT_CORE("USBPORT_KillEndpointActiveTransfers \n");
 

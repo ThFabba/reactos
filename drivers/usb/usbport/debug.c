@@ -22,6 +22,10 @@ USBPORT_DbgPrint(IN PVOID MiniPortExtension,
                  IN PCH Format,
                  ...)
 {
+    DBG_UNREFERENCED_PARAMETER(MiniPortExtension);
+    DBG_UNREFERENCED_PARAMETER(Level);
+    DBG_UNREFERENCED_PARAMETER(Format);
+
     DPRINT("USBPORT_DbgPrint: UNIMPLEMENTED. FIXME. \n");
     return 0;
 }
@@ -30,6 +34,8 @@ ULONG
 NTAPI
 USBPORT_TestDebugBreak(IN PVOID MiniPortExtension)
 {
+    DBG_UNREFERENCED_PARAMETER(MiniPortExtension);
+
     DPRINT("USBPORT_TestDebugBreak: UNIMPLEMENTED. FIXME. \n");
     return 0;
 }
@@ -42,6 +48,8 @@ USBPORT_AssertFailure(PVOID MiniPortExtension,
                       ULONG LineNumber,
                       PCHAR Message)
 {
+    UNREFERENCED_PARAMETER(MiniPortExtension);
+
     DPRINT("USBPORT_AssertFailure: ... \n");
     RtlAssert(FailedAssertion, FileName, LineNumber, Message);
     return 0;
@@ -51,6 +59,8 @@ VOID
 NTAPI
 USBPORT_BugCheck(IN PVOID MiniPortExtension)
 {
+    DBG_UNREFERENCED_PARAMETER(MiniPortExtension);
+
     DPRINT1("USBPORT_BugCheck: FIXME \n");
     //KeBugCheckEx(BUGCODE_USB_DRIVER, ...);
     ASSERT(FALSE);
@@ -65,6 +75,13 @@ USBPORT_LogEntry(IN PVOID MiniPortExtension,
                  IN ULONG P2,
                  IN ULONG P3)
 {
+    UNREFERENCED_PARAMETER(MiniPortExtension);
+    UNREFERENCED_PARAMETER(DriverTag);
+    UNREFERENCED_PARAMETER(EnumTag);
+    UNREFERENCED_PARAMETER(P1);
+    UNREFERENCED_PARAMETER(P2);
+    UNREFERENCED_PARAMETER(P3);
+
     DPRINT_MINIPORT("USBPORT_LogEntry: MiniPortExtension - %p, EnumTag - %lx, P1 - %lx, P2 - %lx, P3 - %lx\n",
            MiniPortExtension,
            EnumTag,
@@ -212,6 +229,8 @@ VOID
 NTAPI
 USBPORT_DumpingSetupPacket(IN PUSB_DEFAULT_PIPE_SETUP_PACKET SetupPacket)
 {
+    UNREFERENCED_PARAMETER(SetupPacket);
+
     DPRINT("SetupPacket->bmRequestType.B - %x\n", SetupPacket->bmRequestType.B);
     DPRINT("SetupPacket->bRequest        - %x\n", SetupPacket->bRequest);
     DPRINT("SetupPacket->wValue.LowByte  - %x\n", SetupPacket->wValue.LowByte);

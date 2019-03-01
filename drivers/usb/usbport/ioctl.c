@@ -308,6 +308,9 @@ NTAPI
 USBPORT_PdoDeviceControl(IN PDEVICE_OBJECT PdoDevice,
                          IN PIRP Irp)
 {
+    DBG_UNREFERENCED_PARAMETER(PdoDevice);
+    DBG_UNREFERENCED_PARAMETER(Irp);
+
     DPRINT1("USBPORT_PdoDeviceControl: UNIMPLEMENTED. FIXME. \n");
     return 0;
 }
@@ -454,6 +457,9 @@ NTAPI
 USBPORT_FdoInternalDeviceControl(IN PDEVICE_OBJECT FdoDevice,
                                  IN PIRP Irp)
 {
+    DBG_UNREFERENCED_PARAMETER(FdoDevice);
+    DBG_UNREFERENCED_PARAMETER(Irp);
+
     DPRINT1("USBPORT_FdoInternalDeviceControl: UNIMPLEMENTED. FIXME. \n");
     return 0;
 }
