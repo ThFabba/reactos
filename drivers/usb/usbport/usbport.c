@@ -1803,12 +1803,12 @@ USBPORT_FindMiniPort(IN PDRIVER_OBJECT DriverObject)
     KIRQL OldIrql;
     PLIST_ENTRY List;
     PUSBPORT_MINIPORT_INTERFACE MiniPortInterface;
-    BOOLEAN IsFound = FALSE;
 
     DPRINT("USBPORT_FindMiniPort: ... \n");
 
     KeAcquireSpinLock(&USBPORT_SpinLock, &OldIrql);
 
+    MiniPortInterface = NULL;
     for (List = USBPORT_MiniPortDrivers.Flink;
          List != &USBPORT_MiniPortDrivers;
          List = List->Flink)
@@ -1822,18 +1822,15 @@ USBPORT_FindMiniPort(IN PDRIVER_OBJECT DriverObject)
             DPRINT("USBPORT_FindMiniPort: find MiniPortInterface - %p\n",
                    MiniPortInterface);
 
-            IsFound = TRUE;
             break;
         }
+
+        MiniPortInterface = NULL;
     }
 
     KeReleaseSpinLock(&USBPORT_SpinLock, OldIrql);
 
-    if (IsFound)
-        return MiniPortInterface;
-    else
-        return NULL;
-    
+    return MiniPortInterface;
 }
 
 NTSTATUS
