@@ -324,7 +324,7 @@ USB2_AllocateHS(IN PUSB2_TT_ENDPOINT TtEndpoint,
     USHORT PktSizeBitStuff;
     UCHAR frame;
     UCHAR uframe;
-    BOOL Result = TRUE;
+    BOOLEAN Result = TRUE;
 
     DPRINT("USB2_AllocateHS: TtEndpoint - %p, Frame - %X, StartFrame - %X\n",
            TtEndpoint,
