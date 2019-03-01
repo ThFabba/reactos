@@ -17,8 +17,14 @@
 #include <hubbusif.h>
 #include <usbbusif.h>
 #include <usbdlib.h>
+#include <usbioctl.h>
+#ifdef __REACTOS__
 #include <usbuser.h>
 #include <drivers/usbport/usbmport.h>
+#else
+#include <../um/usbuser.h>
+#include <c:/ROS/reactos/sdk/include/reactos/drivers/usbport/usbmport.h>
+#endif
 
 #define PCI_INTERFACE_USB_ID_UHCI 0x00
 #define PCI_INTERFACE_USB_ID_OHCI 0x10
