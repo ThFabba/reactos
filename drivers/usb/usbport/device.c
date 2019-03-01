@@ -257,8 +257,8 @@ USBPORT_OpenInterface(IN PURB Urb,
     PUSB_ENDPOINT_DESCRIPTOR Descriptor;
     PUSBD_PIPE_INFORMATION PipeInfo;
     BOOLEAN HasAlternates;
-    ULONG NumEndpoints;
-    SIZE_T Length;
+    UCHAR NumEndpoints;
+    USHORT Length;
     USB_DEFAULT_PIPE_SETUP_PACKET SetupPacket;
     SIZE_T HandleLength;
     BOOLEAN IsAllocated = FALSE;
@@ -501,9 +501,9 @@ USBPORT_InitInterfaceInfo(IN PUSBD_INTERFACE_INFORMATION InterfaceInfo,
 {
     PUSB_INTERFACE_DESCRIPTOR Descriptor;
     PUSBD_PIPE_INFORMATION Pipe;
-    SIZE_T Length;
+    USHORT Length;
     ULONG PipeFlags;
-    ULONG NumberOfPipes;
+    UCHAR NumberOfPipes;
     USBD_STATUS USBDStatus = USBD_STATUS_SUCCESS;
 
     DPRINT("USBPORT_InitInterfaceInfo: InterfaceInfo - %p, ConfigHandle - %p\n",
@@ -1249,14 +1249,14 @@ ErrorExit:
     return Status;
 }
 
-ULONG
+USHORT
 NTAPI
 USBPORT_AllocateUsbAddress(IN PDEVICE_OBJECT FdoDevice)
 {
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
     ULONG BitMapIdx;
-    ULONG BitNumber;
-    ULONG ix;
+    USHORT BitNumber;
+    USHORT ix;
 
     DPRINT("USBPORT_AllocateUsbAddress \n");
 
@@ -1287,7 +1287,7 @@ USBPORT_FreeUsbAddress(IN PDEVICE_OBJECT FdoDevice,
                        IN USHORT DeviceAddress)
 {
     PUSBPORT_DEVICE_EXTENSION  FdoExtension;
-    ULONG ix;
+    USHORT ix;
     ULONG BitMapIdx;
     ULONG BitNumber;
     USHORT CurrentAddress;
@@ -1959,7 +1959,7 @@ NTSTATUS
 NTAPI
 USBPORT_InitializeTT(IN PDEVICE_OBJECT FdoDevice,
                      IN PUSBPORT_DEVICE_HANDLE HubDeviceHandle,
-                     IN ULONG TtNumber)
+                     IN USHORT TtNumber)
 {
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
     PUSB2_TT_EXTENSION TtExtension;

@@ -871,10 +871,10 @@ USBPORT_OpenPipe(IN PDEVICE_OBJECT FdoDevice,
     EndpointProperties->DeviceSpeed = DeviceHandle->DeviceSpeed;
     EndpointProperties->Period = 0;
     EndpointProperties->EndpointAddress = EndpointDescriptor->bEndpointAddress;
-    EndpointProperties->TransactionPerMicroframe = AdditionalTransaction + 1;
+    EndpointProperties->TransactionPerMicroframe = (UCHAR)(AdditionalTransaction + 1);
     EndpointProperties->MaxPacketSize = MaxPacketSize;
     EndpointProperties->TotalMaxPacketSize = MaxPacketSize *
-                                             (AdditionalTransaction + 1);
+                                             (USHORT)(AdditionalTransaction + 1);
 
     if (Endpoint->TtExtension)
     {
@@ -882,7 +882,7 @@ USBPORT_OpenPipe(IN PDEVICE_OBJECT FdoDevice,
     }
     else
     {
-        EndpointProperties->HubAddr = -1;
+        EndpointProperties->HubAddr = MAXUSHORT;
     }
 
     EndpointProperties->PortNumber = DeviceHandle->PortNumber;
