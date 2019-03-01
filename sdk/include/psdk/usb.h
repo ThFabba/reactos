@@ -205,7 +205,8 @@ typedef LONG USBD_STATUS;
 #define USBD_STATUS_SET_CONFIG_FAILED                   ((USBD_STATUS)0xC0002000L)
 #define USBD_STATUS_BUFFER_TOO_SMALL                    ((USBD_STATUS)0xC0003000L)
 #define USBD_STATUS_INTERFACE_NOT_FOUND                 ((USBD_STATUS)0xC0004000L)
-#define USBD_STATUS_INVALID_PIPE_FLAGS                  ((USBD_STATUS)0xC0005000L)
+/* Yes, this is misspelled in MS's headers. Please don't change it. */
+#define USBD_STATUS_INAVLID_PIPE_FLAGS                  ((USBD_STATUS)0xC0005000L)
 #define USBD_STATUS_TIMEOUT                             ((USBD_STATUS)0xC0006000L)
 #define USBD_STATUS_DEVICE_GONE                         ((USBD_STATUS)0xC0007000L)
 #define USBD_STATUS_STATUS_NOT_MAPPED                   ((USBD_STATUS)0xC0008000L)

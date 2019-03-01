@@ -546,7 +546,7 @@ USBPORT_InitInterfaceInfo(IN PUSBD_INTERFACE_INFORMATION InterfaceInfo,
                 PipeFlags = Pipe->PipeFlags;
 
                 if (PipeFlags & ~USBD_PF_VALID_MASK)
-                    USBDStatus = USBD_STATUS_INVALID_PIPE_FLAGS;
+                    USBDStatus = USBD_STATUS_INAVLID_PIPE_FLAGS;
 
                 if (!(PipeFlags & USBD_PF_CHANGE_MAX_PACKET))
                     Pipe->MaximumPacketSize = 0;
