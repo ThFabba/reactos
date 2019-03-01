@@ -623,7 +623,7 @@ USBHI_RootHubInitNotification(IN PVOID BusContext,
 VOID
 USB_BUSIFFN
 USBHI_FlushTransfers(IN PVOID BusContext,
-                     OUT PUSB_DEVICE_HANDLE UsbdDeviceHandle)
+                     IN PUSB_DEVICE_HANDLE UsbdDeviceHandle)
 {
     PDEVICE_OBJECT PdoDevice;
     PUSBPORT_RHDEVICE_EXTENSION PdoExtension;
