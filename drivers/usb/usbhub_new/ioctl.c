@@ -70,7 +70,6 @@ USBH_SelectConfigOrInterfaceComplete(IN PDEVICE_OBJECT DeviceObject,
     else
     {
         DPRINT1("USBH_SelectConfigOrInterfaceComplete: Status != STATUS_SUCCESS. FIXME\n");
-        DbgBreakPoint();
     }
 
     return Status;
