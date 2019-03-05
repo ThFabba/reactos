@@ -605,7 +605,7 @@ IopSendRemoveDevice(IN PDEVICE_OBJECT DeviceObject)
                                   &GUID_TARGET_DEVICE_REMOVE_COMPLETE,
                                   NULL,
                                   NULL);
-    ObDereferenceObject(DeviceObject);
+    //ObDereferenceObject(DeviceObject);
 }
 
 static
