@@ -129,7 +129,7 @@ USBCCGP_SyncUrbRequest(
     /* Done */
     return Status;
 }
-
+#if 0
 PVOID
 AllocateItem(
     IN POOL_TYPE PoolType,
@@ -147,6 +147,7 @@ AllocateItem(
     /* Return element */
     return Item;
 }
+#endif
 
 VOID
 FreeItem(

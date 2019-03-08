@@ -110,10 +110,16 @@ USBCCGP_SyncUrbRequest(
     IN PDEVICE_OBJECT DeviceObject,
     OUT PURB UrbRequest);
 
+#if 0
 PVOID
 AllocateItem(
     IN POOL_TYPE PoolType,
     IN ULONG ItemSize);
+#else
+static inline PVOID ZeroIt(PVOID P, ULONG ItemSize) { if (P) RtlZeroMemory(P, ItemSize); return P; }
+#define AllocateItem(PoolType, ItemSize) \
+    ZeroIt(ExAllocatePoolWithTag(PoolType, ItemSize, USBCCPG_TAG), ItemSize)
+#endif
 
 VOID
 FreeItem(
