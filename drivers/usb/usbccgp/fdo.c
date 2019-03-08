@@ -370,6 +370,37 @@ FDO_CloseConfiguration(
     return Status;
 }
 
+NTSTATUS
+FDO_RemoveDevice(
+    PDEVICE_OBJECT DeviceObject,
+    PIRP Irp)
+{
+    NTSTATUS Status;
+    PFDO_DEVICE_EXTENSION FDODeviceExtension;
+
+    DPRINT1("[USBCCGP] FDO_RemoveDevice\n");
+
+    /* Get device extension */
+    FDODeviceExtension = (PFDO_DEVICE_EXTENSION)DeviceObject->DeviceExtension;
+    ASSERT(FDODeviceExtension->Common.IsFDO);
+
+    /* Unconfigure device */
+    FDO_CloseConfiguration(DeviceObject);
+
+    /* Send the IRP down the stack */
+    Irp->IoStatus.Status = STATUS_SUCCESS;
+    IoSkipCurrentIrpStackLocation(Irp);
+    Status = IoCallDriver(FDODeviceExtension->NextDeviceObject, Irp);
+
+    /* Detach from the device stack */
+    IoDetachDevice(FDODeviceExtension->NextDeviceObject);
+
+    /* Delete the device object */
+    IoDeleteDevice(DeviceObject);
+
+    return Status;
+}
+
 
 NTSTATUS
 FDO_HandlePnp(
@@ -392,23 +423,7 @@ FDO_HandlePnp(
     {
         case IRP_MN_REMOVE_DEVICE:
         {
-            // Unconfigure device */
-            DPRINT1("[USBCCGP] FDO IRP_MN_REMOVE\n");
-            FDO_CloseConfiguration(DeviceObject);
-
-            /* Send the IRP down the stack */
-            Irp->IoStatus.Status = STATUS_SUCCESS;
-            IoSkipCurrentIrpStackLocation(Irp);
-            Status = IoCallDriver(FDODeviceExtension->NextDeviceObject, Irp);
-
-            /* Detach from the device stack */
-            IoDetachDevice(FDODeviceExtension->NextDeviceObject);
-
-            /* Delete the device object */
-            IoDeleteDevice(DeviceObject);
-
-            /* Request completed */
-            break;
+            return FDO_RemoveDevice(DeviceObject, Irp);
         }
         case IRP_MN_START_DEVICE:
         {
