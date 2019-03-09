@@ -370,7 +370,7 @@ USBCCGP_InitFunctionDescriptor(
             //
             // no description
             //
-            RtlInitUnicodeString(&FunctionDescriptor->FunctionDescription, L"");
+            RtlInitUnicodeString(&FunctionDescriptor->FunctionDescription, NULL);
         }
         else
         {
@@ -533,7 +533,7 @@ USBCCG_InitIdsWithInterfaceDescriptor(
             //
             // no description
             //
-            RtlInitUnicodeString(&FunctionDescriptor->FunctionDescription, L"");
+            RtlInitUnicodeString(&FunctionDescriptor->FunctionDescription, NULL);
         }
         else
         {

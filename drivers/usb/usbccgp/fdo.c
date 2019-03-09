@@ -334,6 +334,7 @@ FDO_CloseConfiguration(
     NTSTATUS Status;
     PURB Urb;
     PFDO_DEVICE_EXTENSION FDODeviceExtension;
+    ULONG Index;
 
     /* Get device extension */
     FDODeviceExtension = (PFDO_DEVICE_EXTENSION)DeviceObject->DeviceExtension;
@@ -344,6 +345,14 @@ FDO_CloseConfiguration(
         FDODeviceExtension->InterfaceList == NULL)
     {
         return STATUS_SUCCESS;
+    }
+
+    /* Free old interfaces; USBD_CreateConfigurationRequestEx will overwrite them */
+    for (Index = 0; Index < FDODeviceExtension->InterfaceListCount; Index++)
+    {
+        if (FDODeviceExtension->InterfaceList[Index].Interface)
+            FreeItem(FDODeviceExtension->InterfaceList[Index].Interface);
+        FDODeviceExtension->InterfaceList[Index].Interface = NULL;
     }
 
     /* Now allocate the urb */
@@ -367,6 +376,11 @@ FDO_CloseConfiguration(
     }
 
     ExFreePool(Urb);
+
+    /* Now our interface list is invalid */
+    FreeItem(FDODeviceExtension->InterfaceList);
+    FDODeviceExtension->InterfaceList = NULL;
+
     return Status;
 }
 
@@ -377,6 +391,9 @@ FDO_RemoveDevice(
 {
     NTSTATUS Status;
     PFDO_DEVICE_EXTENSION FDODeviceExtension;
+    PUSBC_FUNCTION_DESCRIPTOR FunctionDescriptor;
+    PPDO_DEVICE_EXTENSION PDODeviceExtension;
+    ULONG Index;
 
     DPRINT1("[USBCCGP] FDO_RemoveDevice\n");
 
@@ -387,10 +404,39 @@ FDO_RemoveDevice(
     /* Unconfigure device */
     FDO_CloseConfiguration(DeviceObject);
 
+    /* Let the lower driver clean up the bus interface */
+    if (FDODeviceExtension->BusInterface.InterfaceDereference)
+    {
+        FDODeviceExtension->BusInterface.InterfaceDereference(FDODeviceExtension->BusInterface.Context);
+        RtlZeroMemory(&FDODeviceExtension->BusInterface, sizeof(FDODeviceExtension->BusInterface));
+    }
+
     /* Send the IRP down the stack */
     Irp->IoStatus.Status = STATUS_SUCCESS;
     IoSkipCurrentIrpStackLocation(Irp);
     Status = IoCallDriver(FDODeviceExtension->NextDeviceObject, Irp);
+
+    /* Free resources */
+    if (FDODeviceExtension->DeviceDescriptor)
+        FreeItem(FDODeviceExtension->DeviceDescriptor);
+    if (FDODeviceExtension->ConfigurationDescriptor)
+        FreeItem(FDODeviceExtension->ConfigurationDescriptor);
+    for (Index = 0; Index < FDODeviceExtension->FunctionDescriptorCount; Index++)
+    {
+        FunctionDescriptor = &FDODeviceExtension->FunctionDescriptor[Index];
+        if (FunctionDescriptor->InterfaceDescriptorList)
+            FreeItem(FunctionDescriptor->InterfaceDescriptorList);
+        if (FunctionDescriptor->HardwareId.Buffer)
+            FreeItem(FunctionDescriptor->HardwareId.Buffer);
+        if (FunctionDescriptor->CompatibleId.Buffer)
+            FreeItem(FunctionDescriptor->CompatibleId.Buffer);
+        if (FunctionDescriptor->FunctionDescription.Buffer)
+            FreeItem(FunctionDescriptor->FunctionDescription.Buffer);
+    }
+    if (FDODeviceExtension->FunctionDescriptor)
+        FreeItem(FDODeviceExtension->FunctionDescriptor);
+    if (FDODeviceExtension->ChildPDO)
+        FreeItem(FDODeviceExtension->ChildPDO);
 
     /* Detach from the device stack */
     IoDetachDevice(FDODeviceExtension->NextDeviceObject);
