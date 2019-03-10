@@ -215,6 +215,7 @@ FDO_CreateChildPdo(
 
         /* Init device extension */
         PDODeviceExtension->Common.IsFDO = FALSE;
+        PDODeviceExtension->ReportedMissing = FALSE;
         PDODeviceExtension->FunctionDescriptor = &FDODeviceExtension->FunctionDescriptor[Index];
         PDODeviceExtension->NextDeviceObject = DeviceObject;
         PDODeviceExtension->FunctionIndex = Index;
@@ -432,6 +433,20 @@ FDO_RemoveDevice(
             FreeItem(FunctionDescriptor->CompatibleId.Buffer);
         if (FunctionDescriptor->FunctionDescription.Buffer)
             FreeItem(FunctionDescriptor->FunctionDescription.Buffer);
+
+        if (FDODeviceExtension->ChildPDO[Index])
+        {
+            PDODeviceExtension = (PPDO_DEVICE_EXTENSION)FDODeviceExtension->ChildPDO[Index]->DeviceExtension;
+            PDODeviceExtension->FunctionDescriptor = NULL;
+            PDODeviceExtension->NextDeviceObject = NULL;
+            PDODeviceExtension->ConfigurationDescriptor = NULL;
+            PDODeviceExtension->ConfigurationHandle = NULL;
+            PDODeviceExtension->InterfaceList = NULL;
+            PDODeviceExtension->InterfaceListCount = 0;
+            PDODeviceExtension->FDODeviceExtension = NULL;
+            PDODeviceExtension->ReportedMissing = TRUE;
+            USBCCGP_PdoRemoveDevice(FDODeviceExtension->ChildPDO[Index]);
+        }
     }
     if (FDODeviceExtension->FunctionDescriptor)
         FreeItem(FDODeviceExtension->FunctionDescriptor);

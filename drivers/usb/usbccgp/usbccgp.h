@@ -41,6 +41,7 @@ typedef struct
 typedef struct
 {
     COMMON_DEVICE_EXTENSION Common;                          // shared with FDO
+    BOOLEAN ReportedMissing;                                 // should pdo be deleted
     PUSBC_FUNCTION_DESCRIPTOR FunctionDescriptor;            // function descriptor
     PDEVICE_OBJECT NextDeviceObject;                         // next device object
     DEVICE_CAPABILITIES Capabilities;                        // device capabilities
@@ -131,6 +132,10 @@ FDO_Dispatch(
     PIRP Irp);
 
 /* pdo.c */
+
+NTSTATUS
+USBCCGP_PdoRemoveDevice(
+    PDEVICE_OBJECT DeviceObject);
 
 NTSTATUS
 PDO_Dispatch(

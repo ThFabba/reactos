@@ -17,6 +17,50 @@
 #include <debug.h>
 
 NTSTATUS
+USBCCGP_PdoRemoveDevice(
+    IN PDEVICE_OBJECT DeviceObject)
+{
+    PPDO_DEVICE_EXTENSION PDODeviceExtension;
+    ULONG Index;
+
+    //
+    // get device extension
+    //
+    PDODeviceExtension = (PPDO_DEVICE_EXTENSION)DeviceObject->DeviceExtension;
+
+    //
+    // only delete if we've been reported missing
+    //
+    if (PDODeviceExtension->ReportedMissing)
+    {
+        //
+        // remove us from the fdo's pdo list
+        //
+        if (PDODeviceExtension->FDODeviceExtension)
+        {
+            for (Index = 0; Index < PDODeviceExtension->FDODeviceExtension->FunctionDescriptorCount; Index++)
+            {
+                if (PDODeviceExtension->FDODeviceExtension->ChildPDO[Index] == DeviceObject)
+                {
+                    //
+                    // remove us
+                    //
+                    PDODeviceExtension->FDODeviceExtension->ChildPDO[Index] = NULL;
+                    break;
+                }
+            }
+        }
+
+        //
+        // Delete the device object
+        //
+        IoDeleteDevice(DeviceObject);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
 USBCCGP_PdoHandleQueryDeviceText(
     IN PDEVICE_OBJECT DeviceObject,
     IN OUT PIRP Irp)
@@ -338,7 +382,6 @@ PDO_HandlePnp(
     PIO_STACK_LOCATION IoStack;
     PPDO_DEVICE_EXTENSION PDODeviceExtension;
     NTSTATUS Status;
-    ULONG Index, bFound;
 
     //
     // get current stack location
@@ -383,37 +426,8 @@ PDO_HandlePnp(
         }
         case IRP_MN_REMOVE_DEVICE:
         {
-            //
-            // remove us from the fdo's pdo list
-            //
-            bFound = FALSE;
-            for(Index = 0; Index < PDODeviceExtension->FDODeviceExtension->FunctionDescriptorCount; Index++)
-            {
-                if (PDODeviceExtension->FDODeviceExtension->ChildPDO[Index] == DeviceObject)
-                {
-                    //
-                    // remove us
-                    //
-                    PDODeviceExtension->FDODeviceExtension->ChildPDO[Index] = NULL;
-                    bFound = TRUE;
-                    break;
-                }
-            }
-
-            //
-            // Complete the IRP
-            //
-            Irp->IoStatus.Status = STATUS_SUCCESS;
-            IoCompleteRequest(Irp, IO_NO_INCREMENT);
-
-            if (bFound)
-            {
-                //
-                // Delete the device object
-                //
-                IoDeleteDevice(DeviceObject);
-            }
-            return STATUS_SUCCESS;
+            Status = USBCCGP_PdoRemoveDevice(DeviceObject);
+            break;
         }
         case IRP_MN_QUERY_CAPABILITIES:
         {
