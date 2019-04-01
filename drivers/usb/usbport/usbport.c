@@ -1717,6 +1717,8 @@ USBPORT_StartTimer(IN PDEVICE_OBJECT FdoDevice,
                         DueTime,
                         &FdoExtension->TimerDpc);
 
+    FdoExtension->TimerFlags |= USBPORT_TMFLAG_TIMER_STARTED;
+
     return Result;
 }
 
