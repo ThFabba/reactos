@@ -1412,7 +1412,7 @@ USBPORT_WorkerThread(IN PVOID StartContext)
 
         USBPORT_WorkerThreadHandler(FdoDevice);
     }
-    while (!(FdoExtension->Flags & USBPORT_FLAG_WORKER_THREAD_ON));
+    while (!(FdoExtension->Flags & USBPORT_FLAG_TERMINATE_WORKER));
 
     PsTerminateSystemThread(0);
 }
@@ -1428,7 +1428,7 @@ USBPORT_CreateWorkerThread(IN PDEVICE_OBJECT FdoDevice)
 
     FdoExtension = FdoDevice->DeviceExtension;
 
-    FdoExtension->Flags &= ~USBPORT_FLAG_WORKER_THREAD_ON;
+    FdoExtension->Flags &= ~USBPORT_FLAG_TERMINATE_WORKER;
 
     KeInitializeEvent(&FdoExtension->WorkerThreadEvent,
                       NotificationEvent,
@@ -1440,9 +1440,48 @@ USBPORT_CreateWorkerThread(IN PDEVICE_OBJECT FdoDevice)
                                   NULL,
                                   NULL,
                                   USBPORT_WorkerThread,
-                                  (PVOID)FdoDevice);
+                                  FdoDevice);
+
+    if (NT_SUCCESS(Status))
+    {
+        FdoExtension->Flags |= USBPORT_FLAG_WORKER_CREATED;
+    }
 
     return Status;
+}
+
+VOID
+NTAPI
+USBPORT_TerminateWorkerThread(IN PDEVICE_OBJECT FdoDevice)
+{
+    PUSBPORT_DEVICE_EXTENSION FdoExtension;
+    NTSTATUS Status;
+    PVOID Thread;
+
+    DPRINT("USBPORT_TerminateWorkerThread: FdoDevice - %p\n", FdoDevice);
+
+    FdoExtension = FdoDevice->DeviceExtension;
+
+    if (!(FdoExtension->Flags & USBPORT_FLAG_WORKER_CREATED))
+    {
+        return;
+    }
+
+    FdoExtension->Flags |= USBPORT_FLAG_TERMINATE_WORKER;
+    Status = ObReferenceObjectByHandle(FdoExtension->WorkerThreadHandle,
+                                       SYNCHRONIZE,
+                                       *PsThreadType,
+                                       KernelMode,
+                                       &Thread,
+                                       NULL);
+    NT_ASSERT(NT_SUCCESS(Status));
+    USBPORT_SignalWorkerThread(FdoDevice);
+
+    KeWaitForSingleObject(Thread, Executive, KernelMode, FALSE, NULL);
+    ObDereferenceObject(Thread);
+    ZwClose(FdoExtension->WorkerThreadHandle);
+
+    FdoExtension->Flags &= ~USBPORT_FLAG_WORKER_CREATED;
 }
 
 VOID

@@ -489,8 +489,29 @@ NTSTATUS
 NTAPI
 USBPORT_StopDevice(IN PDEVICE_OBJECT FdoDevice)
 {
-    DPRINT1("USBPORT_StopDevice: UNIMPLEMENTED. FIXME\n");
-    DbgBreakPoint();
+    PUSBPORT_DEVICE_EXTENSION FdoExtension;
+
+    DPRINT("USBPORT_StopDevice: FdoDevice - %p\n", FdoDevice);
+
+    FdoExtension = FdoDevice->DeviceExtension;
+
+    // flush cached registry keys
+    // delete zombie devices
+    // wait until endpoints closed
+    // assert lists empty: EpClosedList, MapTransferList, DoneTransferList, EpStateChangeList, EpClosedList
+
+    USBPORT_TerminateWorkerThread(FdoDevice);
+    // disable interrupts, call miniport StopController
+    // stop dm timer
+    // free irp tables
+    // free common buffers
+    // unknown callback
+    // disable device interface usb host controller
+    // delete symbolic link
+    // deregister fdo
+    // deref & zero interface
+    FdoExtension->CommonExtension.PnpStateFlags &= ~USBPORT_PNP_STATE_STARTED;
+
     return STATUS_SUCCESS;
 }
 
@@ -1223,7 +1244,7 @@ Exit:
             if (FdoCommonExtension->PnpStateFlags & USBPORT_PNP_STATE_STARTED &&
                !(FdoCommonExtension->PnpStateFlags & USBPORT_PNP_STATE_NOT_INIT))
             {
-                DPRINT1("USBPORT_FdoPnP: stop fdo FIXME\n");
+                USBPORT_StopDevice(FdoDevice);
                 FdoCommonExtension->PnpStateFlags |= USBPORT_PNP_STATE_NOT_INIT;
             }
 
@@ -1253,7 +1274,7 @@ Exit:
             DPRINT("IRP_MN_STOP_DEVICE\n");
             if (FdoCommonExtension->PnpStateFlags & USBPORT_PNP_STATE_STARTED)
             {
-                DPRINT1("USBPORT_FdoPnP: stop fdo FIXME\n");
+                Status = USBPORT_StopDevice(FdoDevice);
 
                 FdoCommonExtension->PnpStateFlags &= ~USBPORT_PNP_STATE_STARTED;
                 FdoCommonExtension->PnpStateFlags |= USBPORT_PNP_STATE_NOT_INIT;
