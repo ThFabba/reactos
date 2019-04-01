@@ -502,7 +502,7 @@ USBPORT_StopDevice(IN PDEVICE_OBJECT FdoDevice)
 
     USBPORT_TerminateWorkerThread(FdoDevice);
     // disable interrupts, call miniport StopController
-    // stop dm timer
+    USBPORT_StopTimer(FdoDevice);
     // free irp tables
     // free common buffers
     // unknown callback

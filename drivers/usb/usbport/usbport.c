@@ -1720,6 +1720,35 @@ USBPORT_StartTimer(IN PDEVICE_OBJECT FdoDevice,
     return Result;
 }
 
+VOID
+NTAPI
+USBPORT_StopTimer(IN PDEVICE_OBJECT FdoDevice)
+{
+    PUSBPORT_DEVICE_EXTENSION FdoExtension;
+    KIRQL OldIrql;
+
+    DPRINT_TIMER("USBPORT_StopTimer: FdoDevice - %p\n", FdoDevice);
+
+    FdoExtension = FdoDevice->DeviceExtension;
+
+    if (!(FdoExtension->TimerFlags & USBPORT_TMFLAG_TIMER_STARTED))
+    {
+        return;
+    }
+
+    KeAcquireSpinLock(&FdoExtension->TimerFlagsSpinLock, &OldIrql);
+    NT_ASSERT(FdoExtension->TimerFlags & USBPORT_TMFLAG_TIMER_QUEUED);
+    FdoExtension->TimerFlags &= ~USBPORT_TMFLAG_TIMER_QUEUED;
+    KeReleaseSpinLock(&FdoExtension->TimerFlagsSpinLock, OldIrql);
+
+    if (KeCancelTimer(&FdoExtension->TimerObject))
+    {
+        //(un)track pending request
+    }
+
+    FdoExtension->TimerFlags &= ~USBPORT_TMFLAG_TIMER_STARTED;
+}
+
 PUSBPORT_COMMON_BUFFER_HEADER
 NTAPI
 USBPORT_AllocateCommonBuffer(IN PDEVICE_OBJECT FdoDevice,
