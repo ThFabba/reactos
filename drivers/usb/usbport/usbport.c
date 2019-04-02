@@ -1712,6 +1712,10 @@ Exit:
                    DueTime,
                    &FdoExtension->TimerDpc);
     }
+    else
+    {
+        USBPORT_TrackPendingRequest(FdoDevice, FALSE);
+    }
 
     DPRINT_TIMER("USBPORT_TimerDpc: exit\n");
 }
@@ -1736,6 +1740,8 @@ USBPORT_StartTimer(IN PDEVICE_OBJECT FdoDevice,
 
     FdoExtension->TimerFlags |= USBPORT_TMFLAG_TIMER_QUEUED;
     FdoExtension->TimerValue = Time;
+
+    USBPORT_TrackPendingRequest(FdoDevice, TRUE);
 
     KeInitializeTimer(&FdoExtension->TimerObject);
     KeInitializeDpc(&FdoExtension->TimerDpc, USBPORT_TimerDpc, FdoDevice);
@@ -1774,7 +1780,7 @@ USBPORT_StopTimer(IN PDEVICE_OBJECT FdoDevice)
 
     if (KeCancelTimer(&FdoExtension->TimerObject))
     {
-        //(un)track pending request
+        USBPORT_TrackPendingRequest(FdoDevice, FALSE);
     }
 
     FdoExtension->TimerFlags &= ~USBPORT_TMFLAG_TIMER_STARTED;
