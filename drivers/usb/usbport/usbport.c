@@ -552,6 +552,35 @@ USBPORT_Wait(IN PVOID MiniPortExtension,
 
 VOID
 NTAPI
+USBPORT_TrackPendingRequest(IN PDEVICE_OBJECT FdoDevice,
+                            IN BOOLEAN Acquire)
+{
+    PUSBPORT_DEVICE_EXTENSION FdoExtension;
+    KIRQL OldIrql;
+
+    DPRINT("USBPORT_TrackPendingRequest: FdoDevice - %p, Acquire - %u\n", FdoDevice, Acquire);
+
+    FdoExtension = FdoDevice->DeviceExtension;
+
+    KeAcquireSpinLock(&FdoExtension->PendingRequestsLock, &OldIrql);
+    if (Acquire)
+    {
+        ASSERT(FdoExtension->PendingRequests >= 0);
+        FdoExtension->PendingRequests++;
+    }
+    else
+    {
+        FdoExtension->PendingRequests--;
+        if (FdoExtension->PendingRequests == -1)
+        {
+            KeSetEvent(&FdoExtension->NoPendingRequestsEvent, EVENT_INCREMENT, FALSE);
+        }
+    }
+    KeReleaseSpinLock(&FdoExtension->PendingRequestsLock, OldIrql);
+}
+
+VOID
+NTAPI
 USBPORT_MiniportInterrupts(IN PDEVICE_OBJECT FdoDevice,
                            IN BOOLEAN IsEnable)
 {
@@ -1994,6 +2023,10 @@ USBPORT_AddDevice(IN PDRIVER_OBJECT DriverObject,
 
     FdoExtension->MiniPortInterface = MiniPortInterface;
     FdoExtension->FdoNameNumber = DeviceNumber;
+
+    KeInitializeSpinLock(&FdoExtension->PendingRequestsLock);
+    FdoExtension->PendingRequests = 0;
+    KeInitializeEvent(&FdoExtension->NoPendingRequestsEvent, NotificationEvent, FALSE);
 
     KeInitializeSemaphore(&FdoExtension->DeviceSemaphore, 1, 1);
     KeInitializeSemaphore(&FdoExtension->ControllerSemaphore, 1, 1);

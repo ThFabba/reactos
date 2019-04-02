@@ -327,6 +327,10 @@ typedef struct _USBPORT_DEVICE_EXTENSION {
   KSPIN_LOCK MiniportInterruptsSpinLock;
   KTIMER TimerSoftInterrupt;
   KDPC SoftInterruptDpc;
+  /* Pending Requests */
+  KSPIN_LOCK PendingRequestsLock;
+  KEVENT NoPendingRequestsEvent;
+  LONG PendingRequests;
   /* Endpoints */
   ULONG PeriodicEndpoints;
   LIST_ENTRY EndpointList;
@@ -393,9 +397,9 @@ typedef struct _USBPORT_DEVICE_EXTENSION {
 
   /* Miniport extension should be aligned on 0x100 */
 #if !defined(_M_X64)
-  ULONG Padded[64];
+  ULONG Padded[58];
 #else
-  ULONG Padded[30];
+  ULONG Padded[21];
 #endif
 
 } USBPORT_DEVICE_EXTENSION, *PUSBPORT_DEVICE_EXTENSION;
@@ -582,6 +586,12 @@ NTAPI
 USBPORT_Wait(
   IN PVOID MiniPortExtension,
   IN ULONG Milliseconds);
+
+VOID
+NTAPI
+USBPORT_TrackPendingRequest(
+  IN PDEVICE_OBJECT DeviceObject,
+  IN BOOLEAN Acquire);
 
 VOID
 NTAPI
