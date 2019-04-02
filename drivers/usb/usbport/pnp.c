@@ -1252,6 +1252,9 @@ Exit:
             IoSkipCurrentIrpStackLocation(Irp);
             Status = IoCallDriver(FdoCommonExtension->LowerDevice, Irp);
 
+            USBPORT_TrackPendingRequest(FdoDevice, FALSE);
+            KeWaitForSingleObject(&FdoExtension->NoPendingRequestsEvent, Executive, KernelMode, FALSE, NULL);
+
             IoDetachDevice(FdoCommonExtension->LowerDevice);
 
             RootHubPdo = FdoExtension->RootHubPdo;
