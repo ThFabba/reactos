@@ -604,6 +604,7 @@ USBPORT_DoIdleNotificationCallback(IN PVOID Context)
     FdoExtension->TimerFlags &= ~USBPORT_TMFLAG_IDLE_QUEUEITEM_ON;
     KeReleaseSpinLock(&FdoExtension->TimerFlagsSpinLock, OldIrql);
 
+    USBPORT_TrackPendingRequest(FdoDevice, FALSE);
     ExFreePoolWithTag(IdleQueueItem, USB_PORT_TAG);
 }
 

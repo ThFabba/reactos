@@ -1695,6 +1695,7 @@ USBPORT_TimerDpc(IN PRKDPC Dpc,
 
             FdoExtension->TimerFlags |= USBPORT_TMFLAG_IDLE_QUEUEITEM_ON;
 
+            USBPORT_TrackPendingRequest(FdoDevice, TRUE);
             ExQueueWorkItem(&IdleQueueItem->WqItem, CriticalWorkQueue);
         }
     }
