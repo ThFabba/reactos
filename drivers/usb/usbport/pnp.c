@@ -490,10 +490,12 @@ NTAPI
 USBPORT_StopDevice(IN PDEVICE_OBJECT FdoDevice)
 {
     PUSBPORT_DEVICE_EXTENSION FdoExtension;
+    PUSBPORT_REGISTRATION_PACKET Packet;
 
     DPRINT("USBPORT_StopDevice: FdoDevice - %p\n", FdoDevice);
 
     FdoExtension = FdoDevice->DeviceExtension;
+    Packet = &FdoExtension->MiniPortInterface->Packet;
 
     // flush cached registry keys
     // delete zombie devices
@@ -501,8 +503,20 @@ USBPORT_StopDevice(IN PDEVICE_OBJECT FdoDevice)
     // assert lists empty: EpClosedList, MapTransferList, DoneTransferList, EpStateChangeList, EpClosedList
 
     USBPORT_TerminateWorkerThread(FdoDevice);
-    // disable interrupts, call miniport StopController
+    if (FdoExtension->MiniPortFlags & USBPORT_MPFLAG_INTERRUPTS_ENABLED)
+    {
+        USBPORT_MiniportInterrupts(FdoDevice, FALSE);
+
+        Packet->StopController(FdoExtension->MiniPortExt, TRUE);
+    }
+
     USBPORT_StopTimer(FdoDevice);
+
+    if (FdoExtension->Flags & USBPORT_FLAG_INT_CONNECTED)
+    {
+        IoDisconnectInterrupt(FdoExtension->InterruptObject);
+        FdoExtension->Flags &= ~USBPORT_FLAG_INT_CONNECTED;
+    }
     // free irp tables
     // free common buffers
     // unknown callback
