@@ -191,7 +191,7 @@ USBPORT_ResumeController(IN PDEVICE_OBJECT FdoDevice)
 
     USBPORT_MiniportInterrupts(FdoDevice, FALSE);
 
-    Packet->StopController(FdoExtension->MiniPortExt, 1);
+    Packet->StopController(FdoExtension->MiniPortExt, TRUE);
 
     USBPORT_NukeAllEndpoints(FdoDevice);
 
