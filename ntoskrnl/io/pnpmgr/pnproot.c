@@ -471,7 +471,7 @@ EnumerateDevices(
     DeviceExtension = (PPNPROOT_FDO_DEVICE_EXTENSION)DeviceObject->DeviceExtension;
     KeAcquireGuardedMutex(&DeviceExtension->DeviceListLock);
 
-    BufferSize = sizeof(KEY_BASIC_INFORMATION) + (MAX_PATH + 1) * sizeof(WCHAR);
+    BufferSize = FIELD_OFFSET(KEY_BASIC_INFORMATION, Name) + 64 * sizeof(WCHAR);
     KeyInfo = ExAllocatePoolWithTag(PagedPool, BufferSize, TAG_PNP_ROOT);
     if (!KeyInfo)
     {
