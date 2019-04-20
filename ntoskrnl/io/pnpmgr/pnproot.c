@@ -513,6 +513,22 @@ EnumerateDevices(
             Status = STATUS_SUCCESS;
             break;
         }
+        else if (Status == STATUS_BUFFER_OVERFLOW ||
+                 Status == STATUS_BUFFER_TOO_SMALL)
+        {
+            ASSERT(BufferSize < ResultSize);
+            BufferSize = ResultSize;
+            ExFreePoolWithTag(KeyInfo, TAG_PNP_ROOT);
+            KeyInfo = ExAllocatePoolWithTag(PagedPool,
+                                            BufferSize,
+                                            TAG_PNP_ROOT);
+            if (!KeyInfo)
+            {
+                Status = STATUS_NO_MEMORY;
+                goto cleanup;
+            }
+            continue;
+        }
         else if (!NT_SUCCESS(Status))
         {
             DPRINT("ZwEnumerateKey() failed with status 0x%08lx\n", Status);
@@ -552,7 +568,26 @@ EnumerateDevices(
                 BufferSize,
                 &ResultSize);
             if (Status == STATUS_NO_MORE_ENTRIES)
+            {
                 break;
+            }
+            else if (Status == STATUS_BUFFER_OVERFLOW ||
+                     Status == STATUS_BUFFER_TOO_SMALL)
+            {
+                ASSERT(BufferSize < ResultSize);
+                BufferSize = ResultSize;
+                ExFreePoolWithTag(SubKeyInfo, TAG_PNP_ROOT);
+                SubKeyInfo = ExAllocatePoolWithTag(PagedPool,
+                                                   BufferSize,
+                                                   TAG_PNP_ROOT);
+                if (!SubKeyInfo)
+                {
+                    DPRINT("ExAllocatePoolWithTag() failed\n");
+                    Status = STATUS_NO_MEMORY;
+                    goto cleanup;
+                }
+                continue;
+            }
             else if (!NT_SUCCESS(Status))
             {
                 DPRINT("ZwEnumerateKey() failed with status 0x%08lx\n", Status);
