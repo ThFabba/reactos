@@ -444,7 +444,7 @@ EnumerateDevices(
     UNICODE_STRING LegacyU = RTL_CONSTANT_STRING(L"LEGACY_");
     UNICODE_STRING KeyName = RTL_CONSTANT_STRING(L"\\Registry\\Machine\\" REGSTR_PATH_SYSTEMENUM L"\\" REGSTR_KEY_ROOTENUM);
     UNICODE_STRING SubKeyName;
-    WCHAR DevicePath[MAX_PATH + 1];
+    UNICODE_STRING DevicePath;
     RTL_QUERY_REGISTRY_TABLE QueryTable[4];
     PPNPROOT_DEVICE Device = NULL;
     HANDLE KeyHandle = NULL;
@@ -552,10 +552,24 @@ EnumerateDevices(
             /* Terminate the string */
             SubKeyInfo->Name[SubKeyInfo->NameLength / sizeof(WCHAR)] = 0;
 
-            _snwprintf(DevicePath, sizeof(DevicePath) / sizeof(WCHAR),
-                       L"%s\\%s", REGSTR_KEY_ROOTENUM, KeyInfo->Name);
-            DPRINT("Found device %S\\%s!\n", DevicePath, SubKeyInfo->Name);
-            if (LocateChildDevice(DeviceExtension, DevicePath, SubKeyInfo->Name, &Device) == STATUS_NO_SUCH_DEVICE)
+            /* Compute device ID */
+            DevicePath.Length = 0;
+            DevicePath.MaximumLength = sizeof(REGSTR_KEY_ROOTENUM) + sizeof(WCHAR) + SubKeyName.Length;
+            DevicePath.Buffer = ExAllocatePoolWithTag(PagedPool,
+                                                      DevicePath.MaximumLength,
+                                                      TAG_PNP_ROOT);
+            if (DevicePath.Buffer == NULL)
+            {
+                DPRINT1("ExAllocatePoolWithTag() failed\n");
+                Status = STATUS_NO_MEMORY;
+                goto cleanup;
+            }
+
+            RtlAppendUnicodeToString(&DevicePath, REGSTR_KEY_ROOTENUM);
+            RtlAppendUnicodeToString(&DevicePath, L"\\");
+            RtlAppendUnicodeStringToString(&DevicePath, &SubKeyName);
+            DPRINT("Found device %wZ\\%s!\n", &DevicePath, SubKeyInfo->Name);
+            if (LocateChildDevice(DeviceExtension, DevicePath.Buffer, SubKeyInfo->Name, &Device) == STATUS_NO_SUCH_DEVICE)
             {
                 /* Create a PPNPROOT_DEVICE object, and add if in the list of known devices */
                 Device = (PPNPROOT_DEVICE)ExAllocatePoolWithTag(PagedPool, sizeof(PNPROOT_DEVICE), TAG_PNP_ROOT);
@@ -568,13 +582,7 @@ EnumerateDevices(
                 RtlZeroMemory(Device, sizeof(PNPROOT_DEVICE));
 
                 /* Fill device ID and instance ID */
-                if (!RtlCreateUnicodeString(&Device->DeviceID, DevicePath))
-                {
-                    DPRINT1("RtlCreateUnicodeString() failed\n");
-                    Status = STATUS_NO_MEMORY;
-                    goto cleanup;
-                }
-
+                Device->DeviceID = DevicePath;
                 if (!RtlCreateUnicodeString(&Device->InstanceID, SubKeyInfo->Name))
                 {
                     DPRINT1("RtlCreateUnicodeString() failed\n");
