@@ -92,16 +92,15 @@ static PDEVICE_OBJECT PnpRootDeviceObject = NULL;
 static NTSTATUS
 LocateChildDevice(
     IN PPNPROOT_FDO_DEVICE_EXTENSION DeviceExtension,
-    IN PCWSTR DeviceId,
+    IN PCUNICODE_STRING DeviceId,
     IN PCWSTR InstanceId,
     OUT PPNPROOT_DEVICE* ChildDevice)
 {
     PPNPROOT_DEVICE Device;
-    UNICODE_STRING DeviceIdU, InstanceIdU;
+    UNICODE_STRING InstanceIdU;
     PLIST_ENTRY NextEntry;
 
-    /* Initialize the strings to compare  */
-    RtlInitUnicodeString(&DeviceIdU, DeviceId);
+    /* Initialize the string to compare  */
     RtlInitUnicodeString(&InstanceIdU, InstanceId);
 
     /* Start looping */
@@ -113,7 +112,7 @@ LocateChildDevice(
         Device = CONTAINING_RECORD(NextEntry, PNPROOT_DEVICE, ListEntry);
 
         /* See if the strings match */
-        if (RtlEqualUnicodeString(&DeviceIdU, &Device->DeviceID, TRUE) &&
+        if (RtlEqualUnicodeString(DeviceId, &Device->DeviceID, TRUE) &&
             RtlEqualUnicodeString(&InstanceIdU, &Device->InstanceID, TRUE))
         {
             /* They do, so set the pointer and return success */
@@ -268,7 +267,7 @@ tryagain:
         for (NextInstance = 0; NextInstance <= 9999; NextInstance++)
         {
              _snwprintf(InstancePath, sizeof(InstancePath) / sizeof(WCHAR), L"%04lu", NextInstance);
-             Status = LocateChildDevice(DeviceExtension, Device->DeviceID.Buffer, InstancePath, &Device);
+             Status = LocateChildDevice(DeviceExtension, &Device->DeviceID, InstancePath, &Device);
              if (Status == STATUS_NO_SUCH_DEVICE)
                  break;
         }
@@ -282,7 +281,7 @@ tryagain:
     }
 
     _snwprintf(InstancePath, sizeof(InstancePath) / sizeof(WCHAR), L"%04lu", NextInstance);
-    Status = LocateChildDevice(DeviceExtension, Device->DeviceID.Buffer, InstancePath, &Device);
+    Status = LocateChildDevice(DeviceExtension, &Device->DeviceID, InstancePath, &Device);
     if (Status != STATUS_NO_SUCH_DEVICE || NextInstance > 9999)
     {
         DPRINT1("NextInstance value is corrupt! (%lu)\n", NextInstance);
@@ -579,14 +578,15 @@ EnumerateDevices(
             RtlAppendUnicodeToString(&DevicePath, REGSTR_KEY_ROOTENUM);
             RtlAppendUnicodeToString(&DevicePath, L"\\");
             RtlAppendUnicodeStringToString(&DevicePath, &SubKeyName);
-            DPRINT("Found device %wZ\\%s!\n", &DevicePath, SubKeyInfo->Name);
-            if (LocateChildDevice(DeviceExtension, DevicePath.Buffer, SubKeyInfo->Name, &Device) == STATUS_NO_SUCH_DEVICE)
+            DPRINT1("Found device %wZ\\%S!\n", &DevicePath, SubKeyInfo->Name);
+            if (LocateChildDevice(DeviceExtension, &DevicePath, SubKeyInfo->Name, &Device) == STATUS_NO_SUCH_DEVICE)
             {
                 /* Create a PPNPROOT_DEVICE object, and add if in the list of known devices */
                 Device = (PPNPROOT_DEVICE)ExAllocatePoolWithTag(PagedPool, sizeof(PNPROOT_DEVICE), TAG_PNP_ROOT);
                 if (!Device)
                 {
                     DPRINT("ExAllocatePoolWithTag() failed\n");
+                    RtlFreeUnicodeString(&DevicePath);
                     Status = STATUS_NO_MEMORY;
                     goto cleanup;
                 }
@@ -594,6 +594,7 @@ EnumerateDevices(
 
                 /* Fill device ID and instance ID */
                 Device->DeviceID = DevicePath;
+                RtlInitEmptyUnicodeString(&DevicePath, NULL, 0);
                 if (!RtlCreateUnicodeString(&Device->InstanceID, SubKeyInfo->Name))
                 {
                     DPRINT1("RtlCreateUnicodeString() failed\n");
@@ -644,7 +645,7 @@ EnumerateDevices(
                                                        NULL)))
                 {
                     /* Non-fatal error */
-                    DPRINT1("Failed to read the LogConf key for %S\\%S\n", DevicePath, SubKeyInfo->Name);
+                    DPRINT1("Failed to read the LogConf key for %wZ\\%S\n", &Device->DeviceID, SubKeyInfo->Name);
                 }
 
                 ZwClose(DeviceKeyHandle);
@@ -655,6 +656,10 @@ EnumerateDevices(
                     &DeviceExtension->DeviceListHead,
                     &Device->ListEntry);
                 DeviceExtension->DeviceListCount++;
+            }
+            else
+            {
+                RtlFreeUnicodeString(&DevicePath);
             }
             Device = NULL;
 
