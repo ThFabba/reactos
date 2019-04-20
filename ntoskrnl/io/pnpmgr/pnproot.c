@@ -191,7 +191,7 @@ PnpRootCreateDevice(
 {
     PPNPROOT_FDO_DEVICE_EXTENSION DeviceExtension;
     PPNPROOT_PDO_DEVICE_EXTENSION PdoDeviceExtension;
-    WCHAR DevicePath[MAX_PATH + 1];
+    UNICODE_STRING DevicePath;
     WCHAR InstancePath[5];
     PPNPROOT_DEVICE Device = NULL;
     NTSTATUS Status;
@@ -207,7 +207,20 @@ PnpRootCreateDevice(
 
     DPRINT("Creating a PnP root device for service '%wZ'\n", ServiceName);
 
-    _snwprintf(DevicePath, sizeof(DevicePath) / sizeof(WCHAR), L"%s\\%wZ", REGSTR_KEY_ROOTENUM, ServiceName);
+    DevicePath.Length = 0;
+    DevicePath.MaximumLength = sizeof(REGSTR_KEY_ROOTENUM) + sizeof(WCHAR) + ServiceName->Length;
+    DevicePath.Buffer = ExAllocatePoolWithTag(PagedPool,
+                                              DevicePath.MaximumLength,
+                                              TAG_PNP_ROOT);
+    if (DevicePath.Buffer == NULL)
+    {
+        DPRINT("ExAllocatePoolWithTag() failed\n");
+        Status = STATUS_NO_MEMORY;
+        goto cleanup;
+    }
+    RtlAppendUnicodeToString(&DevicePath, REGSTR_KEY_ROOTENUM);
+    RtlAppendUnicodeToString(&DevicePath, L"\\");
+    RtlAppendUnicodeStringToString(&DevicePath, ServiceName);
 
     /* Initialize a PNPROOT_DEVICE structure */
     Device = ExAllocatePoolWithTag(PagedPool, sizeof(PNPROOT_DEVICE), TAG_PNP_ROOT);
@@ -218,11 +231,8 @@ PnpRootCreateDevice(
         goto cleanup;
     }
     RtlZeroMemory(Device, sizeof(PNPROOT_DEVICE));
-    if (!RtlCreateUnicodeString(&Device->DeviceID, DevicePath))
-    {
-        Status = STATUS_NO_MEMORY;
-        goto cleanup;
-    }
+    Device->DeviceID = DevicePath;
+    DevicePath.Buffer = NULL;
 
     Status = IopOpenRegistryKeyEx(&EnumHandle, NULL, &EnumKeyName, KEY_READ);
     if (NT_SUCCESS(Status))
@@ -258,7 +268,7 @@ tryagain:
         for (NextInstance = 0; NextInstance <= 9999; NextInstance++)
         {
              _snwprintf(InstancePath, sizeof(InstancePath) / sizeof(WCHAR), L"%04lu", NextInstance);
-             Status = LocateChildDevice(DeviceExtension, DevicePath, InstancePath, &Device);
+             Status = LocateChildDevice(DeviceExtension, Device->DeviceID.Buffer, InstancePath, &Device);
              if (Status == STATUS_NO_SUCH_DEVICE)
                  break;
         }
@@ -272,7 +282,7 @@ tryagain:
     }
 
     _snwprintf(InstancePath, sizeof(InstancePath) / sizeof(WCHAR), L"%04lu", NextInstance);
-    Status = LocateChildDevice(DeviceExtension, DevicePath, InstancePath, &Device);
+    Status = LocateChildDevice(DeviceExtension, Device->DeviceID.Buffer, InstancePath, &Device);
     if (Status != STATUS_NO_SUCH_DEVICE || NextInstance > 9999)
     {
         DPRINT1("NextInstance value is corrupt! (%lu)\n", NextInstance);
@@ -377,6 +387,7 @@ cleanup:
         RtlFreeUnicodeString(&Device->InstanceID);
         ExFreePoolWithTag(Device, TAG_PNP_ROOT);
     }
+    RtlFreeUnicodeString(&DevicePath);
     if (DeviceKeyHandle != NULL)
         ObCloseHandle(DeviceKeyHandle, KernelMode);
     return Status;
