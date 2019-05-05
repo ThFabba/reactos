@@ -537,7 +537,7 @@ HDA_ResetController(
         if ((Control & GLOBAL_CONTROL_RESET) != 0)
             break;
     }
-    if ((Control & GLOBAL_CONTROL_RESET) == 0) {
+    if ((Control & GLOBAL_CONTROL_RESET) == 0 || 1) {
         DPRINT1("hda: unable to exit reset\n");
         return STATUS_UNSUCCESSFUL;
     }
