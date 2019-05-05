@@ -76,6 +76,7 @@ BOOLEAN
 NTAPI
 MmUseSpecialPool(SIZE_T NumberOfBytes, ULONG Tag)
 {
+    static ULONG NumAllocs;
     /* Special pool is not suitable for allocations bigger than 1 page */
     if (NumberOfBytes > (PAGE_SIZE - sizeof(POOL_HEADER)))
     {
@@ -85,6 +86,20 @@ MmUseSpecialPool(SIZE_T NumberOfBytes, ULONG Tag)
     if (MmSpecialPoolTag == '*')
     {
         return TRUE;
+    }
+
+    if ((Tag & 0xffff) == 'oI')
+    {
+        return TRUE;
+    }
+
+    if (NumAllocs > 100000)
+    {
+        return TRUE;
+    }
+    else
+    {
+        NumAllocs++;
     }
 
     return Tag == MmSpecialPoolTag;
