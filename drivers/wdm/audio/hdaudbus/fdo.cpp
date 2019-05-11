@@ -530,7 +530,7 @@ HDA_ResetController(
     Control = READ_REGISTER_ULONG((PULONG)(DeviceExtension->RegBase + HDAC_GLOBAL_CONTROL));
     WRITE_REGISTER_ULONG((PULONG)(DeviceExtension->RegBase + HDAC_GLOBAL_CONTROL), Control | GLOBAL_CONTROL_RESET);
 
-    for (int timeout = 0; timeout < 10; timeout++) {
+    for (int timeout = 0; timeout < 1000; timeout++) {
         KeStallExecutionProcessor(10);
 
         Control = READ_REGISTER_ULONG((PULONG)(DeviceExtension->RegBase + HDAC_GLOBAL_CONTROL));
