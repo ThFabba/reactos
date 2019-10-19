@@ -605,6 +605,300 @@ IopFreeReserveIrp(IN CCHAR PriorityBoost)
     KeSetEvent(&IopReserveIrpAllocator.WaitEvent, PriorityBoost, FALSE);
 }
 
+#if DBG
+#define ITEMS_PER_TABLE 100U
+
+typedef struct _IRP_TABLE
+{
+    struct _IRP_TABLE * volatile Next;
+    volatile LONG ItemsUsed;
+    struct
+    {
+        volatile PIRP Irp;
+        volatile LARGE_INTEGER InsertTime;
+        PVOID AllocatorBackTrace[8];
+        BOOLEAN Validated;
+    } Items[ITEMS_PER_TABLE];
+} IRP_TABLE, *PIRP_TABLE;
+
+static volatile LONG IovNumberOfOutstandingIrps;
+static volatile LONG IovNumberOfIrpTables = 1;
+static LONGLONG IovIrpWarningTimeout = 60 * 1000 * 1000 * 10LL;
+static BOOLEAN IovBreakOnIrpTimeout = FALSE;
+static IRP_TABLE IovIrpTable;
+
+static
+VOID
+IovValidateIrpTableEntry(
+    _In_ PIRP_TABLE Table,
+    _In_ ULONG i,
+    _In_ LONGLONG CurrentTime)
+{
+    PIRP ValidateIrp;
+    LONGLONG ValidateTime;
+
+    ValidateTime = Table->Items[i].InsertTime.QuadPart;
+    ValidateIrp = Table->Items[i].Irp;
+    if (ValidateTime &&
+        ValidateIrp &&
+        !Table->Items[i].Validated &&
+        CurrentTime >= ValidateTime + IovIrpWarningTimeout)
+    {
+        Table->Items[i].Validated = TRUE;
+        if (Table->Items[i].InsertTime.QuadPart != ValidateTime)
+        {
+            Table->Items[i].Validated = FALSE;
+        }
+        DPRINT1("[IRPTRACK] IRP %p is %I64d seconds old\n", ValidateIrp, (CurrentTime - ValidateTime) / (1000 * 1000 * 10LL));
+        if (IovBreakOnIrpTimeout)
+        {
+            __debugbreak();
+        }
+    }
+}
+
+static
+VOID
+IovAddIrpToTable(
+    _In_ PIRP Irp)
+{
+    LARGE_INTEGER CurrentTime;
+    PIRP_TABLE Table;
+    PIRP_TABLE Next;
+    ULONG i;
+    BOOLEAN Inserted = FALSE;
+
+    InterlockedIncrement(&IovNumberOfOutstandingIrps);
+    KeQuerySystemTime(&CurrentTime);
+    Table = &IovIrpTable;
+    for (;;)
+    {
+        if (Inserted || InterlockedIncrement(&Table->ItemsUsed) > ITEMS_PER_TABLE)
+        {
+NextTable:
+            if (!Inserted)
+            {
+                InterlockedDecrement(&Table->ItemsUsed);
+            }
+            if (!Table->Next)
+            {
+                if (Inserted)
+                {
+                    break;
+                }
+                Next = ExAllocatePoolWithTag(NonPagedPool, sizeof(*Next), 'tToI');
+                InterlockedIncrement(&IovNumberOfIrpTables);
+                if (InterlockedCompareExchangePointer((PVOID *)&Table->Next,
+                                                      Next,
+                                                      NULL))
+                {
+                    ExFreePoolWithTag(Next, 'tToI');
+                    InterlockedDecrement(&IovNumberOfIrpTables);
+                }
+            }
+            Table = Table->Next;
+            continue;
+        }
+
+        for (i = 0; i < ITEMS_PER_TABLE; i++)
+        {
+            if (!Inserted &&
+                !Table->Items[i].Irp &&
+                !InterlockedCompareExchangePointer((PVOID *)&Table->Items[i].Irp,
+                                                   Irp,
+                                                   NULL))
+            {
+                ASSERT(Table->Items[i].InsertTime.QuadPart == 0);
+                Table->Items[i].Validated = FALSE;
+                Table->Items[i].InsertTime = CurrentTime;
+                RtlCaptureStackBackTrace(1, 8, Table->Items[i].AllocatorBackTrace, NULL);
+                Inserted = TRUE;
+            }
+            else
+            {
+                IovValidateIrpTableEntry(Table, i, CurrentTime.QuadPart);
+            }
+        }
+        goto NextTable;
+    }
+    ASSERT(Inserted == TRUE);
+}
+
+static
+VOID
+IovRemoveIrpFromTable(
+    _In_ PIRP Irp)
+{
+    LARGE_INTEGER CurrentTime;
+    PIRP_TABLE Table;
+    ULONG i;
+    LONGLONG ValidateTime;
+    BOOLEAN Removed = FALSE;
+
+    KeQuerySystemTime(&CurrentTime);
+    Table = &IovIrpTable;
+    do
+    {
+        for (i = 0; i < ITEMS_PER_TABLE; i++)
+        {
+            if (Table->Items[i].Irp == Irp)
+            {
+                ASSERT(Removed == FALSE);
+                ValidateTime = Table->Items[i].InsertTime.QuadPart;
+                Table->Items[i].Validated = FALSE;
+                Table->Items[i].InsertTime.QuadPart = 0;
+                RtlZeroMemory(Table->Items[i].AllocatorBackTrace,
+                              sizeof(Table->Items[i].AllocatorBackTrace));
+                NT_VERIFY(InterlockedExchangePointer((PVOID *)&Table->Items[i].Irp, NULL) == Irp);;
+                NT_VERIFY(InterlockedDecrement(&Table->ItemsUsed) >= 0);
+                if (CurrentTime.QuadPart - ValidateTime > IovIrpWarningTimeout)
+                {
+                    DPRINT1("[IRPTRACK] Removing IRP %p after %I64d seconds\n",
+                            Irp, (CurrentTime.QuadPart - ValidateTime) / (1000 * 1000 * 10LL));
+                }
+                Removed = TRUE;
+            }
+            else
+            {
+                IovValidateIrpTableEntry(Table, i, CurrentTime.QuadPart);
+            }
+        }
+        Table = Table->Next;
+    } while (Table);
+
+    ASSERT(Removed == TRUE);
+    NT_VERIFY(InterlockedDecrement(&IovNumberOfOutstandingIrps) >= 0);
+}
+
+static
+VOID
+IovUpdateIrpInTable(
+    _In_ PIRP Irp)
+{
+    LARGE_INTEGER CurrentTime;
+    PIRP_TABLE Table;
+    ULONG i;
+    LONGLONG ValidateTime;
+    BOOLEAN Updated = FALSE;
+
+    KeQuerySystemTime(&CurrentTime);
+    Table = &IovIrpTable;
+    do
+    {
+        for (i = 0; i < ITEMS_PER_TABLE; i++)
+        {
+            if (Table->Items[i].Irp == Irp)
+            {
+                ASSERT(Updated == FALSE);
+                ValidateTime = Table->Items[i].InsertTime.QuadPart;
+                Table->Items[i].InsertTime.QuadPart = CurrentTime.QuadPart;
+                Table->Items[i].Validated = FALSE;
+                RtlCaptureStackBackTrace(1, 8, Table->Items[i].AllocatorBackTrace, NULL);
+                if (CurrentTime.QuadPart - ValidateTime > IovIrpWarningTimeout)
+                {
+                    DPRINT1("[IRPTRACK] Updating IRP %p after %I64d seconds\n",
+                            Irp, (CurrentTime.QuadPart - ValidateTime) / (1000 * 1000 * 10LL));
+                }
+                Updated = TRUE;
+            }
+            else
+            {
+                IovValidateIrpTableEntry(Table, i, CurrentTime.QuadPart);
+            }
+        }
+        Table = Table->Next;
+    } while (Table);
+
+    ASSERT(Updated == TRUE);
+}
+
+VOID
+IovDumpOutstandingIrps(VOID)
+{
+    LARGE_INTEGER CurrentTime;
+    PIRP_TABLE Table;
+    ULONG TableIndex = 0;
+    ULONG i;
+    PIRP ValidateIrp;
+    LONGLONG ValidateTime;
+    PIO_STACK_LOCATION IoStack;
+    PDRIVER_OBJECT DriverObject;
+    ULONG FrameIndex;
+
+    KeQuerySystemTime(&CurrentTime);
+    DPRINT1("[IRPTRACK] ========================================\n");
+    DPRINT1("[IRPTRACK] Current time is %I64d\n", CurrentTime.QuadPart);
+    DPRINT1("[IRPTRACK] There are %lu outstanding IRPs\n", IovNumberOfOutstandingIrps);
+    DPRINT1("[IRPTRACK] ----------------------------------------\n");
+    Table = &IovIrpTable;
+    do
+    {
+        DPRINT1("[IRPTRACK]\n");
+        DPRINT1("[IRPTRACK] IRP Table %lu of %lu\n", TableIndex + 1, IovNumberOfIrpTables);
+        DPRINT1("[IRPTRACK]\n");
+        for (i = 0; i < ITEMS_PER_TABLE; i++)
+        {
+            ValidateIrp = Table->Items[i].Irp;
+            ValidateTime = Table->Items[i].InsertTime.QuadPart;
+            if (!ValidateIrp || !ValidateTime)
+            {
+                if (ValidateIrp || ValidateTime)
+                {
+                    DPRINT1("[IRPTRACK] ENTRY BEING MODIFIED: Irp %p Time %I64d\n", ValidateIrp, ValidateTime);
+                    __debugbreak();
+                }
+                continue;
+            }
+            DPRINT1("[IRPTRACK] Outstanding IRP %p is %I64d seconds old\n", ValidateIrp, (CurrentTime.QuadPart - ValidateTime) / (1000 * 1000 * 10LL));
+            IoStack = ValidateIrp->Tail.Overlay.CurrentStackLocation;
+            if (IoStack && IoStack->DeviceObject && IoStack->DeviceObject->DriverObject)
+            {
+                NTSTATUS Status;
+                struct
+                {
+                    OBJECT_NAME_INFORMATION NameInfo;
+                    WCHAR Buffer[128];
+                } DriverName;
+                ULONG NameLength;
+
+                DriverObject = IoStack->DeviceObject->DriverObject;
+                Status = ObQueryNameString(DriverObject,
+                                           &DriverName.NameInfo,
+                                           sizeof(DriverName),
+                                           &NameLength);
+                if (NT_SUCCESS(Status))
+                {
+                    DPRINT1("[IRPTRACK] -- Owning driver: %wZ (%p), CompletionRoutine %p%s\n",
+                            &DriverName.NameInfo.Name, DriverObject, IoStack->CompletionRoutine,
+                            (IoStack->Control & SL_PENDING_RETURNED) ? ", PENDING" : "");
+                }
+                else
+                {
+                    DPRINT1("[IRPTRACK] -- Owning driver: <unknown> (%p), CompletionRoutine %p%s\n",
+                            DriverObject, IoStack->CompletionRoutine,
+                            (IoStack->Control & SL_PENDING_RETURNED) ? ", PENDING" : "");
+                }
+            }
+            DPRINT1("[IRPTRACK] -- Allocator backtrace:\n");
+            for (FrameIndex = 0; FrameIndex < 8; FrameIndex++)
+            {
+                DPRINT1("[IRPTRACK] ---- %p\n", Table->Items[i].AllocatorBackTrace[FrameIndex]);
+            }
+    }
+        Table = Table->Next;
+        TableIndex++;
+    } while (Table);
+
+    DPRINT1("[IRPTRACK] ========================================\n");
+
+    if (IovNumberOfOutstandingIrps != 0)
+    {
+        __debugbreak();
+    }
+}
+
+#endif
+
 /* FUNCTIONS *****************************************************************/
 
 /*
@@ -705,6 +999,7 @@ IoAllocateIrp(IN CCHAR StackSize,
             __FUNCTION__,
             Irp,
             Flags);
+    IovAddIrpToTable(Irp);
     return Irp;
 }
 
@@ -1075,15 +1370,112 @@ IoBuildSynchronousFsdRequest(IN ULONG MajorFunction,
                              IN PIO_STATUS_BLOCK IoStatusBlock)
 {
     PIRP Irp;
+    PIO_STACK_LOCATION StackPtr;
 
-    /* Do the big work to set up the IRP */
-    Irp = IoBuildAsynchronousFsdRequest(MajorFunction,
-                                        DeviceObject,
-                                        Buffer,
-                                        Length,
-                                        StartingOffset,
-                                        IoStatusBlock );
+    /* Allocate IRP */
+    Irp = IoAllocateIrp(DeviceObject->StackSize, FALSE);
     if (!Irp) return NULL;
+
+    /* Get the Stack */
+    StackPtr = IoGetNextIrpStackLocation(Irp);
+
+    /* Write the Major function and then deal with it */
+    StackPtr->MajorFunction = (UCHAR)MajorFunction;
+
+    /* Do not handle the following here */
+    if ((MajorFunction != IRP_MJ_FLUSH_BUFFERS) &&
+        (MajorFunction != IRP_MJ_SHUTDOWN) &&
+        (MajorFunction != IRP_MJ_PNP) &&
+        (MajorFunction != IRP_MJ_POWER))
+    {
+        /* Check if this is Buffered IO */
+        if (DeviceObject->Flags & DO_BUFFERED_IO)
+        {
+            /* Allocate the System Buffer */
+            Irp->AssociatedIrp.SystemBuffer =
+                ExAllocatePoolWithTag(NonPagedPool, Length, TAG_SYS_BUF);
+            if (!Irp->AssociatedIrp.SystemBuffer)
+            {
+                /* Free the IRP and fail */
+                IoFreeIrp(Irp);
+                return NULL;
+            }
+
+            /* Set flags */
+            Irp->Flags = IRP_BUFFERED_IO | IRP_DEALLOCATE_BUFFER;
+
+            /* Handle special IRP_MJ_WRITE Case */
+            if (MajorFunction == IRP_MJ_WRITE)
+            {
+                /* Copy the buffer data */
+                RtlCopyMemory(Irp->AssociatedIrp.SystemBuffer, Buffer, Length);
+            }
+            else
+            {
+                /* Set the Input Operation flag and set this as a User Buffer */
+                Irp->Flags |= IRP_INPUT_OPERATION;
+                Irp->UserBuffer = Buffer;
+            }
+        }
+        else if (DeviceObject->Flags & DO_DIRECT_IO)
+        {
+            /* Use an MDL for Direct I/O */
+            Irp->MdlAddress = IoAllocateMdl(Buffer,
+                                            Length,
+                                            FALSE,
+                                            FALSE,
+                                            NULL);
+            if (!Irp->MdlAddress)
+            {
+                /* Free the IRP and fail */
+                IoFreeIrp(Irp);
+                return NULL;
+            }
+
+            /* Probe and Lock */
+            _SEH2_TRY
+            {
+                /* Do the probe */
+                MmProbeAndLockPages(Irp->MdlAddress,
+                                    KernelMode,
+                                    MajorFunction == IRP_MJ_READ ?
+                                    IoWriteAccess : IoReadAccess);
+            }
+            _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+            {
+                /* Free the IRP and its MDL */
+                IoFreeMdl(Irp->MdlAddress);
+                IoFreeIrp(Irp);
+
+                /* Fail */
+                _SEH2_YIELD(return NULL);
+            }
+            _SEH2_END;
+        }
+        else
+        {
+            /* Neither, use the buffer */
+            Irp->UserBuffer = Buffer;
+        }
+
+        /* Check if this is a read */
+        if (MajorFunction == IRP_MJ_READ)
+        {
+            /* Set the parameters for a read */
+            StackPtr->Parameters.Read.Length = Length;
+            StackPtr->Parameters.Read.ByteOffset = *StartingOffset;
+        }
+        else if (MajorFunction == IRP_MJ_WRITE)
+        {
+            /* Otherwise, set write parameters */
+            StackPtr->Parameters.Write.Length = Length;
+            StackPtr->Parameters.Write.ByteOffset = *StartingOffset;
+        }
+    }
+
+    /* Set the Current Thread and IOSB */
+    Irp->UserIosb = IoStatusBlock;
+    Irp->Tail.Overlay.Thread = PsGetCurrentThread();
 
     /* Set the Event which makes it Syncronous */
     Irp->UserEvent = Event;
@@ -1260,6 +1652,7 @@ IofCallDriver(IN PDEVICE_OBJECT DeviceObject,
 {
     PDRIVER_OBJECT DriverObject;
     PIO_STACK_LOCATION StackPtr;
+    NTSTATUS Status;
 
     /* Make sure this is a valid IRP */
     ASSERT(Irp->Type == IO_TYPE_IRP);
@@ -1283,8 +1676,23 @@ IofCallDriver(IN PDEVICE_OBJECT DeviceObject,
     StackPtr->DeviceObject = DeviceObject;
 
     /* Call it */
-    return DriverObject->MajorFunction[StackPtr->MajorFunction](DeviceObject,
-                                                                Irp);
+#if DBG
+    {
+    KIRQL OldIrql;
+    PKTHREAD Thread;
+    ULONG CombinedApcDisable;
+    Thread = KeGetCurrentThread();
+    OldIrql = KeGetCurrentIrql();
+    CombinedApcDisable = Thread->CombinedApcDisable;
+#endif
+    Status = DriverObject->MajorFunction[StackPtr->MajorFunction](DeviceObject,
+                                                                  Irp);
+#if DBG
+    NT_ASSERT(KeGetCurrentIrql() == OldIrql);
+    NT_ASSERT(Thread->CombinedApcDisable == CombinedApcDisable);
+    }
+#endif
+    return Status;
 }
 
 FORCEINLINE
@@ -1678,6 +2086,8 @@ IoFreeIrp(IN PIRP Irp)
     ASSERT(IsListEmpty(&Irp->ThreadListEntry));
     ASSERT(Irp->CurrentLocation >= Irp->StackCount);
 
+    IovRemoveIrpFromTable(Irp);
+
     /* Get the PRCB */
     Prcb = KeGetCurrentPrcb();
 
@@ -1990,6 +2400,7 @@ IoReuseIrp(IN OUT PIRP Irp,
     /* Duplicate the data */
     Irp->IoStatus.Status = Status;
     Irp->AllocationFlags = AllocationFlags;
+    IovUpdateIrpInTable(Irp);
 }
 
 /*

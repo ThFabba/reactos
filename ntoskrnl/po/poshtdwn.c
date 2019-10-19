@@ -184,6 +184,8 @@ PopShutdownHandler(VOID)
     for (;;) HalHaltSystem();
 }
 
+VOID IovDumpOutstandingIrps(VOID);
+
 VOID
 NTAPI
 PopShutdownSystem(IN POWER_ACTION SystemAction)
@@ -196,6 +198,10 @@ PopShutdownSystem(IN POWER_ACTION SystemAction)
 
     /* Run the thread on the boot processor */
     KeSetSystemAffinityThread(1);
+
+#if DBG
+    IovDumpOutstandingIrps();
+#endif
 
     /* Now check what the caller wants */
     switch (SystemAction)
