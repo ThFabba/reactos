@@ -53,19 +53,19 @@ MmZeroPageThread(VOID)
     if (StartAddress) MiFreeInitializationCode(StartAddress, EndAddress);
     DPRINT("Free non-cache pages: %lx\n", MmAvailablePages + MiMemoryConsumers[MC_CACHE].PagesUsed);
 
-    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+    OldIrql = MiAcquirePfnLock();
     ASSERT(MmSecondaryColors == MmSecondaryColorMask + 1);
     MaxPagesToZero = min(MmSecondaryColors, 32);
     if (MmResidentAvailablePages - MmSystemLockPagesCount > MaxPagesToZero)
     {
-        //InterlockedExchangeAddSizeT(&MmResidentAvailablePages, -OtherColorMask);
+        //InterlockedExchangeAddSizeT(&MmResidentAvailablePages, -MaxPagesToZero);
     }
     else
     {
         MaxPagesToZero = 1;
     }
     DPRINT1("Max pages to zero: %lu (resident available %lu, lock %lu)\n", MaxPagesToZero, MmResidentAvailablePages, MmSystemLockPagesCount);
-    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+    MiReleasePfnLock(OldIrql);
 
     /* Set our priority to 0 */
     Thread->BasePriority = 0;
