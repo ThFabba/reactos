@@ -150,7 +150,7 @@ MmZeroPageThread(VOID)
             ZeroAddress = MiMapPagesInZeroSpace(FirstPfn, PagesToZero);
             ASSERT(ZeroAddress);
             StartZero = KeQueryPerformanceCounter(NULL);
-            RtlFillMemoryUlong(ZeroAddress, PagesToZero << PAGE_SHIFT, 0);
+            KeZeroPages(ZeroAddress, PagesToZero << PAGE_SHIFT);
             EndZero = KeQueryPerformanceCounter(NULL);
             TotalZero.QuadPart += EndZero.QuadPart - StartZero.QuadPart;
             MiUnmapPagesInZeroSpace(ZeroAddress, PagesToZero);
