@@ -46,6 +46,7 @@ MmZeroPageThread(VOID)
     PMMPFN Pfn1;
     PMMPFN FirstPfn;
     LARGE_INTEGER StartCounter, EndCounter, Frequency;
+    LARGE_INTEGER StartZero, EndZero, TotalZero;
     ULONG PageCount;
 
     /* Get the discardable sections to free them */
@@ -90,6 +91,7 @@ MmZeroPageThread(VOID)
         OldIrql = MiAcquirePfnLock();
 
         PageCount = 0;
+        TotalZero.QuadPart = 0;
         StartCounter = KeQueryPerformanceCounter(NULL);
         while (TRUE)
         {
@@ -147,7 +149,10 @@ MmZeroPageThread(VOID)
 
             ZeroAddress = MiMapPagesInZeroSpace(FirstPfn, PagesToZero);
             ASSERT(ZeroAddress);
+            StartZero = KeQueryPerformanceCounter(NULL);
             RtlFillMemoryUlong(ZeroAddress, PagesToZero << PAGE_SHIFT, 0);
+            EndZero = KeQueryPerformanceCounter(NULL);
+            TotalZero.QuadPart += EndZero.QuadPart - StartZero.QuadPart;
             MiUnmapPagesInZeroSpace(ZeroAddress, PagesToZero);
             PageCount += PagesToZero;
 
@@ -166,7 +171,9 @@ MmZeroPageThread(VOID)
             EndCounter.QuadPart -= StartCounter.QuadPart;
             EndCounter.QuadPart *= 1000000000;
             EndCounter.QuadPart /= Frequency.QuadPart;
-            DPRINT1("Zeroed %lu pages (%lu MB) in %I64u ns @ %I64u ns/page (total)\n", PageCount, PageCount / (1024 * 1024 / PAGE_SIZE), EndCounter.QuadPart, EndCounter.QuadPart / PageCount);
+            TotalZero.QuadPart *= 1000000000;
+            TotalZero.QuadPart /= Frequency.QuadPart;
+            DPRINT1("Zeroed %lu pages (%lu MB) in %I64u ns (%I64u for zero) @ %I64u ns/page (total)\n", PageCount, PageCount / (1024 * 1024 / PAGE_SIZE), EndCounter.QuadPart, TotalZero.QuadPart, EndCounter.QuadPart / PageCount);
         }
     }
 }
