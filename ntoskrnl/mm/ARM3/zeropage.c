@@ -54,6 +54,7 @@ MmZeroPageThread(VOID)
     if (StartAddress) MiFreeInitializationCode(StartAddress, EndAddress);
     DPRINT("Free non-cache pages: %lx\n", MmAvailablePages + MiMemoryConsumers[MC_CACHE].PagesUsed);
 
+#ifdef CONFIG_SMP
     OldIrql = MiAcquirePfnLock();
     ASSERT(MmSecondaryColors == MmSecondaryColorMask + 1);
     MaxPagesToZero = min(MmSecondaryColors, 32);
@@ -67,6 +68,9 @@ MmZeroPageThread(VOID)
     }
     DPRINT1("Max pages to zero: %lu (resident available %lu, lock %lu)\n", MaxPagesToZero, MmResidentAvailablePages, MmSystemLockPagesCount);
     MiReleasePfnLock(OldIrql);
+#else
+    MaxPagesToZero = 1;
+#endif
 
     /* Set our priority to 0 */
     Thread->BasePriority = 0;
@@ -150,7 +154,7 @@ MmZeroPageThread(VOID)
             ZeroAddress = MiMapPagesInZeroSpace(FirstPfn, PagesToZero);
             ASSERT(ZeroAddress);
             StartZero = KeQueryPerformanceCounter(NULL);
-            KeZeroPages(ZeroAddress, PagesToZero << PAGE_SHIFT);
+            KeZeroPagesFromIdleThread(ZeroAddress, PagesToZero << PAGE_SHIFT);
             EndZero = KeQueryPerformanceCounter(NULL);
             TotalZero.QuadPart += EndZero.QuadPart - StartZero.QuadPart;
             MiUnmapPagesInZeroSpace(ZeroAddress, PagesToZero);

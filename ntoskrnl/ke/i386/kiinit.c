@@ -159,7 +159,10 @@ KiInitMachineDependent(VOID)
             CpuCount = KeNumberProcessors;
             KeIpiGenericCall(Ki386EnableXMMIExceptions, (ULONG_PTR)&CpuCount);
 
-            /* FIXME: Implement and enable XMM Page Zeroing for Mm */
+            /* Enable XMM Page Zeroing for Mm */
+            //KeZeroPages = KiXMMIZeroPages; /* FIXME */
+            KeZeroPagesFromIdleThread = KiXMMIZeroPagesNoSave;
+            DPRINT1("Using XMMI Zero\n");
 
             /* Patch the RtlPrefetchMemoryNonTemporal routine to enable it */
             *(PCHAR)RtlPrefetchMemoryNonTemporal = 0x90; // NOP

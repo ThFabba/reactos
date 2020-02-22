@@ -85,6 +85,14 @@ typedef PCHAR
     IN ULONG Length
 );
 
+typedef
+VOID
+FASTCALL
+KE_ZERO_PAGE_ROUTINE(
+    _Out_writes_bytes_all_(Size) PVOID Address,
+    _In_ SIZE_T Size);
+typedef KE_ZERO_PAGE_ROUTINE *PKE_ZERO_PAGE_ROUTINE;
+
 extern KAFFINITY KeActiveProcessors;
 extern PKNMI_HANDLER_CALLBACK KiNmiCallbackListHead;
 extern KSPIN_LOCK KiNmiCallbackListLock;
@@ -810,10 +818,10 @@ BOOLEAN
 NTAPI
 KeInvalidateAllCaches(VOID);
 
-VOID
-FASTCALL
-KeZeroPages(IN PVOID Address,
-            IN ULONG Size);
+#ifndef _M_IX86
+KE_ZERO_PAGE_ROUTINE KeZeroPages;
+#define KeZeroPagesFromIdleThread KeZeroPages
+#endif
 
 BOOLEAN
 FASTCALL

@@ -284,6 +284,7 @@ if(ARCH STREQUAL "i386")
     list(APPEND ASM_SOURCE
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ex/i386/fastinterlck_asm.S
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ex/i386/ioport.S
+        ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/cpu.S
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/ctxswitch.S
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/trap.s
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/usercall_asm.S

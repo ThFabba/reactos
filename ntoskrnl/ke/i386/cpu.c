@@ -60,6 +60,10 @@ static const CHAR CmpTransmetaID[]   = "GenuineTMx86";
 static const CHAR CmpCentaurID[]     = "CentaurHauls";
 static const CHAR CmpRiseID[]        = "RiseRiseRise";
 
+/* Zero routine pointers */
+PKE_ZERO_PAGE_ROUTINE KeZeroPages = KiZeroPages;
+PKE_ZERO_PAGE_ROUTINE KeZeroPagesFromIdleThread = KiZeroPages;
+
 /* SUPPORT ROUTINES FOR MSVC COMPATIBILITY ***********************************/
 
 /* NSC/Cyrix CPU configuration register index */
@@ -449,6 +453,9 @@ KiGetFeatureBits(VOID)
     print_supported(KF_NX_DISABLED),
     print_supported(KF_NX_ENABLED));
 #undef print_supported
+
+    KiCpuId(&CpuInfo, 7);
+    DPRINT1("Enhanced REP MOVSB/STOSB: %u\n", (CpuInfo.Ebx & (1 << 9)) != 0);
 
     /* Return the Feature Bits */
     return FeatureBits;
@@ -1131,11 +1138,13 @@ KeInvalidateAllCaches(VOID)
 
 VOID
 FASTCALL
-KeZeroPages(IN PVOID Address,
-            IN ULONG Size)
+KiZeroPages(
+    _Out_writes_bytes_all_(Size) PVOID Address,
+    _In_ SIZE_T Size)
 {
     /* Not using XMMI in this routine */
     RtlZeroMemory(Address, Size);
+    //__stosb(Address, 0, Size);
 }
 
 VOID

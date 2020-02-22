@@ -556,6 +556,18 @@ KiConvertToGuiThread(
     VOID
 );
 
+/* FIXME */
+typedef
+VOID
+FASTCALL
+KE_ZERO_PAGE_ROUTINE(
+    _Out_writes_bytes_all_(Size) PVOID Address,
+    _In_ SIZE_T Size);
+typedef KE_ZERO_PAGE_ROUTINE *PKE_ZERO_PAGE_ROUTINE;
+
+KE_ZERO_PAGE_ROUTINE KiZeroPages;
+KE_ZERO_PAGE_ROUTINE KiXMMIZeroPagesNoSave;
+
 //
 // Global x86 only Kernel data
 //
@@ -586,6 +598,8 @@ extern VOID __cdecl ReadBatch(VOID);
 extern CHAR KiSystemCallExitBranch[];
 extern CHAR KiSystemCallExit[];
 extern CHAR KiSystemCallExit2[];
+extern PKE_ZERO_PAGE_ROUTINE KeZeroPages;
+extern PKE_ZERO_PAGE_ROUTINE KeZeroPagesFromIdleThread;
 
 //
 // Trap Macros
