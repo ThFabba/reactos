@@ -107,7 +107,6 @@ jobs:
       # HACK: remove all packages which contain gcc binary
       run: |
          choco install ninja -y
-         choco uninstall mingw strawberryperl -y
     - name: Install Flex and Bison
       run: |
         curl -O https://svn.reactos.org/storage/vperevertkin/flexbison.7z
