@@ -1659,7 +1659,7 @@ WINAPI
 GetPriorityClass(IN HANDLE hProcess)
 {
     NTSTATUS Status;
-    PROCESS_PRIORITY_CLASS PriorityClass;
+    PROCESS_PRIORITY_CLASS DECLSPEC_ALIGN(4) PriorityClass;
 
     /* Query the kernel */
     Status = NtQueryInformationProcess(hProcess,
@@ -1696,7 +1696,7 @@ SetPriorityClass(IN HANDLE hProcess,
 {
     NTSTATUS Status;
     PVOID State = NULL;
-    PROCESS_PRIORITY_CLASS PriorityClass;
+    PROCESS_PRIORITY_CLASS DECLSPEC_ALIGN(4) PriorityClass;
 
     /* Handle conversion from Win32 to NT priority classes */
     switch (dwPriorityClass)
@@ -2270,7 +2270,7 @@ CreateProcessInternalW(IN HANDLE hUserToken,
     HANDLE DebugHandle, TokenHandle, JobHandle, KeyHandle, ThreadHandle;
     HANDLE FileHandle, SectionHandle, ProcessHandle;
     ULONG ResumeCount;
-    PROCESS_PRIORITY_CLASS PriorityClass;
+    PROCESS_PRIORITY_CLASS DECLSPEC_ALIGN(4) PriorityClass;
     NTSTATUS Status, AppCompatStatus, SaferStatus, IFEOStatus, ImageDbgStatus;
     PPEB Peb, RemotePeb;
     PTEB Teb;
