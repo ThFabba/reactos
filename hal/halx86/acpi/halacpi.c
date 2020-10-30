@@ -921,12 +921,124 @@ HalpInitializePciBus(VOID)
 
 VOID
 NTAPI
+HaliAcpiMachineStateInit(PVOID Arg1, PVOID Arg2, PVOID Arg3)
+{
+    DPRINT1("HaliAcpiMachineStateInit(%p, %p, %p)\n", Arg1, Arg2, Arg3);
+}
+
+NTSTATUS
+NTAPI
+HaliAcpiQueryFlags(VOID)
+{
+    DPRINT1("HaliAcpiQueryFlags()\n");
+    return 0; // 1?
+}
+
+NTSTATUS
+NTAPI
+HalpAcpiPicStateIntact(VOID)
+{
+    DPRINT1("HalpAcpiPicStateIntact()\n");
+    return TRUE;
+}
+
+VOID
+NTAPI
+HalpRestoreInterruptControllerState(VOID)
+{
+    DPRINT1("HalpRestoreInterruptControllerState()\n");
+}
+
+ULONG
+NTAPI
+HaliPciInterfaceReadConfig(IN PBUS_HANDLER RootBusHandler,
+                           IN ULONG BusNumber,
+                           IN PCI_SLOT_NUMBER SlotNumber,
+                           IN PVOID Buffer,
+                           IN ULONG Offset,
+                           IN ULONG Length);
+
+NTSTATUS
+NTAPI
+HaliPciInterfaceWriteConfig(PVOID Arg1, PVOID Arg2, PVOID Arg3, PVOID Arg4, PVOID Arg5, PVOID Arg6)
+{
+    DPRINT1("HaliPciInterfaceWriteConfig(%p, %p, %p, %p, %p, %p)\n", Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
+    return STATUS_NOT_IMPLEMENTED; //Arg6
+}
+
+VOID
+NTAPI
+HaliSetVectorState(PVOID Arg1, PVOID Arg2)
+{
+    DPRINT1("HaliSetVectorState(%p, %p)\n", Arg1, Arg2);
+}
+
+VOID
+NTAPI
+HaliSetMaxLegacyPciBusNumber(PVOID Arg1)
+{
+    DPRINT1("HaliSetMaxLegacyPciBusNumber(%p)\n", Arg1);
+}
+
+BOOLEAN
+NTAPI
+HaliIsVectorValid(PVOID Arg1)
+{
+    DPRINT1("HaliIsVectorValid(%p)\n", Arg1);
+    return FALSE;
+}
+
+struct
+{
+    PM_DISPATCH_TABLE Table;
+    PVOID Functions[11];
+} AcpiPmDispatchTable =
+{
+    {
+        ' LAH',
+        2,
+        {HaliAcpiTimerInit},
+    },
+    {
+        NULL,
+        HaliAcpiMachineStateInit,
+        HaliAcpiQueryFlags,
+        HalpAcpiPicStateIntact,
+        HalpRestoreInterruptControllerState,
+        HaliPciInterfaceReadConfig,
+        HaliPciInterfaceWriteConfig,
+        HaliSetVectorState,
+#if 0
+        HalpGetApicVersion (4),
+#elif 0
+        HalSystemVectorDispatchEntry (fastcall 3)
+#else
+        NULL,
+#endif
+        HaliSetMaxLegacyPciBusNumber,
+        HaliIsVectorValid,
+    }
+};
+
+NTSTATUS
+NTAPI
+HaliInitPowerManagement(IN PPM_DISPATCH_TABLE PmDriverDispatchTable,
+                        OUT PPM_DISPATCH_TABLE *PmHalDispatchTable)
+{
+    *PmHalDispatchTable = &AcpiPmDispatchTable.Table;
+    return STATUS_SUCCESS;
+}
+
+VOID
+NTAPI
 HalpInitNonBusHandler(VOID)
 {
     /* These should be written by the PCI driver later, but we give defaults */
     HalPciTranslateBusAddress = HalpTranslateBusAddress;
     HalPciAssignSlotResources = HalpAssignSlotResources;
     HalFindBusAddressTranslation = HalpFindBusAddressTranslation;
+
+    HalInitPowerManagement = HaliInitPowerManagement;
 }
 
 INIT_FUNCTION
