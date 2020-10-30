@@ -2,13 +2,23 @@
 include_directories(${REACTOS_SOURCE_DIR}/sdk/lib/crt/include)
 spec2def(msvcrt.dll msvcrt.spec)
 
-# The msvcrt <-> msvcrtex trick
+# libmsvcrt should have a few extra objects in it, as defined in msvcrtex
 generate_import_lib(libmsvcrt_real msvcrt.dll msvcrt.spec)
-add_library(libmsvcrt INTERFACE)
+# The library needs to have at least one object, so we just add an empty C file
+add_library(libmsvcrt empty.c)
+add_dependencies(libmsvcrt msvcrtex libmsvcrt_real)
+# target_link_libraries on a static library simply propagates the dependency
+# to the final non-static target, so doesn't do what we want.
+# Adding $<TARGET_FILE:libmsvcrt_real> as an input file to the library seems
+# to be ignored by CMake, so we just add it as a command line option (and
+# add the above dependency to make sure the file exists). This seems to work
+# for both GCC and MSVC
+set_property(TARGET libmsvcrt APPEND PROPERTY STATIC_LIBRARY_OPTIONS $<TARGET_FILE:msvcrtex> $<TARGET_FILE:libmsvcrt_real>)
+if(MSVC)
+    set_target_properties(libmsvcrt PROPERTIES LINKER_LANGUAGE "IMPLIB")
+endif()
+set_target_properties(libmsvcrt PROPERTIES PREFIX "")
 target_compile_definitions(libmsvcrt INTERFACE _DLL __USE_CRTIMP)
-# if the linked module is one of win32gui;win32cui;win32dll;win32ocx;cpl link it with msvcrtex, which itself is linked to libmsvcrt_real
-# Otherwise, just link to libmsvcrt_real
-target_link_libraries(libmsvcrt INTERFACE "$<IF:$<IN_LIST:$<TARGET_PROPERTY:REACTOS_MODULE_TYPE>,win32gui;win32cui;win32dll;win32ocx;cpl>,msvcrtex,libmsvcrt_real>")
 
 add_definitions(
     -DUSE_MSVCRT_PREFIX
