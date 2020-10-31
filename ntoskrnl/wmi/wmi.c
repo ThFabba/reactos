@@ -108,12 +108,8 @@ NTSTATUS
 NTAPI
 IoWMIWriteEvent(IN PVOID WnodeEventItem)
 {
-    DPRINT1("IoWMIWriteEvent() called for WnodeEventItem %p, returning success\n",
+    DPRINT("IoWMIWriteEvent() called for WnodeEventItem %p, returning success\n",
         WnodeEventItem);
-
-    /* Free the buffer if we are returning success */
-    if (WnodeEventItem != NULL)
-        ExFreePool(WnodeEventItem);
 
     return STATUS_SUCCESS;
 }
