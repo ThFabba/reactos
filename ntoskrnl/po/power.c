@@ -334,7 +334,6 @@ PopSetSystemPowerState(SYSTEM_POWER_STATE PowerState, POWER_ACTION PowerAction)
     PDEVICE_OBJECT DeviceObject;
     PDEVICE_OBJECT Fdo;
     NTSTATUS Status;
-    DEVICETREE_TRAVERSE_CONTEXT Context;
     POWER_STATE_TRAVERSE_CONTEXT PowerContext;
 
     Status = IopGetSystemPowerDeviceObject(&DeviceObject);
@@ -359,24 +358,18 @@ PopSetSystemPowerState(SYSTEM_POWER_STATE PowerState, POWER_ACTION PowerAction)
     PowerContext.PowerDevice = Fdo;
 
     /* Query for system power change */
-    IopInitDeviceTreeTraverseContext(&Context,
-                                     IopRootDeviceNode,
-                                     PopQuerySystemPowerStateTraverse,
-                                     &PowerContext);
-
-    Status = IopTraverseDeviceTree(&Context);
+    Status = IopTraverseDeviceTree(IopRootDeviceNode,
+                                   PopQuerySystemPowerStateTraverse,
+                                   &PowerContext);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("Query system power state failed; changing state anyway\n");
     }
 
     /* Set system power change */
-    IopInitDeviceTreeTraverseContext(&Context,
-                                     IopRootDeviceNode,
-                                     PopSetSystemPowerStateTraverse,
-                                     &PowerContext);
-
-    IopTraverseDeviceTree(&Context);
+    IopTraverseDeviceTree(IopRootDeviceNode,
+                          PopSetSystemPowerStateTraverse,
+                          &PowerContext);
 
     if (!PopAcpiPresent) return STATUS_NOT_IMPLEMENTED;
 

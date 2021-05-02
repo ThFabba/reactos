@@ -215,22 +215,6 @@ typedef struct _FILE_OBJECT_EXTENSION
     (((DeviceNode)->Problem & (Problem)) > 0)
 
 /*
- * VOID
- * IopInitDeviceTreeTraverseContext(
- *   PDEVICETREE_TRAVERSE_CONTEXT DeviceTreeTraverseContext,
- *   PDEVICE_NODE DeviceNode,
- *   DEVICETREE_TRAVERSE_ROUTINE Action,
- *   PVOID Context);
- */
-#define IopInitDeviceTreeTraverseContext(               \
-    _DeviceTreeTraverseContext, _DeviceNode, _Action,   \
-    _Context) {                                         \
-    (_DeviceTreeTraverseContext)->FirstDeviceNode =     \
-        (_DeviceNode);                                  \
-    (_DeviceTreeTraverseContext)->Action = (_Action);   \
-    (_DeviceTreeTraverseContext)->Context = (_Context); }
-
-/*
  * BOOLEAN
  * IopIsValidPhysicalDeviceObject(
  *   IN PDEVICE_OBJECT PhysicalDeviceObject);
@@ -477,32 +461,6 @@ NTSTATUS
 );
 
 //
-// Context information for traversing the device tree
-//
-typedef struct _DEVICETREE_TRAVERSE_CONTEXT
-{
-    //
-    // Current device node during a traversal
-    //
-    PDEVICE_NODE DeviceNode;
-
-    //
-    // Initial device node where we start the traversal
-    //
-    PDEVICE_NODE FirstDeviceNode;
-
-    //
-    // Action routine to be called for every device node
-    //
-    DEVICETREE_TRAVERSE_ROUTINE Action;
-
-    //
-    // Context passed to the action routine
-    //
-    PVOID Context;
-} DEVICETREE_TRAVERSE_CONTEXT, *PDEVICETREE_TRAVERSE_CONTEXT;
-
-//
 // Reserve IRP allocator
 // Used for read paging IOs in low-memory situations
 //
@@ -708,10 +666,11 @@ IopCreateRegistryKeyEx(
     OUT PULONG Disposition OPTIONAL
 );
 
-
 NTSTATUS
 IopTraverseDeviceTree(
-    PDEVICETREE_TRAVERSE_CONTEXT Context);
+    _In_ PDEVICE_NODE FirstDeviceNode,
+    _In_ DEVICETREE_TRAVERSE_ROUTINE Action,
+    _In_opt_ PVOID Context);
 
 NTSTATUS
 NTAPI
