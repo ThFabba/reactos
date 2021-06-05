@@ -249,6 +249,7 @@ KiGetFeatureBits(VOID)
             else if (Prcb->CpuType == 5)
             {
                 /* On P5, enable workaround for the LOCK errata. */
+                DPRINT1("Pentium lock errata present\n");
                 KiI386PentiumLockErrataPresent = TRUE;
             }
 
@@ -1090,6 +1091,8 @@ KiI386PentiumLockErrataFixup(VOID)
     KDESCRIPTOR IdtDescriptor = {0, 0, 0};
     PKIDTENTRY NewIdt, NewIdt2;
     PMMPTE PointerPte;
+
+    DPRINT1("KiI386PentiumLockErrataFixup()\n");
 
     /* Allocate memory for a new IDT */
     NewIdt = ExAllocatePool(NonPagedPool, 2 * PAGE_SIZE);
