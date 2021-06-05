@@ -377,6 +377,8 @@ cleanup:
     if (ResultBuffer)
         KmtFreeResultBuffer(ResultBuffer);
 
+    (void)KmtStopService(SERVICE_NAME, &KmtestServiceHandle);
+
     KmtCloseService(&KmtestServiceHandle);
 
     if (Error)
