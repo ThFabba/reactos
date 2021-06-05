@@ -1344,6 +1344,25 @@ KiTrap0EHandler(IN PKTRAP_FRAME TrapFrame)
     /* Save CR2 */
     Cr2 = __readcr2();
 
+    /* Check for the F00F bug.
+     * Must be a Pentium, a user fault, and the fault address will
+     * be the #UD entry in the IDT.
+     */
+    if (KiI386PentiumLockErrataPresent &&
+        (TrapFrame->ErrCode & 4) == 0 &&
+        (PVOID)Cr2 == KeGetPcr()->IDT + 6)
+    {
+        DPRINT1("F00F bug encountered! ErrCode=0x%lx, Cr2=0x%Ix\n",
+                TrapFrame->ErrCode, Cr2);
+
+        /* This is really a #UD trap. Those don't have an error code */
+        TrapFrame->ErrCode = 0;
+        KiTrap06Handler(TrapFrame);
+
+        ASSERT(FALSE);
+        UNREACHABLE;
+    }
+
     /* Enable interrupts */
     _enable();
 
