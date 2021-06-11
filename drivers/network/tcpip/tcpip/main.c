@@ -290,6 +290,8 @@ NTSTATUS TiCloseFileObject(
     TDI_REQUEST Request;
     NTSTATUS Status;
 
+    ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
+    ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
     IrpSp   = IoGetCurrentIrpStackLocation(Irp);
     Context = IrpSp->FileObject->FsContext;
     if (!Context)
@@ -302,17 +304,29 @@ NTSTATUS TiCloseFileObject(
     {
         case TDI_TRANSPORT_ADDRESS_FILE:
             Request.Handle.AddressHandle = Context->Handle.AddressHandle;
+            ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
+            ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
             Status = FileCloseAddress(&Request);
+            ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
+            ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
             break;
 
         case TDI_CONNECTION_FILE:
             Request.Handle.ConnectionContext = Context->Handle.ConnectionContext;
+            ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
+            ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
             Status = FileCloseConnection(&Request);
+            ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
+            ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
             break;
 
         case TDI_CONTROL_CHANNEL_FILE:
             Request.Handle.ControlChannel = Context->Handle.ControlChannel;
+            ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
+            ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
             Status = FileCloseControlChannel(&Request);
+            ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
+            ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
             break;
 
         default:
@@ -323,6 +337,7 @@ NTSTATUS TiCloseFileObject(
     if (NT_SUCCESS(Status))
         ExFreePoolWithTag(Context, TRANS_CONTEXT_TAG);
 
+    ASSERT(Irp->IoStatus.Status == STATUS_PENDING);
     Irp->IoStatus.Status = Status;
 
     return Irp->IoStatus.Status;
@@ -347,6 +362,8 @@ TiDispatchOpenClose(
 
 //  DbgPrint("Called. DeviceObject is at (0x%X), IRP is at (0x%X).\n", DeviceObject, Irp);
 
+    Irp->IoStatus.Status = STATUS_PENDING;
+    ASSERT(Irp->CurrentLocation <= Irp->StackCount + 1);
     IrpSp = IoGetCurrentIrpStackLocation(Irp);
 
     switch (IrpSp->MajorFunction) {
@@ -366,6 +383,7 @@ TiDispatchOpenClose(
 
     //DbgPrint("Leaving. Status is (0x%X)\n", Status);
 
+    ASSERT(Irp->IoStatus.Status != STATUS_PENDING);
     return IRPFinish( Irp, Status );
 }
 
