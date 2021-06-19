@@ -25,8 +25,8 @@ Startup:
     mov ss, ax
 
     /* Save the boot drive and partition */
-    mov byte ptr ds:[BSS_BootDrive], dl
-    mov byte ptr ds:[BSS_BootPartition], dh
+    mov byte ptr [ds:BSS_BootDrive], dl
+    mov byte ptr [ds:BSS_BootPartition], dh
 
     /* Setup a real mode stack */
     mov sp, word ptr ds:[stack16]
@@ -58,14 +58,7 @@ Msg_Unsupported:
 Msg_Starting:
     .ascii "Starting FreeLoader...", CR, LF, NUL
 
-Msg_LongModeSupported:
-    .ascii "Long mode support detected.", CR, LF, NUL
-
 .LongModeSupported:
-    /* Output status */
-    mov si, offset Msg_LongModeSupported
-    call writestr
-
     /* Load the GDT */
 #ifdef _USE_ML
     lgdt fword ptr [gdtptr]
@@ -77,14 +70,14 @@ Msg_LongModeSupported:
     call BuildPageTables
 
     /* Store real mode entry point in shared memory */
-    mov dword ptr ds:[BSS_RealModeEntry], offset RealModeEntryPoint
+    mov dword ptr [ds:BSS_RealModeEntry], offset RealModeEntryPoint
 
     /* Address the image with es segment */
     mov ax, FREELDR_PE_BASE / 16
     mov es, ax
 
     /* Get address of optional header */
-    mov eax, dword ptr es:[IMAGE_DOS_HEADER_e_lfanew]
+    mov eax, dword ptr [es:IMAGE_DOS_HEADER_e_lfanew]
     add eax, 4 + IMAGE_FILE_HEADER_SIZE
 
     /* Get address of entry point */
@@ -319,7 +312,7 @@ ExitToLongMode:
     mov ss,ax
 
     /* Save current stack pointer */
-    mov word ptr ds:[stack16], sp
+    mov word ptr [ds:stack16], sp
 
     /* Set PAE and PGE: 10100000b */
     // mov eax, cr4
